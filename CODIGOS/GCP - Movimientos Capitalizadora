@@ -1,0 +1,32 @@
+SELECT 
+    t2020105.COMP_COD_CIA AS Codigo_Compania,
+    t2020100.COD_BENEF AS Numero_id_tomador, 
+    t2020100.TIPO_DOCUMENTO AS Tipo_Documento, 
+    t2020105.NRO_TITULO AS Numero_Titulo,  
+    DATE(t3110000.FECHA) AS Fecha_Transaccion,  -- Convertir solo la fecha
+    t3110000.TIPMOV_CODIGO AS Tipo_Movimiento_Codigo, 
+    t3110000.NUMERO_TRANSACCION AS Numero_Transaccion,
+    t3110000.VALOR AS Valor_Transaccion, 
+    t3110000.OFIC_COD_AGENCIA AS Codigo_Agencia, 
+    t1012010.AGRUPAMIENTO AS Agrupamiento_Codigo,  
+    t1012010.SIGNO AS Signo_Movimiento, 
+    t1012010.NOMBRE AS Nombre_Tipo_Movimiento, 
+    t1012010.ABREVIATURA AS Abreviatura_Tipo_Movimiento,
+    t2020105.VR_CUOTA_ACTUAL AS Valor_Cuota_Actual, 
+    t2020105.VR_CUOTA_INICIAL AS Valor_Cuota_Inicial, 
+    t2020105.PLAN_CODIGO AS Codigo_Plan, 
+    DATE(t3110000.FECHA_MODIF) AS Fecha_Modificacion,  -- Solo la fecha (YYYY-MM-DD)    
+    DATE(t2020105.FECHA_CREACION) AS Fecha_Creacion,  -- Convertir solo la fecha
+    DATE(t2020105.FECHA_BLOQUEO) AS Fecha_Bloqueo,  -- Convertir solo la fecha
+    DATE(t2020105.FECHA_CANCELACION) AS Fecha_Cancelacion
+FROM 
+    sb-ecosistemaanalitico-lago.capi.t3110000 AS t3110000
+JOIN 
+    sb-ecosistemaanalitico-lago.capi.t1012010 AS t1012010
+    ON t3110000.TIPMOV_CODIGO = t1012010.CODIGO
+JOIN
+    sb-ecosistemaanalitico-lago.capi.t2020105 AS t2020105
+    ON t3110000.TITU_NRO_TITULO = t2020105.NRO_TITULO
+JOIN 
+    sb-ecosistemaanalitico-lago.capi.t2020100 AS t2020100
+    ON t3110000.TITU_NRO_TITULO = t2020100.TITU_NRO_TITULO  -- Relacionando las tablas
