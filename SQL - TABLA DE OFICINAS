@@ -1,7 +1,0 @@
-SELECT * 
-FROM a1000702 t1
-JOIN a1000701 t2
-  ON t1.cod_ofi_comer = t2.cod_ofi_comer
-  AND t1.cod_div_dreg = t2.cod_div_dreg
-JOIN a1000700 t3
-  ON t1.cod_div_dreg = t3.cod_div_reg;
