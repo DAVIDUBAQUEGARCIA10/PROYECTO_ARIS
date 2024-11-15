@@ -1,0 +1,5 @@
+SELECT *
+FROM juridicos
+LEFT JOIN acteco_tercero ON juridicos.SECUENCIA = acteco_tercero.jur_secuencia
+LEFT JOIN actividades_economicas  ON acteco_tercero.acteco_secuencia = actividades_economicas.secuencia 
+where (juridicos.fecha_creacion >= '31/07/24' or juridicos.fecha_modificacion >= '30/09/24')
