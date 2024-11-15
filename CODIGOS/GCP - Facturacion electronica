@@ -1,0 +1,7 @@
+select * 
+from t_control_facturacion_electronica:
+
+--La tabla almacena los registros de facturación para cada póliza emitida por la compañía, 
+incluyendo detalles específicos como valor de primas y 
+facturas, precobros e impuestos para cada
+uno de los anteriores valores, de modo que se pueda controlar las diferencias existentes entre dichos montos. 
