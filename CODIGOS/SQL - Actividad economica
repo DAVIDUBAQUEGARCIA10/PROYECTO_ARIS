@@ -1,0 +1,7 @@
+select *
+from   acteco_tercero
+
+select *
+from actividades_economicas
+
+-- Cruzar con Naturales y Juridicos
