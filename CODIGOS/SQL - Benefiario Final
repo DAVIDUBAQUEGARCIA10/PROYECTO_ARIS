@@ -1,0 +1,10 @@
+select *
+from   contactos c
+where  c.jur_secuencia = 140089  --(ejemplo de la secuencia del juridico que se obtiene de la tabla juridicos
+  and  c.porcentaje_participacion is not null
+  and  c.secuencia = (select max(c1.secuencia)
+                      from   contactos c1
+                      where  c1.jur_secuencia = c.jur_secuencia
+                        and  c1.numero_documento = c.numero_documento
+                        and  c1.tipdoc_codigo = c.tipdoc_codigo)
+  and  c.marca_activo = 'A'
