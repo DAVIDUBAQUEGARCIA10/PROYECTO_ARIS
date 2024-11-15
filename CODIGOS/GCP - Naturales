@@ -1,0 +1,2 @@
+select *
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
