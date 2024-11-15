@@ -1,0 +1,5 @@
+select *
+from  fatca_natural
+
+select *
+from  fatca_juridica
