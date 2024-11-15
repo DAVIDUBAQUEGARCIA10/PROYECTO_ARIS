@@ -1,0 +1,3 @@
+SELECT COUNT(DISTINCT CONCAT(KEY_ID_ASEGURADO)) AS unique_count
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes
+where  FECHA_CORTE >= '2024-09-01'
