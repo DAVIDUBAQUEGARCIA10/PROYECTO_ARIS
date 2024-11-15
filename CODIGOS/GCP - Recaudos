@@ -2,3 +2,8 @@ select *
 from t_recaudo
 Contiene información acerca del valor de las primas 
 recaudadas Del método de pago utilizado para pagar la prima y detalles sobre la póliza emitida
+
+
+select *
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo
+where fecha_recaudo >='2024-09-01' and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==' and FECHA_PROCESO >='2024-09-01'
