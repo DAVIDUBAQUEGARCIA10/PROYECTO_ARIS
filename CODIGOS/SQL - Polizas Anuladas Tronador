@@ -1,0 +1,13 @@
+SELECT DISTINCT 
+    a.num_pol1,
+    a.cod_ramo,
+    b.txt_red
+FROM 
+    A2000030 a
+LEFT JOIN 
+    A1001800 b ON a.cod_end = b.cod_texto AND a.sub_cod_end = b.sub_cod_texto
+WHERE 
+    a.FECHA_VENC_POL >= '20/09/24' 
+    AND a.TIPO_END = 'AT' 
+    AND (b.TXT_RED LIKE '%ANULACION%' OR b.TXT_RED LIKE '%CANCELACION%')
+
