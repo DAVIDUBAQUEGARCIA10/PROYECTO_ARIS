@@ -1,0 +1,3 @@
+select * 
+from a2000020    
+where cod_campo in ( 'COD_BENEF', 'BENEFICIARIO' )
