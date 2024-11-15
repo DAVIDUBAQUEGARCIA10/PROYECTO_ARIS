@@ -1,0 +1,2 @@
+SELECT * 
+FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas
