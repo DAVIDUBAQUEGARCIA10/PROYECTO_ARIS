@@ -1,0 +1,4 @@
+select *
+from t_recaudo
+Contiene información acerca del valor de las primas 
+recaudadas Del método de pago utilizado para pagar la prima y detalles sobre la póliza emitida
