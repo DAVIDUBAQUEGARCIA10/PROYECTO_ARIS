@@ -16,6 +16,7 @@ WITH SiniestrosConFila AS (
         FECHA_SUSCRIPCION,
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR,
         ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
@@ -27,6 +28,8 @@ WITH SiniestrosConFila AS (
         AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
+        AND LIQUIDADO_BOLIVAR > 0
+        AND FECHA_ORDEN_PAGO IS NOT NULL
 )
 SELECT 
     CODIGO_COMPANIA, 
@@ -41,11 +44,10 @@ SELECT
     FECHA_SINIESTRO,
     FECHA_SUSCRIPCION,
     ESTADO_SINIESTRO,
-    FECHA_ORDEN_PAGO
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR
 FROM 
     SiniestrosConFila
 WHERE 
     fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
 
-
-Muestra -> https://docs.google.com/spreadsheets/d/1BIJ3J9OEHjCuQuVEHM3PO2xBupDuyl3qVHEIBdplB-w/edit?gid=494877379#gid=494877379
