@@ -51,3 +51,17 @@ FROM
 WHERE 
     fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
 
+-----------------
+
+
+El código presentado tiene como objetivo seleccionar y filtrar datos de siniestros de la tabla t_siniestros dentro de un rango de fechas definido por las variables fecha_inicial (2024-01-01) y fecha_final (2024-12-31). La lógica se enfoca en obtener solo los siniestros ocurridos en un período de hasta 90 días después de la suscripción de la póliza y que cumplen con varios criterios específicos:
+
+Filtrado de pólizas: Se seleccionan solo las pólizas cuyo número termina en '01'.
+Exclusión de ciertos tomadores: Se excluyen registros de tomadores con NITs específicos ('860034313' y '830053700').
+Exclusión de ciertos ramos: Se filtran siniestros de los ramos contables con códigos 45 y 34.
+Condición de liquidación positiva: Solo se incluyen siniestros con un valor de "LIQUIDADO_BOLIVAR" mayor que cero y que ya tienen una orden de pago asociada.
+Rango de fechas: Se limitan los siniestros a aquellos dentro del período entre las fechas inicial y final y que ocurren dentro de 90 días tras la suscripción de la póliza.
+El código utiliza la función ROW_NUMBER() para asignar un número de fila a cada conjunto de registros por tomador (KEY_ID_TOMADOR), ordenado por la fecha de suscripción. Esto asegura que solo se seleccione el primer siniestro registrado para cada tomador. Finalmente, la consulta retorna todos los detalles de los siniestros para cada tomador, pero solo muestra el primer siniestro de cada uno (según el número de fila).
+
+Este enfoque permite obtener una muestra depurada de siniestros que cumplen con criterios específicos, excluyendo registros irrelevantes y limitando el análisis a los siniestros más recientes por tomador.
+
