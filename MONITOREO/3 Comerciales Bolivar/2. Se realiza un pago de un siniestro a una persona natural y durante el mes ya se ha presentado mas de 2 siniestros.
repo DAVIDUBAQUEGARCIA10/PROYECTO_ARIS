@@ -30,10 +30,12 @@ WITH SiniestrosPorMes AS (
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
         DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
-        AND CODIGO_COMPANIA = 2
+        AND CODIGO_COMPANIA = 3
         AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
         AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
+        AND LIQUIDADO_BOLIVAR > 0
+        AND FECHA_ORDEN_PAGO IS NOT NULL
 )
 SELECT 
     CODIGO_COMPANIA, 
@@ -57,6 +59,7 @@ SELECT
 FROM 
     SiniestrosPorMes
 WHERE 
-    count_dias_distintos > 3;  -- Solo incluir registros donde haya más de 2 siniestros en días distintos dentro del mismo mes para un mismo tomador
+    count_dias_distintos > 2;  -- Solo incluir registros donde haya más de 2 siniestros en días distintos dentro del mismo mes para un mismo tomador
+
 
 Ejemplo del codigo -> https://docs.google.com/spreadsheets/d/1DH13x20TIRON0NLHXrlTB5ZKwabqJE129pE3tUbBPvA/edit?gid=1726480206#gid=1726480206
