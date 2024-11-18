@@ -1,3 +1,33 @@
+DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
+DECLARE fecha_final DATE DEFAULT '2024-12-31';
+
+WITH SiniestrosConFila AS (
+    SELECT
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
+        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
+        AND CODIGO_COMPANIA = 2
+        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
+)
 SELECT 
     CODIGO_COMPANIA, 
     CODIGO_RAMO_CONTABLE, 
@@ -13,11 +43,9 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO
 FROM 
-    sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    SiniestrosConFila
 WHERE 
-    FECHA_SUSCRIPCION >= '2024-01-01'
-    AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
-    AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01';  -- Filtrar por pólizas que terminan en '01'
-    AND CODIGO_COMPANIA = 2
+    fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
+
 
 Muestra -> https://docs.google.com/spreadsheets/d/1BIJ3J9OEHjCuQuVEHM3PO2xBupDuyl3qVHEIBdplB-w/edit?gid=494877379#gid=494877379
