@@ -1,0 +1,52 @@
+DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
+DECLARE fecha_final DATE DEFAULT '2024-12-31';
+
+WITH SiniestrosPorMes AS (
+    SELECT 
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        EXTRACT(YEAR FROM FECHA_SINIESTRO),
+        EXTRACT(MONTH FROM FECHA_SINIESTRO),
+        
+        -- Contamos los días únicos dentro de cada mes y para cada tomador
+        COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        AND CODIGO_COMPANIA = 2
+        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
+)
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO
+FROM 
+    SiniestrosPorMes
+WHERE 
+    count_dias_distintos > 2;  -- Solo incluir registros donde haya más de 2 siniestros en días distintos dentro del mismo mes para un mismo tomador
+
+Ejemplo del codigo -> https://docs.google.com/spreadsheets/d/1P88lgI2A2woUY5Ch1lSVp09a2GxMptvXu3aRM1T6nts/edit?gid=183425860#gid=183425860
