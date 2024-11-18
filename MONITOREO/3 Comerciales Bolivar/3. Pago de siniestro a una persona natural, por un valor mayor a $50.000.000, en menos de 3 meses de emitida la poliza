@@ -1,0 +1,59 @@
+DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
+DECLARE fecha_final DATE DEFAULT '2024-12-31';
+
+WITH SiniestrosConFila AS (
+    SELECT
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,          
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 --en  menos de 3 meses de emitida la poliza
+        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
+        AND CODIGO_COMPANIA = 3 --Filtro para solo Seguros Bolivar
+        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34) -- Excluir ramos de Salud y otros
+        AND LIQUIDADO_BOLIVAR > 50000000 -- Siniestros mayores a este monto
+        AND FECHA_ORDEN_PAGO IS NOT NULL -- Los cuales ya estan pagados
+        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir Juridicos
+        AND KEY_ID_BENEFICIARIO NOT IN ('860034313', '830053700') -- Se excluye beneficiario fiduciaria y Davivienda
+
+)
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,     
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR
+FROM 
+    SiniestrosConFila
+WHERE 
+    fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
