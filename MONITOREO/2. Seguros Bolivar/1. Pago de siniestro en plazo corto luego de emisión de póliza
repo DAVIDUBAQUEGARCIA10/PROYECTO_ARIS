@@ -20,4 +20,4 @@ WHERE
     AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01';  -- Filtrar por pólizas que terminan en '01'
     AND CODIGO_COMPANIA = 2
 
-Muestra -> https://docs.google.com/spreadsheets/d/1grfkllUOl2v8XJREcvU3nkLAjKrlgl5tGaaguef6UMM/edit?pli=1&gid=1479070427#gid=1479070427
+Muestra -> https://docs.google.com/spreadsheets/d/1BIJ3J9OEHjCuQuVEHM3PO2xBupDuyl3qVHEIBdplB-w/edit?gid=494877379#gid=494877379
