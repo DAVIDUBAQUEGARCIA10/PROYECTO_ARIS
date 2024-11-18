@@ -12,12 +12,17 @@ WITH SiniestrosPorMes AS (
         NUMERO_POLIZA,
         TIPO_DOCUMENTO_TOMADOR,
         KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,        
         FECHA_SINIESTRO,
         FECHA_SUSCRIPCION,
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         EXTRACT(YEAR FROM FECHA_SINIESTRO),
         EXTRACT(MONTH FROM FECHA_SINIESTRO),
+        ESTADO_SINIESTRO_CALCULADO,
+        LIQUIDADO_BOLIVAR,
+        INCURRIDO_BOLIVAR,
         
         -- Contamos los días únicos dentro de cada mes y para cada tomador
         COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos
@@ -40,13 +45,18 @@ SELECT
     NUMERO_POLIZA,
     TIPO_DOCUMENTO_TOMADOR,
     KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
     FECHA_SINIESTRO,
     FECHA_SUSCRIPCION,
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO
+    ESTADO_SINIESTRO_CALCULADO,
+    LIQUIDADO_BOLIVAR,
+    INCURRIDO_BOLIVAR
 FROM 
     SiniestrosPorMes
 WHERE 
     count_dias_distintos > 3;  -- Solo incluir registros donde haya más de 2 siniestros en días distintos dentro del mismo mes para un mismo tomador
 
-Ejemplo del codigo -> https://docs.google.com/spreadsheets/d/1P88lgI2A2woUY5Ch1lSVp09a2GxMptvXu3aRM1T6nts/edit?gid=183425860#gid=183425860
+Ejemplo del codigo -> https://docs.google.com/spreadsheets/d/1DH13x20TIRON0NLHXrlTB5ZKwabqJE129pE3tUbBPvA/edit?gid=1726480206#gid=1726480206
