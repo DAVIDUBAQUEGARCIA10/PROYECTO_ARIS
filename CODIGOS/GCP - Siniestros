@@ -4,3 +4,8 @@ from t_siniestros
 --Contiene todos los movimientos realizados a los siniestros de Seguros Bolívar y 
 Comerciales Bolivar Por cada póliza, siniestro, riesgo, cobertura, 
 expediente y código de liquidación hay un registro
+
+
+select * 
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+where FECHA_SINIESTRO >= "2024-07-01" and FECHA_PROCESO >="2024-07-01"
