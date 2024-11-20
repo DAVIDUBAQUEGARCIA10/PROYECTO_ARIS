@@ -20,3 +20,5 @@ SELECT
     AUTORIZA_COMPARTIR_INF
 FROM 
     sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos;
+
+Sheet - > https://docs.google.com/spreadsheets/d/1x21ZsyjeoWqu2X4zwHSH3x1GLVaJ0mtR3s5EyiFZ8Jg/edit?gid=1183022185#gid=1183022185
