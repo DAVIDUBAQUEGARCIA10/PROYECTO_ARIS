@@ -1,2 +1,22 @@
-select *
-from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+SELECT 
+    NUMERO_SECUENCIA_POLIZA,
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NOMBRE,
+    NOMBRE_COMERCIAL,
+    SECTOR_ECONOMICO,
+    ACTIVIDAD_ECONOMICA,
+    CODIGO_CIIU,
+    FECHA_NACIMIENTO,
+    GRAN_CONTRIBUYENTE,
+    NUMERO_EMPLEADOS,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    VALOR_PATRIMONIO,
+    FECHA_ACTUALIZACION,
+    AUTORIZA_RECIBIR_INF,
+    AUTORIZA_COMPARTIR_INF
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos;
