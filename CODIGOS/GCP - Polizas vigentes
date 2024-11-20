@@ -3,3 +3,8 @@ from sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas
 where   FECHA_CORTE >='2024-09-01' and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q=='
 
 t_polizas:Contiene información detallada de todas las pólizas que se encuentran vigentes
+
+Sheet -> https://docs.google.com/spreadsheets/d/1Oicgegm5cossVxOxjaeHGZsBEMlwbbXt8o4GRwrS1n4/edit?gid=1569792786#gid=1569792786
+
+
+
