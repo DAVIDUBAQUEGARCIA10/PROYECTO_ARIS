@@ -7,3 +7,10 @@ recaudadas Del método de pago utilizado para pagar la prima y detalles sobre la
 select *
 from sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo
 where fecha_recaudo >='2024-09-01' and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==' and FECHA_PROCESO >='2024-09-01'
+
+
+select codigo_compania, codigo_ramo_emision, nombre_ramo_emision, codigo_producto, nombre_producto, codigo_subproducto, nombre_subproducto, codigo_canal, nombre_canal, clave_agente,numero_poliza, numero_poliza, tipo_documento_tomador, KEY_ID_TOMADOR, fecha_fin_endoso, fecha_inicio_endoso, fecha_recaudo, tipo_recaudo,FECHA_PROCESO, tipo_medio_pago, nombre_agente 
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo
+where fecha_recaudo >='2024-09-01' and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==' and FECHA_PROCESO >='2024-09-01'
+
+sheet -> https://docs.google.com/spreadsheets/d/16RCO7f3r_Psz7B0uTsMtC8-aDJexmS46Bp0LBBxNxrM/edit?usp=drive_open&ouid=101910629782611746997
