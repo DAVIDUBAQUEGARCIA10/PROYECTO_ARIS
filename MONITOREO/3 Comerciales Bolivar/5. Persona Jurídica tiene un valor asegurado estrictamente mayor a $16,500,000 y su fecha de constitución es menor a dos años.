@@ -11,6 +11,8 @@ SELECT DISTINCT
     p.nombre_ramo_emision,
     p.codigo_producto,
     p.nombre_producto,
+    p.COD_MOTIVO_CANCELACION_POLIZA,
+    p.DES_MOTIVO_CANCELACION_POLIZA,
     DATE(c.FECHA_NACIMIENTO) AS FECHA_NACIMIENTO,
     c.GRAN_CONTRIBUYENTE,
     c.VALOR_EGRESOS,
