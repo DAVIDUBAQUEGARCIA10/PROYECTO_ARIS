@@ -1,0 +1,13 @@
+SELECT
+    TIPO_DOCUMENTO_TERCERO,    -- Tipo de documento de identificación del cliente. Categorías posibles: [CC: Cédula de ciudadanía, CE: Cédula de extranjería, NT: Nit].
+    KEY_ID,                    -- Número de identificación del cliente o tercero encriptado.
+    CODIGO_RESTRICCION,        -- Código único asociado a la restricción del cliente.
+    DESCRIPCION,               -- Descripción de la restricción o tipo de riesgo del cliente. Este campo es el código, y la descripción está en la siguiente variable.
+    FECHA_BAJA,                -- Fecha en que el cliente fue dado de baja o restringido.
+    FECHA_CREACION,            -- Fecha de creación del registro del cliente en la base de datos.
+    FECHA_MODIFICACION,        -- Fecha de la última modificación en el registro del cliente.
+    VALOR_RIESGO,              -- Valor que determina el riesgo asociado al cliente o restricción.
+    NIVEL_ALERTA,              -- Nivel de alerta asociado a la restricción del cliente.
+    MARCA_ACTIVO               -- Este campo es utilizado para identificar si el registro está activo o no.
+FROM
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`;
