@@ -28,7 +28,8 @@ SELECT
     FECHA_ULTIMO_SALARIO,
     FECHA_INGRESO_EMPRESA,
     FECHA_INICIO,
-    FECHA_PROCESO
+    FECHA_PROCESO, 
+    PUBLICAMENTE_EXPUESTA
 FROM 
     sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales;
 
