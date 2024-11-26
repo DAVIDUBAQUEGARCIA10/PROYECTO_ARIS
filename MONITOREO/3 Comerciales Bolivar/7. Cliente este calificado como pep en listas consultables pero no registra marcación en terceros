@@ -1,0 +1,117 @@
+WITH PolizasConFila AS (
+    SELECT 
+        p.CODIGO_COMPANIA,                 
+        p.CODIGO_RAMO_EMISION,             
+        p.NOMBRE_RAMO_EMISION,             
+        p.CODIGO_PRODUCTO,                 
+        p.NOMBRE_PRODUCTO,                 
+        p.CLAVE_AGENTE,                    
+        p.CODIGO_LOCALIDAD,                
+        p.NOMBRE_LOCALIDAD,                
+        p.CODIGO_CANAL,                    
+        p.NOMBRE_CANAL,                    
+        p.NUMERO_SECUENCIA_POLIZA,        
+        p.NUMERO_POLIZA_ANTERIOR,          
+        p.NUMERO_POLIZA,                   
+        p.NUMERO_POLIZA_SIGUIENTE,         
+        p.NUMERO_POLIZA_MADRE,             
+        p.TIPO_DOCUMENTO_TOMADOR,          
+        p.KEY_ID_TOMADOR,                  
+        p.FECHA_INICIO_POLIZA,             
+        p.FECHA_FIN_POLIZA,               
+        p.MARCA_REFERIDO,                  
+        p.FECHA_CORTE,                     
+        p.NOMBRE_PROCESO,                  
+        p.FECHA_PROCESO,                   
+        p.CODIGO_SUBPRODUCTO,              
+        p.NOMBRE_SUBPRODUCTO,              
+        p.FECHA_EMISION_ENDOSO,            
+        p.FECHA_EMISION_ORIGINAL,         
+        l.TIPO_DOCUMENTO,                  
+        l.KEY_ID,                          
+        l.NOMBRES,                         
+        l.OBSERVACIONES,                   
+        l.CODIGO_LISTA,                    
+        l.NOMBRE_LISTA,                    
+        l.FECHA_INICIO,                    
+        l.FECHA_FIN,                       
+        ROW_NUMBER() OVER (
+            PARTITION BY CAST(p.KEY_ID_TOMADOR AS STRING), CAST(p.TIPO_DOCUMENTO_TOMADOR AS STRING)
+            ORDER BY p.FECHA_EMISION_ENDOSO DESC
+        ) AS fila
+    FROM
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
+    ON 
+        p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
+        AND p.KEY_ID_TOMADOR = l.KEY_ID
+        AND l.CODIGO_LISTA IN ('23')
+)
+SELECT 
+    p.CODIGO_COMPANIA,                 
+    p.CODIGO_RAMO_EMISION,             
+    p.NOMBRE_RAMO_EMISION,             
+    p.CODIGO_PRODUCTO,                 
+    p.NOMBRE_PRODUCTO,                 
+    p.CLAVE_AGENTE,                    
+    p.CODIGO_LOCALIDAD,                
+    p.NOMBRE_LOCALIDAD,                
+    p.CODIGO_CANAL,                    
+    p.NOMBRE_CANAL,                              
+    p.NUMERO_POLIZA,                           
+    p.NUMERO_POLIZA_MADRE,             
+    p.TIPO_DOCUMENTO_TOMADOR,          
+    p.KEY_ID_TOMADOR,                  
+    p.FECHA_INICIO_POLIZA,             
+    p.FECHA_FIN_POLIZA,                                
+    p.FECHA_CORTE,                                                   
+    p.FECHA_EMISION_ENDOSO,            
+    p.FECHA_EMISION_ORIGINAL,                               
+    l.NOMBRES,                         
+    l.OBSERVACIONES,                   
+    l.CODIGO_LISTA,                    
+    l.NOMBRE_LISTA,
+    tcn.PUBLICAMENTE_EXPUESTA,                                 
+    tcn.SEXO,                          
+    tcn.FEC_NACIMIENTO,               
+    tcn.NACIONALIDAD,                                         
+    tcn.ESTRATO_SOCIAL,               
+    tcn.EMPRESA_TRABAJA,              
+    tcn.CARGO,                         
+    tcn.CONTACTAR_EN,                 
+    tcn.FECHA_ACTUALIZACION,         
+    tcn.VALOR_EGRESOS,                
+    tcn.VALOR_INGRESOS,               
+    tcn.VALOR_ACTIVO,                 
+    tcn.VALOR_PASIVO,                 
+    tcn.VALOR_PATRIMONIO,             
+    tcn.CODIGO_CIIU,                  
+    tcn.ACTIVIDAD_ECONOMICA,         
+    tcn.FUENTE_EMPRESA_TRABAJA,      
+    tcn.FUENTE_INGRESO,               
+    tcn.FECHA_ULTIMO_SALARIO,        
+    tcn.FECHA_INGRESO_EMPRESA
+FROM 
+    PolizasConFila p
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+ON 
+    p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = tcn.KEY_ID
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
+ON 
+    p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = l.KEY_ID
+WHERE 
+    p.fila = 1
+    AND l.CODIGO_LISTA = '23'
+    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'
+    AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
+     AND p.CODIGO_COMPANIA = 3
+ORDER BY 
+    p.FECHA_CORTE DESC;
+
+
+https://docs.google.com/spreadsheets/d/1MOpRizXZpUAc66zQejPFkyasWGuomx1AOjW7XJzxIkw/edit?gid=143496685#gid=143496685
