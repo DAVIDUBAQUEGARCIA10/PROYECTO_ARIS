@@ -1,3 +1,23 @@
+SELECT 
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NUMERO_FACTURA,
+    FECHA_RECAUDO,
+    PRIMA_RECAUDADA,
+    MEDIO_PAGO,
+    SISTEMA_FUENTE,
+    FECHA_PROCESO
+FROM 
+    `sb-ecosistemaanalitico-lago.bancaseguros.t_recaudo`;
+
+
 select *
 from t_recaudo
 Contiene información acerca del valor de las primas 
