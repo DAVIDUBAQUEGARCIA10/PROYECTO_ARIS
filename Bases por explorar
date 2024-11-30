@@ -1,0 +1,4 @@
+*Informacion de beneficiario del siniestro
+select * 
+from A3001700
+where fec_est_pago >= '01/11/24'
