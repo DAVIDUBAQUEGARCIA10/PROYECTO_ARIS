@@ -1,1 +1,27 @@
 
+Estoy haceienod un modelo de segmentacion y clusterizacion, para lo cual Necesito que me crees un solo script para bigquery, respetando las siguiente logicas dadas, dejando al final una columna que le voy llamar CLUSTER 1
+
+Cluster 1 , La lleve de todas las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna  (VARIABLE: NIVEL_DE_RIESGO de la tabla XXXXX) sea igual a BAJO
+Clientes que en la columna  (VARIABLE: NIVEL_DE_RPROFESION de la tabla XXXXX) sea igual a BAJO,MEDIO,ALTO
+Clientes que en la columna  (VARIABLE: CARGO (DEJAR VARIABLE COMO ALIAS 'OCUPACION') de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a ASALARIADO O NULLO O VACIO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 34,8
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 13,0
+
+**Preguntar a Oscar o camilo si los pagos se tomaron de la transaccionalidad o siniestro 
+Clientes que tengan cantidad de transacicones (Variable = INCURRIDO_BOLIVAR) de siniestro en 1 en cantidad y valor sumado maximo se de 125984610 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros.
+
+**Preguntar a Oscar o camilo si los pagos se tomaron de la transaccionalidad o siniestro 
+Clientes que tengan cantidad de transacicones (Variable = INCURRIDO_BOLIVAR) de movimientos de recaudo como maximo en 5 en cantidad y minimo 1 y valor sumado maximo se de 316673675 y minimo -254938589 de la tabla sb-ecosistemaanalitico-lago.bancaseguros.t_recaudo
+
+***Consultar si es solo clientes vigentes y transacccinalidad
+Adiconalmente cruzar con la tabla de `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` para dejar solamente los productos que estan vigentes
+
+
+Union
+
+Cluster 2
+
+
+
+
