@@ -91,7 +91,8 @@ SELECT
     tcn.FUENTE_EMPRESA_TRABAJA,      
     tcn.FUENTE_INGRESO,               
     tcn.FECHA_ULTIMO_SALARIO,        
-    tcn.FECHA_INGRESO_EMPRESA
+    tcn.FECHA_INGRESO_EMPRESA,
+    tcn.FECHA_INICIO
 FROM 
     PolizasConFila p
 INNER JOIN 
@@ -110,8 +111,7 @@ WHERE
     AND tcn.PUBLICAMENTE_EXPUESTA != 'S'
     AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
      AND p.CODIGO_COMPANIA = 3
+     AND tcn.FECHA_INICIO >="2024-10-01"
+        AND p.NOMBRE_PRODUCTO != "SOAT"
 ORDER BY 
     p.FECHA_CORTE DESC;
-
-
-https://docs.google.com/spreadsheets/d/1MOpRizXZpUAc66zQejPFkyasWGuomx1AOjW7XJzxIkw/edit?gid=143496685#gid=143496685
