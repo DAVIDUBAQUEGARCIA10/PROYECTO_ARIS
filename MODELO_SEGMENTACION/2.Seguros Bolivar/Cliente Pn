@@ -166,9 +166,8 @@ Cluster 13, La lleve de todas las tablas es ID_TOMADOR Y KEY_TOMADOR
 Clientes que en la columna  (VARIABLE: NIVEL_DE_RIESGO de la tabla XXXXX) sea igual a BAJO,ALTO
 Clientes que en la columna  (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo) sea igual a BAJA,MEDIO,ALTO
 Clientes que en la columna  (VARIABLE: CARGO (DEJAR VARIABLE COMO ALIAS 'OCUPACION') de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a ASALARIADO, NULLO O VACIO
-Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 28,7
-Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 12,7
-Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = PRIMA_RECAUDADA) de pago en 1 en cantidad y valor sumado maximo sea de 4625002 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo
-Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = INCURRIDO_BOLIVAR) de siniestro en máximo 22 en cantidad y minimo 2 y valor sumado maximo sea de 84394990 y minimo -11050394 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 66,7
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como mínimo 16,4 y como maximo 31,6
+Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = INCURRIDO_BOLIVAR) de siniestro en máximo 34 en cantidad y minimo 1 y valor sumado maximo sea de 2490013386 y minimo -61098813 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
 ***Consultar si es solo clientes vigentes y transaccionalidad
 Adiconalmente cruzar con la tabla de `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` para dejar solamente los productos que estan vigentes
