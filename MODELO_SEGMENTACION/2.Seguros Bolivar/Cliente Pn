@@ -17,6 +17,16 @@ Clientes que tengan cantidad de transacicones (Variable = INCURRIDO_BOLIVAR) de 
 ***Consultar si es solo clientes vigentes y transaccionalidad
 Adiconalmente cruzar con la tabla de `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` para dejar solamente los productos que estan vigentes
 
+Cluster 1, La lleve de todas las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna  (VARIABLE: NIVEL_DE_RIESGO de la tabla XXXXX) sea igual a BAJO
+Clientes que en la columna  (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo) sea igual a BAJA,MEDIO,ALTO
+Clientes que en la columna  (VARIABLE: CARGO (DEJAR VARIABLE COMO ALIAS 'OCUPACION') de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a ASALARIADO,NULLO O VACIO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 34,8
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla (sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea como maximo 13,0
+Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = PRIMA_RECAUDADA) de pago en 1 en cantidad y valor sumado maximo sea de 125984610 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo
+Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = INCURRIDO_BOLIVAR) de siniestro en máximo 5 en cantidad y minimo 1 y valor sumado maximo sea de 316673675 y minimo -245938589 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+***Consultar si es solo clientes vigentes y transaccionalidad
+Adiconalmente cruzar con la tabla de `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` para dejar solamente los productos que estan vigentes
 
 Union
 
