@@ -83,4 +83,4 @@ SELECT
   ID_TOMADOR, 
   KEY_TOMADOR, 
   Segmento
-FROM Segmento1;
+FROM Segmento1, segmento2, segmento3, segmento4, segmento5, segmento6, segmento7, segmento8, segmento9, segmento10, segmento11, segmento12, segmento13;
