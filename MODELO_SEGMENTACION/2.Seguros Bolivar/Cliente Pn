@@ -27,6 +27,7 @@ Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = PRIMA
 Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = INCURRIDO_BOLIVAR) de siniestro en máximo 5 en cantidad y minimo 1 y valor sumado maximo sea de 316673675 y minimo -245938589 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
 ***Consultar si es solo clientes vigentes y transaccionalidad
 Adiconalmente cruzar con la tabla de `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` para dejar solamente los productos que estan vigentes
+Si la persona cumple con estos criterios en una tabla donde esten todos los ID_TOMADOR y KEY_TOMADOR se debe agregar una columna de nombre "Segmento" e indicar que corresponde al segmento 1
 
 Union
 
