@@ -1,0 +1,80 @@
+Segmento 1
+
+WITH 
+-- Filtro por Nivel de Riesgo
+Riesgo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `XXXXX` AS a
+  WHERE NIVEL_DE_RIESGO = 'BAJO'
+
+  UNION ALL
+
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
+),
+
+-- Filtro por Ocupación
+Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
+  WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
+),
+
+-- Filtro por Activo/Pasivo
+ActivoPasivo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
+  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 34.8
+),
+
+-- Filtro por Ingresos/Egresos
+IngresosEgresos AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.0
+),
+
+-- Filtro por transacciones de pago
+TransaccionesPago AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
+  WHERE COMPANIA = 2
+    AND PRIMA_RECAUDADA_CANTIDAD = 1
+    AND PRIMA_RECAUDADA_VALOR <= 125984610
+),
+
+-- Filtro por transacciones de siniestro
+TransaccionesSiniestro AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+  WHERE COMPANIA = 2
+    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 5
+    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -245938589 AND 316673675
+),
+
+-- Clientes vigentes según tabla de pólizas
+PolizasVigentes AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
+  WHERE ESTADO_PRODUCTO = 'VIGENTE'
+),
+
+-- Unimos todos los filtros
+Segmento1 AS (
+  SELECT DISTINCT 
+    a.ID_TOMADOR, 
+    a.KEY_TOMADOR,
+    1 AS Segmento
+  FROM Riesgo AS a
+  JOIN Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS g USING (ID_TOMADOR, KEY_TOMADOR)
+)
+
+-- Generamos la tabla final con el segmento asignado
+SELECT *
+FROM Segmento1;
