@@ -1,14 +1,16 @@
 Segmento 1
 
 WITH 
--- Filtro por Nivel de Riesgo
-Riesgo AS (
+
+-- Filtro por Nivel de Riesgo LAFT
+Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `XXXXX` AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
+),
 
-  UNION ALL
-
+-- Filtro por Nivel de Riesgo Ocupación
+Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
@@ -58,7 +60,7 @@ PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
-),
+), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
 -- Unimos todos los filtros
 Segmento1 AS (
@@ -66,15 +68,19 @@ Segmento1 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     1 AS Segmento
-  FROM Riesgo AS a
-  JOIN Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS c USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS d USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS e USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS f USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 -- Generamos la tabla final con el segmento asignado
-SELECT *
+SELECT
+  ID_TOMADOR, 
+  KEY_TOMADOR, 
+  Segmento
 FROM Segmento1;
