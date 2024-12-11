@@ -1,0 +1,56 @@
+
+select
+  exrf_nombre_cli_razon_social as Nombre_Cliente,
+  exrf_cod_tip_doc as Cod_Tipo_Doc,
+  exrf_desc_tip_doc as Tipo_Doc,
+  exrf_num_id_cliente as Num_Id,
+  nvl(exrf_cod_ciudad_nacim, -1) as Cod_Ciudad_Nacimiento,
+  nvl(replace(exrf_desc_ciudad_nacim, ';', ''), 'NO APLICA') as Ciudad_Nacimiento,
+  to_char(nvl(exrf_fecha_nacim, to_date('01/01/1900', 'dd/mm/yyyy')), 'dd/mm/yyyy') as Fecha_Nacimiento,
+  nvl(replace(exrf_direccion_resid, ';', ''), 'NO APLICA') as Direccion_Residencia,
+  nvl(exrf_cod_ciudad_resid, -1) as Cod_Ciudad_Residencia,
+  nvl(replace(exrf_desc_ciudad_resid, ';', ''), 'NO APLICA') as Ciudad_Residencia,
+  nvl(exrf_telefono_residencia, ' ') as Telefono_Residencia,
+  nvl(exrf_cod_profesion, -1) as Cod_Profesion,
+  nvl(replace(exrf_desc_profesion, ';', ''), 'NO APLICA') as Profesion,
+  nvl(exrf_cod_ocupacion, -1) as Cod_Ocupacion,
+  nvl(replace(exrf_desc_ocupacion, ';', ''), 'NO APLICA') as Ocupacion,
+  nvl(exrf_cod_act_economica, -1) as Cod_Act_Economica,
+  nvl(replace(exrf_desc_act_economica, ';', ''), 'NO APLICA') as Act_Economica,
+  exrf_vlr_ingresos as Vlr_Ingresos,
+  exrf_vlr_egresos as Vlr_Egresos,
+  exrf_vlr_activos as Vlr_Activos,
+  exrf_vlr_pasivos as Vlr_Pasivos,
+  exrf_vlr_patrimonio as Vlr_Patrimonio,
+  exrf_cod_cia as Cod_Compania,
+  exrf_nom_cia as Compania,
+  exrf_cod_ramo_emi as Cod_Ramo,
+  exrf_nom_ramo_emi as Ramo,
+  exrf_cod_producto as Cod_Producto,
+  exrf_nom_producto as Producto,
+  exrf_cod_loc_neg as Cod_Localidad,
+  exrf_nom_loc_neg as Localidad,
+  to_char(nvl(exrf_fecha_creacion_terc, to_date('01/01/1900', 'dd/mm/yyyy')), 'dd/mm/yyyy') as Fecha_Vinculacion_Cliente,
+  to_char(nvl(exrf_fecha_act_financiera, to_date('01/01/1900', 'dd/mm/yyyy')), 'dd/mm/yyyy') as Fecha_Act_Financiera,
+  exrf_desc_pers_ppubrec as Politicamente_Expuesta,
+  exrf_desc_vinc_ppubrec as Vinculo_Persona_Politicamente_Expuesta,
+  exrf_cod_oper_moned_ext as Cod_Oper_Moned_Ext,
+  exrf_desc_oper_moned_ext as Oper_Moned_Ext,
+  exrf_ult_formato_conocimiento as Ultimo_Formato_Conocimiento,
+  exrf_fecha_ultimo_formato as Fecha_Ultimo_Formato,
+  exrf_usuario_ultimo_formato as Usuario_Ultimo_Formato,
+  exrf_cod_estrategia_neg as Codigo_Estrategia,
+  exrf_desc_estrategia_neg as Descripcion_Estrategia,
+  exrf_cod_entidad_estrategia as Codigo_Entidad_Estrategia,
+  exrf_entidad_estrategia_neg as Entidad_Estrategia,
+  exrf_version_estrategia_neg as Version_Estrategia,
+  exrf_desc_replegal_pep as RepLegal_Politicamente_Expuesta,
+  exrf_desc_replegal_vinc_pep as RepLegal_Vinculo_Persona_Politicamente_Expuesta
+from dc_ext_revisoria_fiscal
+where  exrf_cod_cia = 1
+  and exrf_cod_tipo_persona = 'N'
+  and exrf_tipo_generacion = 2
+  and exrf_cod_tip_doc is not null
+  and exrf_cod_mrca_sarlaft != 1
+  and exrf_nombre_cli_razon_social is not null
+order by exrf_cod_tip_doc, exrf_desc_tip_doc asc;
