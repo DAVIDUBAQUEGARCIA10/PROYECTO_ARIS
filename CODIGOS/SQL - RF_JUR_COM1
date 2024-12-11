@@ -1,0 +1,52 @@
+
+--Datos
+select  
+exrf_nombre_cli_razon_social AS Nombres_Cliente_Razon_Social,
+exrf_cod_tip_doc AS Cod_Tipo_Doc,
+exrf_desc_tip_doc AS Tipo_Doc,
+exrf_num_id_cliente AS Num_Identificacion_Cliente,
+exrf_nombre_rep_legal AS Nombres_Rep_Legal,
+exrf_num_id_rep_legal AS Num_Identificacion_Rep_Legal,
+nvl(replace(exrf_direccion_rep_legal,';',''),'NO APLICA') AS Direccion_Rep_Legal,
+nvl(exrf_telefono_rep_legal,' ') AS Telefono_Rep_Legal,
+nvl(exrf_cod_act_economica,-1) AS Cod_Act_Economica,
+nvl(replace(exrf_desc_act_economica,';',''),'NO APLICA') AS Act_Economica,
+exrf_cod_naturaleza_jur AS Cod_Tipo_Empresa,
+replace(exrf_desc_naturaleza_jur,';','') AS Tipo_Empresa,
+exrf_vlr_ingresos AS Vlr_Ingresos,
+exrf_vlr_egresos AS Vlr_Egresos,
+exrf_vlr_activos AS Vlr_Activos,
+exrf_vlr_pasivos AS Vlr_Pasivos,
+exrf_vlr_patrimonio AS Vlr_Patrimonio,
+exrf_cod_cia AS Cod_Compania,
+exrf_nom_cia AS Compania,
+exrf_cod_ramo_emi AS Cod_Ramo,
+exrf_nom_ramo_emi AS Ramo,
+exrf_cod_producto AS Cod_Producto,
+exrf_nom_producto AS Producto,
+exrf_cod_loc_neg AS Cod_Localidad,
+exrf_nom_loc_neg AS Localidad,
+to_char(nvl(exrf_fecha_creacion_terc,to_date('01/01/1900','dd/mm/yyyy')),'dd/mm/yyyy') AS Fecha_Vinculacion_Cliente,
+to_char(nvl(exrf_fecha_act_financiera,to_date('01/01/1900','dd/mm/yyyy')),'dd/mm/yyyy') AS Fecha_Act_Financiera,
+exrf_desc_pers_ppubrec AS Politicamente_Expuesta,
+exrf_desc_vinc_ppubrec AS Vinculo_Persona_Politicamente_Expuesta,
+exrf_cod_oper_moned_ext AS Cod_Oper_Moned_Ext,
+exrf_desc_oper_moned_ext AS Oper_Moned_Ext,
+exrf_ult_formato_conocimiento AS Ultimo_Formato_Conocimiento,
+exrf_fecha_ultimo_formato AS Fecha_Ultimo_Formato,
+exrf_usuario_ultimo_formato AS Usuario_Ultimo_Formato,
+exrf_cod_estrategia_neg AS Codigo_Estrategia,
+exrf_desc_estrategia_neg AS Descripcion_Estrategia,
+exrf_cod_entidad_estrategia AS Codigo_Entidad_Estrategia,
+exrf_entidad_estrategia_neg AS Entidad_Estrategia,
+exrf_version_estrategia_neg AS Version_Estrategia,
+exrf_desc_replegal_pep AS RepLegal_Politicamente_Expuesta,
+exrf_desc_replegal_vinc_pep AS RepLegal_Vinculo_Persona_Politicamente_Expuesta
+from dc_ext_revisoria_fiscal
+where  exrf_cod_cia = 1 and exrf_cod_tipo_persona = 'J' 
+and exrf_tipo_generacion = 2 --RF
+and exrf_cod_tip_doc is not null --Sólo Clientes en Terceros
+and exrf_cod_naturaleza_jur != 2 --Públicas
+and exrf_cod_mrca_sarlaft != 1 --Exceptuado de Sarlaft
+and exrf_nombre_cli_razon_social is not null
+order by exrf_cod_tip_doc, exrf_desc_tip_doc asc;
