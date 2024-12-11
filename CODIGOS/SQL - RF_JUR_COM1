@@ -50,3 +50,18 @@ and exrf_cod_naturaleza_jur != 2 --Públicas
 and exrf_cod_mrca_sarlaft != 1 --Exceptuado de Sarlaft
 and exrf_nombre_cli_razon_social is not null
 order by exrf_cod_tip_doc, exrf_desc_tip_doc asc;
+
+
+
+CONTEO
+-----
+
+SELECT COUNT(*)
+FROM dc_ext_revisoria_fiscal
+WHERE exrf_cod_cia = 1 
+  AND exrf_cod_tipo_persona = 'J' 
+  AND exrf_tipo_generacion = 2 --RF
+  AND exrf_cod_tip_doc IS NOT NULL --Sólo Clientes en Terceros
+  AND exrf_cod_naturaleza_jur != 2 --Públicas
+  AND exrf_cod_mrca_sarlaft != 1 --Exceptuado de Sarlaft
+  AND exrf_nombre_cli_razon_social IS NOT NULL;
