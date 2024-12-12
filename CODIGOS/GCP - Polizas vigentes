@@ -1,33 +1,34 @@
 SELECT
-    CODIGO_COMPANIA,                 -- Código que identifica la compañía que vendió la póliza
-    CODIGO_RAMO_EMISION,             -- Código que identifica el ramo por donde se emitió la póliza y/o endoso
-    NOMBRE_RAMO_EMISION,             -- Nombre del ramo de emisión
-    CODIGO_PRODUCTO,                 -- Código que identifica el producto de la póliza
-    NOMBRE_PRODUCTO,                 -- Nombre del producto atado a la póliza
-    CLAVE_AGENTE,                    -- Número único que identifica al agente intermediario del negocio
-    CODIGO_LOCALIDAD,                -- Código que identifica el centro de costos
-    NOMBRE_LOCALIDAD,                -- Nombre del centro de costos
-    CODIGO_CANAL,                    -- Código que identifica el canal de venta de la póliza
-    NOMBRE_CANAL,                    -- Nombre del canal de venta de la póliza
-    NUMERO_SECUENCIA_POLIZA,        -- Número que identifica cada póliza a nivel individual
-    NUMERO_POLIZA_ANTERIOR,          -- Numero de la póliza que precede al del presente endoso
-    NUMERO_POLIZA,                   -- Numero asignado a la póliza emitida (Ej. 5748934513201)
-    NUMERO_POLIZA_SIGUIENTE,         -- Numero de la póliza que le sigue al de la póliza del presente endoso
-    NUMERO_POLIZA_MADRE,             -- Numero asignado a la póliza del dueño del producto (Normalmente estas pólizas son colectivas)
-    TIPO_DOCUMENTO_TOMADOR,          -- Tipo de documento de identificación del tomador de la póliza
-    KEY_ID_TOMADOR,                  -- Número único que identifica al tomador de la póliza
-    FECHA_INICIO_POLIZA,             -- Fecha en que la póliza comienza su periodo de vigencia o de cobertura
-    FECHA_FIN_POLIZA,                -- Fecha en que expira la vigencia de la póliza
-    MARCA_REFERIDO,                  -- Marca representada por una 'S' o una 'N' que muestra si el cliente fue referido
-    FECHA_CORTE,                     -- Fecha en la que se cargó la información a la tabla
-    NOMBRE_PROCESO,                  -- Nombre del proceso que crea la tabla
-    FECHA_PROCESO,                   -- Fecha de ejecución del proceso de carga de la tabla
-    CODIGO_SUBPRODUCTO,              -- Código que identifica el subproducto al cual pertenece la póliza
-    NOMBRE_SUBPRODUCTO,              -- Nombre del subproducto atado a la póliza
-    FECHA_EMISION_ENDOSO,            -- Fecha en la que se emitió o expidió el endoso
-    FECHA_EMISION_ORIGINAL,          -- Fecha en la que se emitió por primera vez la póliza
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CLAVE_AGENTE,
+    CODIGO_LOCALIDAD,
+    NOMBRE_LOCALIDAD,
+    CODIGO_CANAL,
+    NOMBRE_CANAL,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA_ANTERIOR,
+    NUMERO_POLIZA,
+    NUMERO_POLIZA_SIGUIENTE,
+    NUMERO_POLIZA_MADRE,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_INICIO_POLIZA,
+    FECHA_FIN_POLIZA,
+    MARCA_REFERIDO,
+    FECHA_CORTE,
+    NOMBRE_PROCESO,
+    FECHA_PROCESO,
+    CODIGO_SUBPRODUCTO,
+    NOMBRE_SUBPRODUCTO,
+    FECHA_EMISION_ENDOSO,
+    FECHA_EMISION_ORIGINAL
 FROM
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas`;
+
 
 
 
