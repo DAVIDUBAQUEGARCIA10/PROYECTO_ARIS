@@ -1,0 +1,12 @@
+SELECT 
+    ID,
+    Codigo_compania,
+    Codigo_del_Ramo,
+    Nombre_de_ramo,
+    Codigo_de_Producto,
+    Codigo_Monitor,
+    Nombre_del_Producto,
+    NIVEL_DE_RIESGO,
+    ESTADO
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo`;
