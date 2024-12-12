@@ -798,9 +798,43 @@ Segmento9 AS (
   JOIN PolizasVigentes AS bw USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
--- Generamos la tabla final con el segmento asignado
-SELECT
-  ID_TOMADOR, 
-  KEY_TOMADOR, 
-  Segmento
-FROM Segmento1, segmento2, segmento3, segmento4, segmento5, segmento6, segmento7, segmento8, segmento9, segmento10, segmento11, segmento12, segmento13;
+-- Generamos la tabla final con el segmento asignado (Se usa UNION debido a que de acuerdo con Chat GPT se usa UNION ALL cuando es un valor independiente de segmento asociado al ID)
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento1, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento2, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento3, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento4, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento5, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento6, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento7, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento8, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento9, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento10, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento11, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento12, 
+UNION
+SELECT ID_TOMADOR, KEY_TOMADOR, Segmento
+FROM Segmento13, 
+UNION
