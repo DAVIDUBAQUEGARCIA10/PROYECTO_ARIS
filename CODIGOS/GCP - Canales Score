@@ -1,1 +1,9 @@
 
+SELECT 
+    ID,
+    Codigo_Canal_de_vinculacion,
+    Canal_de_vinculacion,
+    Nivel_de_riesgo,
+    ESTADO
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_canal_nivel_riesgo`;
