@@ -1,11 +1,9 @@
-Segmento 1
-
 WITH 
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS a
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
@@ -85,42 +83,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS j
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS k
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS l
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS m
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 32.5
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS n
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) BETWEEN 7.5 AND 18.2
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS o
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 72954
@@ -129,7 +127,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS p
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 23
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -18931697 AND 159660631
@@ -138,7 +136,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS q
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -148,14 +146,14 @@ Segmento2 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     2 AS Segmento
-  FROM Riesgo_LAFT AS j
-  JOIN Riesgo_Ocupacion AS k USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS l USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS m USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS n USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS o USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS p USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS q USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -165,42 +163,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS r
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS s
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS t
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS u
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 20
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS v
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 8.8
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS w
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 60212570
@@ -209,7 +207,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS x
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 10 AND 21
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -6243753 AND 170160570
@@ -218,7 +216,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS y
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -228,14 +226,14 @@ Segmento3 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     3 AS Segmento
-  FROM Riesgo_LAFT AS r
-  JOIN Riesgo_Ocupacion AS s USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS t USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS u USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS v USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS w USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS x USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS y USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS h USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS i USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -245,42 +243,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS z
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS aa
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS ab
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS ac
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) BETWEEN 14.2 AND 48.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS ad
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 16.5
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS ae
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 14753984
@@ -289,7 +287,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS af
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 24
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -18345857 AND 104931782
@@ -298,7 +296,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS ag
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -308,14 +306,14 @@ Segmento4 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     4 AS Segmento
-  FROM Riesgo_LAFT AS z
-  JOIN Riesgo_Ocupacion AS aa USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS ab USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS ac USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS ad USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS ae USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS af USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS ag USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago f ae USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -325,42 +323,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS ah
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS aj
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS ak
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS al
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 27.3
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS am
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.6
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS an
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 56535505
@@ -369,7 +367,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS ao
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -359858293 AND 130082041
@@ -378,7 +376,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS ap
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -388,14 +386,14 @@ Segmento5 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     5 AS Segmento
-  FROM Riesgo_LAFT AS ah
-  JOIN Riesgo_Ocupacion AS aj USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS ak USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS al USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS am USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS an USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS ao USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS ap USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -405,42 +403,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS aq
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS ar
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS as
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS at
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 44.2
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS au
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 9.3
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS av
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 7
     AND PRIMA_RECAUDADA_VALOR <= 1103688249
@@ -449,7 +447,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS aw
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 64
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -12091878 AND 18302245166
@@ -458,7 +456,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS ax
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -468,14 +466,14 @@ Segmento6 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     6 AS Segmento
-  FROM Riesgo_LAFT AS aq
-  JOIN Riesgo_Ocupacion AS ar USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS as USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS at USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS au USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS av USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS aw USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS ax USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -485,42 +483,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS az
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = BAJO
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS ba
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bb
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bc
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) BETWEEN 36.2 AND 80.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bd
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 31.5
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS be
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 5142096
@@ -529,7 +527,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS bf
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 33
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -5981510 AND 61746565
@@ -538,7 +536,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS bg
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -548,14 +546,14 @@ Segmento7 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     7 AS Segmento
-  FROM Riesgo_LAFT AS az
-  JOIN Riesgo_Ocupacion AS ba USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS bb USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS bc USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS bd USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS be USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS bf USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS bg USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -565,42 +563,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS bh
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS bi
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO = ALTO
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bj
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IS NULL OR CARGO = '')
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bk
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 45.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bl
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 19.2
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS bm
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 122969760
@@ -609,7 +607,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS bn
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -57555746 AND 259610847
@@ -618,7 +616,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS bo
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -628,14 +626,14 @@ Segmento8 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     8 AS Segmento
-  FROM Riesgo_LAFT AS bh
-  JOIN Riesgo_Ocupacion AS bi USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS bj USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS bk USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS bl USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS bm USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS bn USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS bo USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 UNION ALL
@@ -645,42 +643,42 @@ WITH
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS bp
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS bq
-  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO, 'ALTO')
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS br
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bs
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 76.9
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bt
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 31.4
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS bu
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
   WHERE COMPANIA = 2
     AND PRIMA_RECAUDADA_CANTIDAD = 1
     AND PRIMA_RECAUDADA_VALOR <= 701237
@@ -689,7 +687,7 @@ TransaccionesPago AS (
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS bv
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 18 AND 737
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -22713883 AND 418267608
@@ -698,87 +696,7 @@ TransaccionesSiniestro AS (
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS bw
-  WHERE ESTADO_PRODUCTO = 'VIGENTE'
-), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
-
--- Unimos todos los filtros
-Segmento8 AS (
-  SELECT DISTINCT 
-    a.ID_TOMADOR, 
-    a.KEY_TOMADOR,
-    8 AS Segmento
-  FROM Riesgo_LAFT AS bp
-  JOIN Riesgo_Ocupacion AS bq USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS br USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS bs USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS bt USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS bu USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS bv USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS bw USING (ID_TOMADOR, KEY_TOMADOR)
-)
-
-UNION ALL
-
-WITH
-
--- Filtro por Nivel de Riesgo LAFT
-Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `XXXXX` AS bp
-  WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
-),
-
--- Filtro por Nivel de Riesgo Ocupación
-Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS bq
-  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO, 'ALTO')
-),
-
--- Filtro por Ocupación
-Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS br
-  WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
-),
-
--- Filtro por Activo/Pasivo
-ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bs
-  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 76.9
-),
-
--- Filtro por Ingresos/Egresos
-IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS bt
-  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 31.4
-),
-
--- Filtro por transacciones de pago
-TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS bu
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 701237
-),
-
--- Filtro por transacciones de siniestro
-TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS bv
-  WHERE COMPANIA = 2
-    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 18 AND 737
-    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -22713883 AND 418267608
-),
-
--- Clientes vigentes según tabla de pólizas
-PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS bw
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
 
@@ -788,14 +706,314 @@ Segmento9 AS (
     a.ID_TOMADOR, 
     a.KEY_TOMADOR,
     9 AS Segmento
-  FROM Riesgo_LAFT AS bp
-  JOIN Riesgo_Ocupacion AS bq USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN Ocupacion AS br USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN ActivoPasivo AS bs USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN IngresosEgresos AS bt USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesPago AS bu USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN TransaccionesSiniestro AS bv USING (ID_TOMADOR, KEY_TOMADOR)
-  JOIN PolizasVigentes AS bw USING (ID_TOMADOR, KEY_TOMADOR)
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
+)
+
+UNION ALL
+
+WITH
+
+-- Filtro por Nivel de Riesgo LAFT
+Riesgo_LAFT AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
+  WHERE NIVEL_DE_RIESGO = 'BAJO'
+),
+
+-- Filtro por Nivel de Riesgo Ocupación
+Riesgo_Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO')
+),
+
+-- Filtro por Ocupación
+Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
+  WHERE CARGO = 'ASALARIADO'
+),
+
+-- Filtro por Activo/Pasivo
+ActivoPasivo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
+  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 20.0
+),
+
+-- Filtro por Ingresos/Egresos
+IngresosEgresos AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 9.3
+),
+
+-- Filtro por transacciones de siniestro
+TransaccionesSiniestro AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+  WHERE COMPANIA = 2
+    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 5 AND 9
+    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -46252766 AND 74283757
+),
+
+-- Clientes vigentes según tabla de pólizas
+PolizasVigentes AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
+  WHERE ESTADO_PRODUCTO = 'VIGENTE'
+), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
+
+-- Unimos todos los filtros
+Segmento10 AS (
+  SELECT DISTINCT 
+    a.ID_TOMADOR, 
+    a.KEY_TOMADOR,
+    10 AS Segmento
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
+)
+
+UNION ALL
+
+WITH
+
+-- Filtro por Nivel de Riesgo LAFT
+Riesgo_LAFT AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
+  WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
+),
+
+-- Filtro por Nivel de Riesgo Ocupación
+Riesgo_Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO = 'MEDIO'
+),
+
+-- Filtro por Ocupación
+Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
+  WHERE (CARGO IS NULL OR CARGO = '')
+),
+
+-- Filtro por Activo/Pasivo
+ActivoPasivo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
+  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 28.7
+),
+
+-- Filtro por Ingresos/Egresos
+IngresosEgresos AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 12.7
+),
+
+-- Filtro por transacciones de pago
+TransaccionesPago AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
+  WHERE COMPANIA = 2
+    AND PRIMA_RECAUDADA_CANTIDAD = 1
+    AND PRIMA_RECAUDADA_VALOR <= 4625002
+),
+
+-- Filtro por transacciones de siniestro
+TransaccionesSiniestro AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+  WHERE COMPANIA = 2
+    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 2 AND 22
+    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -11050394 AND 84394990
+),
+
+-- Clientes vigentes según tabla de pólizas
+PolizasVigentes AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
+  WHERE ESTADO_PRODUCTO = 'VIGENTE'
+), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
+
+-- Unimos todos los filtros
+Segmento11 AS (
+  SELECT DISTINCT 
+    a.ID_TOMADOR, 
+    a.KEY_TOMADOR,
+    11 AS Segmento
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
+)
+
+UNION ALL
+
+WITH
+
+-- Filtro por Nivel de Riesgo LAFT
+Riesgo_LAFT AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
+  WHERE NIVEL_DE_RIESGO IN ('MEDIO', 'ALTO')
+),
+
+-- Filtro por Nivel de Riesgo Ocupación
+Riesgo_Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO = 'MEDIO'
+),
+
+-- Filtro por Ocupación
+Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
+  WHERE (CARGO IS NULL OR CARGO = '')
+),
+
+-- Filtro por Activo/Pasivo
+ActivoPasivo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
+  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 42.5
+),
+
+-- Filtro por Ingresos/Egresos
+IngresosEgresos AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 14.7
+),
+
+-- Filtro por transacciones de pago
+TransaccionesPago AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
+  WHERE COMPANIA = 2
+    AND PRIMA_RECAUDADA_CANTIDAD = 1
+    AND PRIMA_RECAUDADA_VALOR <= 21106507
+),
+
+-- Filtro por transacciones de siniestro
+TransaccionesSiniestro AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+  WHERE COMPANIA = 2
+    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 19
+    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -33299984 AND 301992787
+),
+
+-- Clientes vigentes según tabla de pólizas
+PolizasVigentes AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
+  WHERE ESTADO_PRODUCTO = 'VIGENTE'
+), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
+
+-- Unimos todos los filtros
+Segmento12 AS (
+  SELECT DISTINCT 
+    a.ID_TOMADOR, 
+    a.KEY_TOMADOR,
+    12 AS Segmento
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesPago AS f USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
+)
+
+UNION ALL
+
+WITH
+
+-- Filtro por Nivel de Riesgo LAFT
+Riesgo_LAFT AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
+  WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
+),
+
+-- Filtro por Nivel de Riesgo Ocupación
+Riesgo_Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
+  WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
+),
+
+-- Filtro por Ocupación
+Ocupacion AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
+  WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
+),
+
+-- Filtro por Activo/Pasivo
+ActivoPasivo AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
+  WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 66.7
+),
+
+-- Filtro por Ingresos/Egresos
+IngresosEgresos AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) BETWEEN 16.4 AND 31.6
+),
+
+-- Filtro por transacciones de siniestro
+TransaccionesSiniestro AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+  WHERE COMPANIA = 2
+    AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 34
+    AND INCURRIDO_BOLIVAR_VALOR BETWEEN -61098813 AND 2490013386
+),
+
+-- Clientes vigentes según tabla de pólizas
+PolizasVigentes AS (
+  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
+  WHERE ESTADO_PRODUCTO = 'VIGENTE'
+), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
+
+-- Unimos todos los filtros
+Segmento13 AS (
+  SELECT DISTINCT 
+    a.ID_TOMADOR, 
+    a.KEY_TOMADOR,
+    13 AS Segmento
+  FROM Riesgo_LAFT AS a
+  JOIN Riesgo_Ocupacion AS b USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN Ocupacion AS c USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN ActivoPasivo AS d USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN IngresosEgresos AS e USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN TransaccionesSiniestro AS g USING (ID_TOMADOR, KEY_TOMADOR)
+  JOIN PolizasVigentes AS h USING (ID_TOMADOR, KEY_TOMADOR)
 )
 
 -- Generamos la tabla final con el segmento asignado (Se usa UNION debido a que de acuerdo con Chat GPT se usa UNION ALL cuando es un valor independiente de segmento asociado al ID)
