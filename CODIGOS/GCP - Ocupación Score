@@ -1,1 +1,8 @@
 
+SELECT 
+    ID,
+    OCUPACION,
+    NIVEL_DE_RIESGO,
+    ESTADO
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo`;
