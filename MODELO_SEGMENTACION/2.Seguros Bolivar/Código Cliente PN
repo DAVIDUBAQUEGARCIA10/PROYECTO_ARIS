@@ -38,17 +38,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 125984610
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 125984610
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 5
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -245938589 AND 316673675
 ),
@@ -118,17 +118,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 72954
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 72954
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 23
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -18931697 AND 159660631
 ),
@@ -198,17 +198,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 60212570
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 60212570
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 10 AND 21
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -6243753 AND 170160570
 ),
@@ -278,17 +278,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 14753984
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 14753984
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 24
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -18345857 AND 104931782
 ),
@@ -358,17 +358,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 56535505
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 56535505
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -359858293 AND 130082041
 ),
@@ -438,17 +438,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 7
-    AND PRIMA_RECAUDADA_VALOR <= 1103688249
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 7
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 1103688249
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 64
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -12091878 AND 18302245166
 ),
@@ -518,17 +518,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 5142096
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 5142096
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 33
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -5981510 AND 61746565
 ),
@@ -598,17 +598,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 122969760
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 122969760
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -57555746 AND 259610847
 ),
@@ -678,17 +678,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 701237
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 701237
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 18 AND 737
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -22713883 AND 418267608
 ),
@@ -759,7 +759,7 @@ IngresosEgresos AS (
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 5 AND 9
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -46252766 AND 74283757
 ),
@@ -828,17 +828,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 4625002
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 4625002
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 2 AND 22
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -11050394 AND 84394990
 ),
@@ -908,17 +908,17 @@ IngresosEgresos AS (
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_recaudo` AS f
-  WHERE COMPANIA = 2
-    AND PRIMA_RECAUDADA_CANTIDAD = 1
-    AND PRIMA_RECAUDADA_VALOR <= 21106507
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
+  WHERE CODIGO_COMPANIA = 2
+    AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
+    AND VALOR_RECAUDO_TOTAL_MES_VALOR <= 21106507
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
   SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE COMPANIA = 2
+  WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 19
     AND INCURRIDO_BOLIVAR_VALOR BETWEEN -33299984 AND 301992787
 ),
