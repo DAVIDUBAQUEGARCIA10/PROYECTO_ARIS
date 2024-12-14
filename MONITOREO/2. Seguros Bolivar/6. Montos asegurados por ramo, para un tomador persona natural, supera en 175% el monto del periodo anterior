@@ -16,8 +16,7 @@ SELECT DISTINCT
     t1.KEY_ID_ASEGURADO,
     t1.FECHA_INICIO_POLIZA,
     t1.FECHA_FIN_ENDOSO,
-    t1.FECHA_FIN_POLIZA,
-
+    t1.FECHA_FIN_POLIZA
 FROM 
     (
         SELECT 
@@ -40,10 +39,9 @@ FROM
             SUM(VALOR_ASEGURADO) AS SUM_VALOR_ASEGURADO
         FROM 
             sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
-
-        WHERE FECHA_EMISION_ENDOSO >= "2024-01-01" --Emitidos desde este fecha
-            AND FECHA_EMISION_ENDOSO <= "2024-11-30" -- Emitidos antes de este fecha
-            AND FECHA_FIN_ENDOSO > "2024-11-30" --Polizas que aun estan vigentes antes de esta fecha de vencimiento
+        WHERE FECHA_EMISION_ENDOSO >= "2024-01-01"
+            AND FECHA_EMISION_ENDOSO <= "2024-11-30"
+            AND FECHA_FIN_ENDOSO > "2024-11-30"
             AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
             AND CODIGO_RAMO_EMISION NOT IN (18, 20, 22, 24, 26, 29, 30, 33, 34, 42, 69, 70, 118, 10,12,66, 310)
             AND NUMERO_POLIZA_ANTERIOR IS NOT NULL 
@@ -51,8 +49,6 @@ FROM
             AND CODIGO_COMPANIA = 2
             AND NUMERO_ENDOSO = 0 
             AND CODIGO_RIESGO = 1
-
-
         GROUP BY
             CODIGO_COMPANIA,
             CODIGO_RAMO_EMISION,
@@ -93,7 +89,7 @@ LEFT JOIN
             SUM(VALOR_ASEGURADO) AS SUM_VALOR_ASEGURADO
         FROM 
             sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
-        WHERE  TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
+        WHERE TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
             AND CODIGO_RAMO_EMISION NOT IN (18, 20, 22, 24, 26, 29, 30, 33, 34, 42, 69, 70, 118, 10,12,66, 310)
             AND CODIGO_COMPANIA = 2
             AND NUMERO_ENDOSO = 0 
@@ -116,5 +112,7 @@ LEFT JOIN
             FECHA_FIN_ENDOSO,
             FECHA_FIN_POLIZA
     ) t2 
-ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA
-where t1.SUM_VALOR_ASEGURADO > 1.75 * t2.SUM_VALOR_ASEGURADO;
+ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA 
+   AND t1.KEY_ID_ASEGURADO = t2.KEY_ID_ASEGURADO
+WHERE t1.SUM_VALOR_ASEGURADO > 1.75 * t2.SUM_VALOR_ASEGURADO
+  AND RIGHT(CAST(t1.NUMERO_POLIZA_ANTERIOR AS STRING), 2) = RIGHT(CAST(t1.NUMERO_POLIZA AS STRING), 2);
