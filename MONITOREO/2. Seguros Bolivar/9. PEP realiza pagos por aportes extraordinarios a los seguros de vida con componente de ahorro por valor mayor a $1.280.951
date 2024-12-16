@@ -24,8 +24,7 @@ SELECT
     a.FECHA_RECAUDO,
     a.VALOR_RECAUDO_MES,
     a.FECHA_CARGUE,
-    c.CODIGO_RESTRICCION,
-    c.DESCRIPCION,
+    c.PUBLICAMENTE_EXPUESTA
 
 FROM 
     `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
@@ -35,9 +34,9 @@ ON
     a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
     AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
 LEFT JOIN
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` c
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
 ON 
-    b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO_TERCERO
+    b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
     AND b.KEY_ID = c.KEY_ID
 WHERE 
     a.VALOR_RECAUDO_MES > 1280951       
@@ -46,4 +45,4 @@ WHERE
     AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
     AND a.FORMA_COBRO != "CONVENIO"
     AND a.TIPO_REGISTRO = 'RECAUDO'
-    and c.CODIGO_RESTRICCION = 23
+    and  c.PUBLICAMENTE_EXPUESTA = 'S'
