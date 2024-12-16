@@ -32,7 +32,7 @@ WITH SiniestrosConFila AS (
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34) -- Excluir ramos de Salud y otros
         AND LIQUIDADO_BOLIVAR > 50000000 -- Siniestros mayores a este monto
         AND FECHA_ORDEN_PAGO IS NOT NULL -- Los cuales ya estan pagados
-        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir Juridicos
+        --AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir Juridicos
         AND KEY_ID_BENEFICIARIO NOT IN ('860034313', '830053700') -- Se excluye beneficiario fiduciaria y Davivienda
 
 )
