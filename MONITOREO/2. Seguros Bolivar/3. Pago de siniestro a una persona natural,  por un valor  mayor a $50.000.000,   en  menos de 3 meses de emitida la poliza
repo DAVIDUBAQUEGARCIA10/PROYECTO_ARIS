@@ -32,7 +32,7 @@ WITH SiniestrosConFila AS (
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34) -- Excluir ramos de Salud y otros
         AND LIQUIDADO_BOLIVAR > 50000000 -- Siniestros mayores a este monto
         AND FECHA_ORDEN_PAGO IS NOT NULL -- Los cuales ya estan pagados
-        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir Juridicos
+        --AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir Juridicos
         AND KEY_ID_BENEFICIARIO NOT IN ('860034313', '830053700') -- Se excluye beneficiario fiduciaria y Davivienda
 
 )
@@ -57,41 +57,3 @@ FROM
     SiniestrosConFila
 WHERE 
     fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
-
-
--------------------------------------------------------
-Resumen de la lógica del código:
-Definición de las fechas:
-Se definen dos variables (fecha_inicial y fecha_final) para establecer el período de análisis entre el 1 de enero de 2024 y el 31 de diciembre de 2024.
-
-CTE (Common Table Expression) SiniestrosConFila:
-
-La consulta comienza con una CTE llamada SiniestrosConFila, en la que se seleccionan varias columnas de la tabla t_siniestros, como el código de la compañía, ramo, producto, número de póliza, datos del tomador, asegurado, beneficiario, fechas de siniestro y suscripción, estado del siniestro, y monto de liquidación (LIQUIDADO_BOLIVAR).
-
-Filtrado de registros:
-
-Se filtran los siniestros que tienen una fecha de suscripción posterior a la fecha_inicial y cuya fecha de siniestro ocurre dentro de un rango de 90 días desde la suscripción de la póliza (es decir, en menos de tres meses).
-Se seleccionan solo los siniestros correspondientes a pólizas que terminan en '01', mediante el filtro RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'.
-Se filtra para seleccionar solo siniestros de la compañía de seguros 2 (CODIGO_COMPANIA = 2).
-Se excluyen ciertos NITs específicos tanto de tomadores como de beneficiarios, a través de los filtros KEY_ID_TOMADOR NOT IN ('860034313', '830053700') y KEY_ID_BENEFICIARIO NOT IN ('860034313', '830053700').
-Se excluyen siniestros correspondientes a ramos contables específicos (códigos 45 y 34, que podrían corresponder a ramos no deseados, como salud).
-Se filtran los siniestros cuya liquidación sea superior a 50 millones (LIQUIDADO_BOLIVAR > 50000000), lo que asegura que solo se consideren los siniestros de mayor valor.
-Se seleccionan únicamente aquellos siniestros que ya han sido pagados (es decir, aquellos que tienen una FECHA_ORDEN_PAGO no nula).
-Se excluyen los siniestros de tomadores jurídicos (NITs con tipos 'NT' y 'NE').
-Uso de ROW_NUMBER():
-
-Dentro de la CTE, se utiliza la función ROW_NUMBER() para asignar un número de fila a cada registro de siniestro, particionado por el KEY_ID_TOMADOR (es decir, cada tomador tendrá una secuencia de filas para sus siniestros) y ordenado por la fecha de suscripción.
-El uso de ROW_NUMBER() permite seleccionar solo el primer siniestro (el más reciente) de cada tomador, ya que el número de fila será 1 para el siniestro con la fecha de suscripción más temprana.
-Selección final:
-
-En la consulta final, se seleccionan todas las columnas relevantes de la CTE SiniestrosConFila y se aplica un filtro para seleccionar únicamente aquellos registros cuyo número de fila (fila) es igual a 1. Esto garantiza que solo se obtendrá el primer siniestro para cada tomador, según la fecha de suscripción (el más reciente).
-En resumen:
-Este código tiene como objetivo extraer los primeros siniestros más recientes de cada tomador dentro del año 2024, con una serie de filtros que limitan los resultados a aquellos siniestros que:
-
-Ocurrieron dentro de 90 días de la suscripción de la póliza.
-Pertenecen a pólizas que terminan en '01'.
-Son de la compañía de seguros 2 (Seguros Bolívar).
-Tienen un monto de liquidación superior a 50 millones y ya fueron pagados.
-Excluyen ciertos NITs de tomadores y beneficiarios, y ciertos ramos.
-El uso de la función ROW_NUMBER() permite obtener solo el primer siniestro de cada tomador, garantizando que se seleccionen solo los siniestros más recientes de los tomadores que cumplen con los criterios establecidos. Esto puede ser útil para análisis donde solo se necesite el primer siniestro de cada tomador dentro del período y con características específicas.
-
