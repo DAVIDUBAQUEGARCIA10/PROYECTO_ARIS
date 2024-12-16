@@ -2,21 +2,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
@@ -82,21 +82,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
@@ -162,21 +162,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
@@ -242,21 +242,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
@@ -322,21 +322,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO'))
 ),
@@ -402,21 +402,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
@@ -482,21 +482,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = BAJO
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
@@ -562,21 +562,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO = ALTO
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IS NULL OR CARGO = '')
 ),
@@ -642,21 +642,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
@@ -722,21 +722,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'BAJO'
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE CARGO = 'ASALARIADO'
 ),
@@ -792,21 +792,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO = 'MEDIO'
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IS NULL OR CARGO = '')
 ),
@@ -872,21 +872,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('MEDIO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO = 'MEDIO'
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IS NULL OR CARGO = '')
 ),
@@ -952,21 +952,21 @@ WITH
 
 -- Filtro por Nivel de Riesgo LAFT
 Riesgo_LAFT AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID, TIPO_DOCUMENTO
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO IN ('BAJO', 'ALTO')
 ),
 
 -- Filtro por Nivel de Riesgo Ocupación
 Riesgo_Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT ID
   FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_ocupacion_nivel_riesgo` AS b
   WHERE NIVEL_DE_RIESGO IN ('BAJA', 'MEDIO', 'ALTO')
 ),
 
 -- Filtro por Ocupación
 Ocupacion AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS c
   WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),
