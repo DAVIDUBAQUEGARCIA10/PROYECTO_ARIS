@@ -23,21 +23,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 34.8
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.0
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -46,7 +46,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 5
@@ -55,7 +55,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -103,21 +103,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 32.5
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) BETWEEN 7.5 AND 18.2
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -126,7 +126,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 23
@@ -135,7 +135,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -183,21 +183,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 20
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 8.8
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -206,7 +206,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 10 AND 21
@@ -215,7 +215,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -263,21 +263,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) BETWEEN 14.2 AND 48.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 16.5
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -286,7 +286,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 24
@@ -295,7 +295,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -343,21 +343,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 27.3
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.6
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -366,7 +366,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
@@ -375,7 +375,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -423,21 +423,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 44.2
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 9.3
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 7
@@ -446,7 +446,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 64
@@ -455,7 +455,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -503,21 +503,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) BETWEEN 36.2 AND 80.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 31.5
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -526,7 +526,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 33
@@ -535,7 +535,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -583,21 +583,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 45.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 19.2
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -606,7 +606,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 18
@@ -615,7 +615,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -663,21 +663,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 76.9
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 31.4
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -686,7 +686,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 18 AND 737
@@ -695,7 +695,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -743,21 +743,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 20.0
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 9.3
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 5 AND 9
@@ -766,7 +766,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -813,21 +813,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 28.7
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 12.7
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -836,7 +836,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 2 AND 22
@@ -845,7 +845,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -893,21 +893,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 42.5
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 14.7
 ),
 
 -- Filtro por transacciones de pago
 TransaccionesPago AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT NUMERO_DOCUMENTO_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
   WHERE CODIGO_COMPANIA = 2
     AND VALOR_RECAUDO_TOTAL_MES_CANTIDAD = 1
@@ -916,7 +916,7 @@ TransaccionesPago AS (
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE CODIGO_COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 19
@@ -925,7 +925,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
@@ -973,21 +973,21 @@ Ocupacion AS (
 
 -- Filtro por Activo/Pasivo
 ActivoPasivo AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 66.7
 ),
 
 -- Filtro por Ingresos/Egresos
 IngresosEgresos AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) BETWEEN 16.4 AND 31.6
 ),
 
 -- Filtro por transacciones de siniestro
 TransaccionesSiniestro AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
   WHERE COMPANIA = 2
     AND INCURRIDO_BOLIVAR_CANTIDAD BETWEEN 1 AND 34
@@ -996,7 +996,7 @@ TransaccionesSiniestro AS (
 
 -- Clientes vigentes según tabla de pólizas
 PolizasVigentes AS (
-  SELECT DISTINCT ID_TOMADOR, KEY_TOMADOR
+  SELECT DISTINCT KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
   WHERE ESTADO_PRODUCTO = 'VIGENTE'
 ), (Validar actualmente como se identifican las pólizas vigentes, entiendo que son las que esten en esta base)
