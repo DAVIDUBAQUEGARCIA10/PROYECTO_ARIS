@@ -8,15 +8,12 @@ SELECT
   t1.PLAN_CODIGO,
   t1.NOMBRE_DESCRIPCION_TITULO,
   t1.OFICINA,
-  t2.CODIGO_RESTRICCION,
-  t2.DESCRIPCION,
-  t2.FECHA_CREACION,
-  t2.FECHA_MODIFICACION
+  t2.PUBLICAMENTE_EXPUESTA
 FROM
   `sb-ecosistemaanalitico-lago.capitalizadora.t_transacciones_enriquecida` AS t1
 LEFT JOIN
-  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` AS t2
-  ON t1.TIPO_DOCUMENTO = t2.TIPO_DOCUMENTO_TERCERO
+  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS t2
+  ON t1.TIPO_DOCUMENTO = t2.TIPO_DOCUMENTO
   AND t1.KEY_ID = t2.KEY_ID
 WHERE
   t1.FECHA_TRANSACCION >= '2024-01-01'
@@ -41,5 +38,5 @@ WHERE
     'REC. CUOTAS INICIALES GANALEASING',
     'REC INICIALES ESTRAORD'
   )
-  AND t1.VALOR_TRANSACCION >= 1000000
-  AND t2.CODIGO_RESTRICCION = 23;
+  AND t1.VALOR_TRANSACCION > 1000000
+  AND t2.PUBLICAMENTE_EXPUESTA = "S";
