@@ -1,0 +1,69 @@
+WITH RankedSiniestros AS (
+    SELECT DISTINCT
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_CONTABLE,
+        s.NOMBRE_RAMO_CONTABLE,
+        s.CODIGO_RAMO_EMISION,
+        s.NOMBRE_RAMO_EMISION,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+        s.FECHA_SUSCRIPCION,
+        s.FECHA_SINIESTRO,
+        s.FECHA_MOVIMIENTO,
+        s.CODIGO_CANAL,
+        s.FECHA_ORDEN_PAGO,
+        p.FECHA_INICIO_POLIZA,
+        p.FECHA_FIN_POLIZA,
+        p.NUMERO_POLIZA,
+        p.KEY_ID_TOMADOR,
+        p.KEY_ID_ASEGURADO,
+        p.KEY_ID_BENEFICIARIO AS BENEFICIARIO_POLIZA,
+        s.KEY_ID_BENEFICIARIO AS BENEFICIARIO_SINIESTRO,
+        ROW_NUMBER() OVER (PARTITION BY p.KEY_ID_TOMADOR ORDER BY s.FECHA_SUSCRIPCION DESC) AS rn
+    FROM
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    ON 
+        s.NUMERO_POLIZA = p.NUMERO_POLIZA 
+        AND s.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR
+        AND s.KEY_ID_ASEGURADO = p.KEY_ID_ASEGURADO
+    WHERE
+        s.FECHA_SUSCRIPCION >= '2024-01-01'
+        AND p.FECHA_INICIO_POLIZA >= '2024-01-01'
+        AND p.FECHA_FIN_POLIZA >= '2024-10-31'
+        AND s.CODIGO_COMPANIA = 3
+        -- Excluir todas las pólizas donde el BENEFICIARIO_SINIESTRO coincida con KEY_ID_ASEGURADO o KEY_ID_TOMADOR
+        AND s.NUMERO_POLIZA NOT IN (
+            SELECT DISTINCT s2.NUMERO_POLIZA
+            FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s2
+            LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p2
+            ON s2.NUMERO_POLIZA = p2.NUMERO_POLIZA
+            AND s2.KEY_ID_TOMADOR = p2.KEY_ID_TOMADOR
+            AND s2.KEY_ID_ASEGURADO = p2.KEY_ID_ASEGURADO
+            WHERE s2.KEY_ID_BENEFICIARIO = p2.KEY_ID_ASEGURADO
+               OR s2.KEY_ID_BENEFICIARIO = p2.KEY_ID_TOMADOR
+        )
+)
+SELECT
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_CONTABLE,
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    FECHA_SUSCRIPCION,
+    FECHA_SINIESTRO,
+    FECHA_MOVIMIENTO,
+    CODIGO_CANAL,
+    FECHA_ORDEN_PAGO,
+    FECHA_INICIO_POLIZA,
+    FECHA_FIN_POLIZA,
+    NUMERO_POLIZA,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    BENEFICIARIO_POLIZA,
+    BENEFICIARIO_SINIESTRO
+FROM RankedSiniestros
+WHERE rn = 1
