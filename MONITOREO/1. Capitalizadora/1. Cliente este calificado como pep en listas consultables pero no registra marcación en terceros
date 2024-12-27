@@ -53,3 +53,136 @@ SELECT
 FROM RankedData
 WHERE rn = 1
 ORDER BY FECHA_MODIFICACION DESC;
+
+
+
+
+CREATE -----
+
+create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
+WITH RankedData AS (
+    SELECT 
+        'CAP_0304_VISOR_REPO' AS ALERTA,
+        a.FECHA_CORTE, 
+        a.TITULO, 
+        a.KEY_ID_BENEFICIARIO,
+        a.TIPO_DOCUMENTO,
+        a.SALDO_PESOS,
+        a.FECHA_EMISION,
+        a.FECHA_REHABILITACION,
+        a.FECHA_ULT_CUOTA,
+        b.CODIGO_RESTRICCION,
+        b.DESCRIPCION,
+        b.FECHA_BAJA,
+        b.FECHA_CREACION,
+        b.FECHA_MODIFICACION,
+        b.VALOR_RIESGO,
+        b.NIVEL_ALERTA,
+        b.MARCA_ACTIVO,
+        c.PUBLICAMENTE_EXPUESTA,
+        ROW_NUMBER() OVER (PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO ORDER BY b.FECHA_MODIFICACION DESC) AS rn
+    FROM 
+        sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
+    LEFT JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` b
+        ON a.KEY_ID_BENEFICIARIO = b.KEY_ID
+        AND a.TIPO_DOCUMENTO = b.TIPO_DOCUMENTO_TERCERO
+    LEFT JOIN 
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales c
+        ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
+        AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    WHERE  FECHA_CORTE >= "2024-10-31" AND
+        b.CODIGO_RESTRICCION = 23
+        AND c.PUBLICAMENTE_EXPUESTA != 'S'
+)
+SELECT
+    ALERTA,
+    FECHA_CORTE,
+    TITULO,
+    KEY_ID_BENEFICIARIO,
+    TIPO_DOCUMENTO,
+    SALDO_PESOS,
+    FECHA_EMISION,
+    FECHA_REHABILITACION,
+    FECHA_ULT_CUOTA,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_BAJA,
+    FECHA_CREACION,
+    FECHA_MODIFICACION,
+    VALOR_RIESGO,
+    NIVEL_ALERTA,
+    MARCA_ACTIVO,
+    PUBLICAMENTE_EXPUESTA
+FROM RankedData
+WHERE rn = 1
+ORDER BY FECHA_MODIFICACION DESC;
+
+INSERT ------
+
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO
+WITH RankedData AS (
+    SELECT 
+        'CAP_0304_VISOR_REPO' AS ALERTA,
+        a.FECHA_CORTE, 
+        a.TITULO, 
+        a.KEY_ID_BENEFICIARIO,
+        a.TIPO_DOCUMENTO,
+        a.SALDO_PESOS,
+        a.FECHA_EMISION,
+        a.FECHA_REHABILITACION,
+        a.FECHA_ULT_CUOTA,
+        b.CODIGO_RESTRICCION,
+        b.DESCRIPCION,
+        b.FECHA_BAJA,
+        b.FECHA_CREACION,
+        b.FECHA_MODIFICACION,
+        b.VALOR_RIESGO,
+        b.NIVEL_ALERTA,
+        b.MARCA_ACTIVO,
+        c.PUBLICAMENTE_EXPUESTA,
+        ROW_NUMBER() OVER (PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO ORDER BY b.FECHA_MODIFICACION DESC) AS rn
+    FROM 
+        sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
+    LEFT JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` b
+        ON a.KEY_ID_BENEFICIARIO = b.KEY_ID
+        AND a.TIPO_DOCUMENTO = b.TIPO_DOCUMENTO_TERCERO
+    LEFT JOIN 
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales c
+        ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
+        AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    WHERE  FECHA_CORTE >= "2024-10-31" 
+      AND b.CODIGO_RESTRICCION = 23
+      AND c.PUBLICAMENTE_EXPUESTA != 'S'
+)
+SELECT
+    'CAP_0304_VISOR_REPO' AS ALERTA,
+    FECHA_CORTE,
+    TITULO,
+    KEY_ID_BENEFICIARIO,
+    TIPO_DOCUMENTO,
+    SALDO_PESOS,
+    FECHA_EMISION,
+    FECHA_REHABILITACION,
+    FECHA_ULT_CUOTA,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_BAJA,
+    FECHA_CREACION,
+    FECHA_MODIFICACION,
+    VALOR_RIESGO,
+    NIVEL_ALERTA,
+    MARCA_ACTIVO,
+    PUBLICAMENTE_EXPUESTA
+FROM RankedData rd
+WHERE rd.rn = 1
+  AND NOT EXISTS (
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO t
+        WHERE t.TITULO = rd.TITULO
+          AND t.KEY_ID_BENEFICIARIO = rd.KEY_ID_BENEFICIARIO
+          AND t.TIPO_DOCUMENTO = rd.TIPO_DOCUMENTO
+)
+ORDER BY rd.FECHA_MODIFICACION DESC;
+
