@@ -1,0 +1,6 @@
+create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
+
+
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO
+
+necesito modificar este codigo para que se inserten solo los registros nuevos , y conserve los que ya estan
