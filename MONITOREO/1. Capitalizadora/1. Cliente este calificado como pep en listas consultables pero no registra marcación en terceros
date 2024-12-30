@@ -59,10 +59,9 @@ ORDER BY FECHA_MODIFICACION DESC;
 
 CREATE -----
 
-create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
 WITH RankedData AS (
     SELECT 
-        'CAP_0304_VISOR_REPO' AS ALERTA,
         a.FECHA_CORTE, 
         a.TITULO, 
         a.KEY_ID_BENEFICIARIO,
@@ -96,7 +95,6 @@ WITH RankedData AS (
         AND c.PUBLICAMENTE_EXPUESTA != 'S'
 )
 SELECT
-    ALERTA,
     FECHA_CORTE,
     TITULO,
     KEY_ID_BENEFICIARIO,
@@ -113,7 +111,8 @@ SELECT
     VALOR_RIESGO,
     NIVEL_ALERTA,
     MARCA_ACTIVO,
-    PUBLICAMENTE_EXPUESTA
+    PUBLICAMENTE_EXPUESTA,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Se agrega la fecha actual aquí
 FROM RankedData
 WHERE rn = 1
 ORDER BY FECHA_MODIFICACION DESC;
@@ -123,7 +122,6 @@ INSERT ------
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO
 WITH RankedData AS (
     SELECT 
-        'CAP_0304_VISOR_REPO' AS ALERTA,
         a.FECHA_CORTE, 
         a.TITULO, 
         a.KEY_ID_BENEFICIARIO,
@@ -157,7 +155,6 @@ WITH RankedData AS (
       AND c.PUBLICAMENTE_EXPUESTA != 'S'
 )
 SELECT
-    'CAP_0304_VISOR_REPO' AS ALERTA,
     FECHA_CORTE,
     TITULO,
     KEY_ID_BENEFICIARIO,
@@ -174,7 +171,8 @@ SELECT
     VALOR_RIESGO,
     NIVEL_ALERTA,
     MARCA_ACTIVO,
-    PUBLICAMENTE_EXPUESTA
+    PUBLICAMENTE_EXPUESTA,
+    CURRENT_DATE() AS FECHA_ALERTA -- Inserta la fecha actual
 FROM RankedData rd
 WHERE rd.rn = 1
   AND NOT EXISTS (
