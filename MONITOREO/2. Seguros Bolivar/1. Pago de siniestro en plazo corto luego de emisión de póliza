@@ -51,3 +51,146 @@ FROM
     SiniestrosConFila
 WHERE 
     fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
+
+
+
+CREATE ------------
+
+
+DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
+DECLARE fecha_final DATE DEFAULT '2024-12-31';
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO AS
+
+WITH SiniestrosConFila AS (
+    SELECT
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
+        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
+        AND CODIGO_COMPANIA = 2
+        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
+        AND LIQUIDADO_BOLIVAR > 0
+        AND FECHA_ORDEN_PAGO IS NOT NULL
+        AND CODIGO_RAMO_CONTABLE NOT IN (70,26,118,27)
+)
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Agregar la fecha de alerta
+FROM 
+    SiniestrosConFila
+WHERE 
+    fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
+
+
+INTERT-----
+
+DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
+DECLARE fecha_final DATE DEFAULT '2024-12-31';
+
+-- Realiza la inserción directamente con un SELECT
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO` (
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
+    FECHA_ALERTA  -- Agregar la fecha de alerta
+)
+SELECT 
+    S.CODIGO_COMPANIA, 
+    S.CODIGO_RAMO_CONTABLE, 
+    S.NOMBRE_RAMO_CONTABLE,
+    S.CODIGO_PRODUCTO,
+    S.NOMBRE_PRODUCTO,
+    S.NUMERO_SECUENCIA_POLIZA,
+    S.NUMERO_POLIZA,
+    S.TIPO_DOCUMENTO_TOMADOR,
+    S.KEY_ID_TOMADOR,
+    S.FECHA_SINIESTRO,
+    S.FECHA_SUSCRIPCION,
+    S.ESTADO_SINIESTRO,
+    S.FECHA_ORDEN_PAGO,
+    S.LIQUIDADO_BOLIVAR,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM 
+    (
+        SELECT
+            CODIGO_COMPANIA, 
+            CODIGO_RAMO_CONTABLE, 
+            NOMBRE_RAMO_CONTABLE,
+            CODIGO_PRODUCTO,
+            NOMBRE_PRODUCTO,
+            NUMERO_SECUENCIA_POLIZA,
+            NUMERO_POLIZA,
+            TIPO_DOCUMENTO_TOMADOR,
+            KEY_ID_TOMADOR,
+            FECHA_SINIESTRO,
+            FECHA_SUSCRIPCION,
+            ESTADO_SINIESTRO,
+            FECHA_ORDEN_PAGO,
+            LIQUIDADO_BOLIVAR,
+            ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        FROM 
+            `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+        WHERE 
+            DATE(FECHA_SUSCRIPCION) >= fecha_inicial
+            AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
+            AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'
+            AND CODIGO_COMPANIA = 2
+            AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final
+            AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')
+            AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
+            AND LIQUIDADO_BOLIVAR > 0
+            AND FECHA_ORDEN_PAGO IS NOT NULL
+            AND CODIGO_RAMO_CONTABLE NOT IN (70,26,118,27)
+    ) S
+LEFT JOIN 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO` T
+ON 
+    S.KEY_ID_TOMADOR = T.KEY_ID_TOMADOR
+    AND S.NUMERO_POLIZA = T.NUMERO_POLIZA
+WHERE 
+    S.fila = 1
+    AND T.KEY_ID_TOMADOR IS NULL;  -- Solo insertar registros nuevos (no existentes)
+
