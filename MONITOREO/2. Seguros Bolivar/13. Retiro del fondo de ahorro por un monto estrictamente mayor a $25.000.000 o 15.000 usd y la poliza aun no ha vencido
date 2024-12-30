@@ -1,3 +1,31 @@
+WITH ranked_data AS (
+    SELECT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO,
+        KEY_ID_TOMADOR,
+        NUMERO_POLIZA,
+        CODIGO_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        CODIGO_LOCALIDAD,
+        VALOR_RETIRO,
+        VALOR_GIRADO,
+        ESTADO_REGISTRO,
+        ESTADO_GIRO,
+        ORDEN_PAGO,
+        FECHA_ULT_MODIFICACION,
+        FECHA_EMISION_POLIZA,
+        FECHA_EMISION_ENDOSO,
+        FECHA_FIN_POLIZA,
+        MCA_ANULACION_POLIZA,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_ULT_MODIFICACION DESC) AS rn
+    FROM
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_vida_retiros`
+    WHERE
+        VALOR_RETIRO > 25000000 
+        AND FECHA_EMISION_POLIZA >= '2024-01-01'
+        AND FECHA_EMISION_ENDOSO >= '2024-01-01'
+        AND FECHA_FIN_POLIZA >= '2024-10-31'
+)
 SELECT
     CODIGO_COMPANIA,
     TIPO_DOCUMENTO,
@@ -17,9 +45,6 @@ SELECT
     FECHA_FIN_POLIZA,
     MCA_ANULACION_POLIZA
 FROM
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_vida_retiros`
+    ranked_data
 WHERE
-    VALOR_RETIRO > 25000000 
-    and FECHA_EMISION_POLIZA >= '2024-01-01'
-    and  FECHA_EMISION_ENDOSO >= '2024-01-01'
-    and FECHA_FIN_POLIZA >= '2024-10-31';
+    rn = 1;
