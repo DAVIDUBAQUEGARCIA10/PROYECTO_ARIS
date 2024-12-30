@@ -1,5 +1,5 @@
 create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
 
 
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.XXXXX (CAMBIALO)
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.XXXXX (cambia la XX por el valor real de la tabla del script)
 necesito modificar este codigo para que se inserten solo los registros nuevos , y conserve los que ya estan, USANDO INSER en el siguiente codigo:
