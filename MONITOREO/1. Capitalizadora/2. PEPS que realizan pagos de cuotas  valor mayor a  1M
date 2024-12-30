@@ -42,10 +42,8 @@ WHERE
   AND t2.PUBLICAMENTE_EXPUESTA = "S";
 
 CREATE -----
-
 create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS AS
 SELECT
-  'CAP_0069_VISOR_TRANS' AS ALERTA,
   t1.FECHA_TRANSACCION,
   t1.TIPO_DOCUMENTO,
   t1.KEY_ID,
@@ -55,7 +53,8 @@ SELECT
   t1.PLAN_CODIGO,
   t1.NOMBRE_DESCRIPCION_TITULO,
   t1.OFICINA,
-  t2.PUBLICAMENTE_EXPUESTA
+  t2.PUBLICAMENTE_EXPUESTA,
+  CURRENT_DATE() AS FECHA_ALERTA
 FROM
   `sb-ecosistemaanalitico-lago.capitalizadora.t_transacciones_enriquecida` AS t1
 LEFT JOIN
@@ -89,11 +88,11 @@ WHERE
   AND t2.PUBLICAMENTE_EXPUESTA = "S";
 
 
+
 INSERT --------
 
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS
 SELECT
-  'CAP_0069_VISOR_TRANS' AS ALERTA,
   t1.FECHA_TRANSACCION,
   t1.TIPO_DOCUMENTO,
   t1.KEY_ID,
@@ -103,7 +102,8 @@ SELECT
   t1.PLAN_CODIGO,
   t1.NOMBRE_DESCRIPCION_TITULO,
   t1.OFICINA,
-  t2.PUBLICAMENTE_EXPUESTA
+  t2.PUBLICAMENTE_EXPUESTA,
+  CURRENT_DATE() AS FECHA_ALERTA
 FROM
   `sb-ecosistemaanalitico-lago.capitalizadora.t_transacciones_enriquecida` AS t1
 LEFT JOIN
