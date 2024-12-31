@@ -52,7 +52,7 @@ WITH ranked_data AS (
         NOMBRE_TOMADOR,
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR
     HAVING 
-        COUNT(*) > 2
+        COUNT(*) > 3
 )
 SELECT  
     NUMERO_POLIZA,
