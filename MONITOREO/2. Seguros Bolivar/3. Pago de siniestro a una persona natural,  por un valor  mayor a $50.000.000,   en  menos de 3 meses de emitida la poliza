@@ -25,7 +25,7 @@ WITH SiniestrosConFila AS (
     WHERE 
         DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 --en  menos de 3 meses de emitida la poliza
-        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
+        --AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
         AND CODIGO_COMPANIA = 2 --Filtro para solo Seguros Bolivar
         AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
