@@ -18,14 +18,17 @@ WITH SiniestrosPorMes AS (
         FECHA_SUSCRIPCION,
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
-        EXTRACT(YEAR FROM FECHA_SINIESTRO),
-        EXTRACT(MONTH FROM FECHA_SINIESTRO),
+        EXTRACT(YEAR FROM FECHA_SINIESTRO) AS ANIO_SINIESTRO,
+        EXTRACT(MONTH FROM FECHA_SINIESTRO) AS MES_SINIESTRO,
         ESTADO_SINIESTRO_CALCULADO,
         LIQUIDADO_BOLIVAR,
         INCURRIDO_BOLIVAR,
         
         -- Contamos los días únicos dentro de cada mes y para cada tomador
-        COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos
+        COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos,
+        
+        -- Asignamos un número de fila para garantizar que no haya duplicados por KEY_ID_TOMADOR
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SINIESTRO DESC) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
@@ -52,11 +55,14 @@ SELECT
     FECHA_SINIESTRO,
     FECHA_SUSCRIPCION,
     ESTADO_SINIESTRO,
-    FECHA_ORDEN_PAGO
+    FECHA_ORDEN_PAGO,
     ESTADO_SINIESTRO_CALCULADO,
     LIQUIDADO_BOLIVAR,
     INCURRIDO_BOLIVAR
 FROM 
     SiniestrosPorMes
 WHERE 
-    count_dias_distintos >= 3;  
+    count_dias_distintos >= 3  -- Filtrar aquellos registros con 3 o más días distintos en el mes
+    AND fila = 1  -- Eliminar duplicados, quedando solo el primer registro para cada KEY_ID_TOMADOR
+ORDER BY 
+    FECHA_SINIESTRO DESC;
