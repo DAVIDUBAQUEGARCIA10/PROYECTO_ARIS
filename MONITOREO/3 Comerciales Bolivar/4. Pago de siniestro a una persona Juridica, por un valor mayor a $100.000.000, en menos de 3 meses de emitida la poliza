@@ -25,7 +25,7 @@ WITH SiniestrosConFila AS (
     WHERE 
         DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 --en  menos de 3 meses de emitida la poliza
-        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
+        --AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
         AND CODIGO_COMPANIA = 3 --Filtro para solo Comerciales Bolivar
         AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
@@ -57,35 +57,3 @@ FROM
     SiniestrosConFila
 WHERE 
     fila = 1;  -- Solo selecciona la primera fila de cada KEY_ID_TOMADOR
-
-Ejemplo - > https://docs.google.com/spreadsheets/d/1FjHkVWkOmZEDjALPr0vYT1iqJVCPPDc6UdyXyfOI6r4/edit?usp=drive_open&ouid=101910629782611746997
------------------------------------------------------
-
-
-Resumen de la lógica del código:
-Definición de las fechas:
-Se definen las fechas fecha_inicial y fecha_final, para el período del 1 de enero de 2024 hasta el 31 de diciembre de 2024.
-
-CTE (Common Table Expression) SiniestrosConFila:
-
-La consulta principal se encapsula en una CTE llamada SiniestrosConFila, donde se seleccionan varias columnas de la tabla t_siniestros como el código de compañía, ramo contable, producto, número de póliza, detalles del tomador, asegurado, beneficiario, fechas de siniestro y suscripción, estado del siniestro, fecha de orden de pago y monto de liquidación (LIQUIDADO_BOLIVAR).
-
-Filtros aplicados:
-
-Fecha de suscripción: Solo se seleccionan siniestros cuyas fechas de suscripción sean mayores o iguales a la fecha_inicial (2024-01-01).
-Diferencia de días entre siniestro y suscripción: Se incluyen solo los siniestros que ocurrieron dentro de los primeros 90 días después de la suscripción de la póliza, es decir, siniestros que se reportaron rápidamente (menos de 3 meses después de suscribirse la póliza).
-Pólizas que terminan en '01': Se filtran solo las pólizas cuyo número termina en '01' (RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01').
-Compañía específica: Solo se incluyen los siniestros de Comerciales Bolívar (CODIGO_COMPANIA = 3).
-Fecha de siniestro dentro del rango: Se filtran los siniestros cuya fecha de siniestro está entre fecha_inicial y fecha_final (2024).
-Excluir ciertos tomadores y beneficiarios: Se excluyen ciertos NITs de tomadores (KEY_ID_TOMADOR NOT IN ('860034313', '830053700')) y beneficiarios (KEY_ID_BENEFICIARIO NOT IN ('860034313', '830053700')).
-Excluir ciertos ramos contables: Se excluyen siniestros de los ramos contables con códigos 45 (salud) y 34 (otros) mediante CODIGO_RAMO_CONTABLE NOT IN (45, 34).
-Monto de liquidación: Se filtran los siniestros con un monto de liquidación superior a 100 millones (LIQUIDADO_BOLIVAR > 100000000), lo que asegura que solo se analicen siniestros de alto valor.
-Solo siniestros pagados: Se seleccionan solo los siniestros para los cuales ya existe una orden de pago (FECHA_ORDEN_PAGO IS NOT NULL).
-Solo tomadores jurídicos: Se filtran solo los tomadores con documentos tipo jurídicos (TIPO_DOCUMENTO_TOMADOR IN ('NT', 'NE')).
-Uso de la función ROW_NUMBER():
-
-Dentro de la CTE, se utiliza la función ROW_NUMBER() para asignar un número de fila a cada siniestro, particionado por KEY_ID_TOMADOR (lo que asegura que cada tomador tiene su propio conjunto de filas) y ordenado por fecha de suscripción (de forma ascendente). Esto permite que el siniestro con la fecha de suscripción más temprana tenga el número de fila 1.
-El propósito de esta función es seleccionar solo el primer siniestro registrado para cada tomador, según la fecha de suscripción (el más reciente).
-Selección final:
-
-En la consulta final, se seleccionan todas las columnas relevantes de la CTE SiniestrosConFila, pero solo se incluyen aquellos registros cuyo número de fila (fila) es igual a 1. Esto asegura que solo se obtenga el primer siniestro de cada tomador.
