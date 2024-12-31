@@ -25,7 +25,7 @@ WITH polizas_con_pagos AS (
         a.TIPO_DOCUMENTO_TOMADOR,
         a.NUMERO_DOCUMENTO_TOMADOR
     HAVING 
-        COUNT(DISTINCT a.NUMERO_POLIZA) > 2
+        COUNT(DISTINCT a.NUMERO_POLIZA) >= 2
 )
 , polizas_ordenadas AS (
     SELECT 
