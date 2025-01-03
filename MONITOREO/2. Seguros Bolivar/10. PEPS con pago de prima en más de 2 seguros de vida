@@ -76,3 +76,182 @@ FROM
     polizas_ordenadas
 WHERE 
     rn = 1;
+
+
+CREATE -----
+
+
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO AS
+WITH polizas_con_pagos AS (
+    SELECT 
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR,
+        COUNT(DISTINCT a.NUMERO_POLIZA) AS NUMERO_POLIZAS_PAGADAS
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+    LEFT JOIN 
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` c
+    ON 
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO_TERCERO
+        AND b.KEY_ID = c.KEY_ID
+    WHERE 
+        a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
+        AND a.FECHA_RECAUDO >= "2024-01-01"
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
+        AND a.TIPO_REGISTRO = 'RECAUDO'
+        AND c.CODIGO_RESTRICCION = 23
+    GROUP BY 
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR
+    HAVING 
+        COUNT(DISTINCT a.NUMERO_POLIZA) >= 2
+),
+polizas_ordenadas AS (
+    SELECT 
+        a.CODIGO_COMPANIA,
+        a.CODIGO_RAMO_EMISION,
+        a.NOMBRE_RAMO_EMISION,
+        a.CODIGO_PRODUCTO,
+        a.NOMBRE_PRODUCTO,
+        a.NUMERO_POLIZA,
+        a.FECHA_VIGENCIA_ENDOSO,
+        a.FECHA_VENCIMIENTO_ENDOSO,
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR,
+        a.NOMBRE_TOMADOR,
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        b.NUMERO_POLIZAS_PAGADAS,
+        ROW_NUMBER() OVER (PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_VIGENCIA_ENDOSO DESC) AS rn
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+    LEFT JOIN 
+        polizas_con_pagos b
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TOMADOR 
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO_TOMADOR
+    WHERE 
+        b.NUMERO_POLIZAS_PAGADAS IS NOT NULL
+        AND b.NUMERO_POLIZAS_PAGADAS > 0
+        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
+        AND a.FECHA_RECAUDO >= "2024-01-01"
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
+        AND a.TIPO_REGISTRO = 'RECAUDO'
+)
+SELECT 
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    FECHA_VIGENCIA_ENDOSO,
+    FECHA_VENCIMIENTO_ENDOSO,
+    TIPO_DOCUMENTO_TOMADOR,
+    NUMERO_DOCUMENTO_TOMADOR,
+    NOMBRE_TOMADOR,
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+    NUMERO_POLIZAS_PAGADAS,
+    CURRENT_DATE() AS FECHA_ALERTA -- Agregar la fecha de alerta
+FROM 
+    polizas_ordenadas
+WHERE 
+    rn = 1;
+
+
+
+INSERT ----
+
+
+-- Insertar solo registros nuevos en SEG_0071_VISOR_REPO
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO
+WITH polizas_con_pagos AS (
+    SELECT 
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR,
+        COUNT(DISTINCT a.NUMERO_POLIZA) AS NUMERO_POLIZAS_PAGADAS
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+    LEFT JOIN 
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` c
+    ON 
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO_TERCERO
+        AND b.KEY_ID = c.KEY_ID
+    WHERE 
+        a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
+        AND a.FECHA_RECAUDO >= "2024-01-01"
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
+        AND a.TIPO_REGISTRO = 'RECAUDO'
+        AND c.CODIGO_RESTRICCION = 23
+    GROUP BY 
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR
+    HAVING 
+        COUNT(DISTINCT a.NUMERO_POLIZA) >= 2
+),
+polizas_ordenadas AS (
+    SELECT 
+        a.CODIGO_COMPANIA,
+        a.CODIGO_RAMO_EMISION,
+        a.NOMBRE_RAMO_EMISION,
+        a.CODIGO_PRODUCTO,
+        a.NOMBRE_PRODUCTO,
+        a.NUMERO_POLIZA,
+        a.FECHA_VIGENCIA_ENDOSO,
+        a.FECHA_VENCIMIENTO_ENDOSO,
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.NUMERO_DOCUMENTO_TOMADOR,
+        a.NOMBRE_TOMADOR,
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        b.NUMERO_POLIZAS_PAGADAS,
+        ROW_NUMBER() OVER (PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_VIGENCIA_ENDOSO DESC) AS rn
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+    LEFT JOIN 
+        polizas_con_pagos b
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TOMADOR 
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO_TOMADOR
+    WHERE 
+        b.NUMERO_POLIZAS_PAGADAS IS NOT NULL
+        AND b.NUMERO_POLIZAS_PAGADAS > 0
+        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
+        AND a.FECHA_RECAUDO >= "2024-01-01"
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
+        AND a.TIPO_REGISTRO = 'RECAUDO'
+)
+SELECT 
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    FECHA_VIGENCIA_ENDOSO,
+    FECHA_VENCIMIENTO_ENDOSO,
+    TIPO_DOCUMENTO_TOMADOR,
+    NUMERO_DOCUMENTO_TOMADOR,
+    NOMBRE_TOMADOR,
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+    NUMERO_POLIZAS_PAGADAS,
+    CURRENT_DATE() AS FECHA_ALERTA -- Agregar la fecha de alerta
+FROM 
+    polizas_ordenadas
+WHERE 
+    rn = 1
+    AND NOT EXISTS (
+        -- Verificar que el registro no existe ya en la tabla
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO existing
+        WHERE existing.NUMERO_DOCUMENTO_TOMADOR = polizas_ordenadas.NUMERO_DOCUMENTO_TOMADOR
+          AND existing.NUMERO_POLIZA = polizas_ordenadas.NUMERO_POLIZA
+    );
