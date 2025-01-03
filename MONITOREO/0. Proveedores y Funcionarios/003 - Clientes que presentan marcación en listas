@@ -1,1 +1,289 @@
 
+WITH ranked_data AS ( 
+    -- Primer conjunto de resultados (TOMADOR)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR AS TIPO_ID,
+        p.KEY_ID_TOMADOR AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        1 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_TOMADOR = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Segundo conjunto de resultados (ASEGURADO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_ASEGURADO AS TIPO_ID,
+        p.KEY_ID_ASEGURADO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        2 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_ASEGURADO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Tercer conjunto de resultados (BENEFICIARIO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_BENEFICIARIO AS TIPO_ID,
+        p.KEY_ID_BENEFICIARIO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        3 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_BENEFICIARIO = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_BENEFICIARIO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+)
+
+SELECT *
+FROM (
+    SELECT DISTINCT *,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY ROL, CODIGO_RESTRICCION) AS ROW_NUM
+    FROM ranked_data
+) AS ranked_results
+WHERE ROW_NUM = 1
+ORDER BY KEY_ID;
+
+
+CREATE ---
+-- Crear o reemplazar la tabla cliente_restringidos con los resultados procesados
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.cliente_restringidos AS 
+WITH ranked_data AS ( 
+    -- Primer conjunto de resultados (TOMADOR)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR AS TIPO_ID,
+        p.KEY_ID_TOMADOR AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        1 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_TOMADOR = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Segundo conjunto de resultados (ASEGURADO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_ASEGURADO AS TIPO_ID,
+        p.KEY_ID_ASEGURADO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        2 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_ASEGURADO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Tercer conjunto de resultados (BENEFICIARIO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_BENEFICIARIO AS TIPO_ID,
+        p.KEY_ID_BENEFICIARIO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        3 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_BENEFICIARIO = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_BENEFICIARIO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+)
+
+-- Seleccionar los registros finales, agregando la fecha de alerta
+SELECT 
+    *,
+    CURRENT_DATE() AS FECHA_ALERTA -- Agregar la fecha de alerta con la fecha de ejecución
+FROM (
+    SELECT DISTINCT * ,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY ROL, CODIGO_RESTRICCION) AS ROW_NUM
+    FROM ranked_data
+) AS ranked_results
+WHERE ROW_NUM = 1
+ORDER BY KEY_ID;
+
+
+INSERT -----
+
+-- Insertar los registros nuevos en la tabla cliente_restringidos, manteniendo los existentes.
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.cliente_restringidos (
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    TIPO_ID,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    ROL,
+    FECHA_ALERTA -- Agregar la fecha de alerta
+)
+WITH ranked_data AS ( 
+    -- Primer conjunto de resultados (TOMADOR)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR AS TIPO_ID,
+        p.KEY_ID_TOMADOR AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        1 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_TOMADOR = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Segundo conjunto de resultados (ASEGURADO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_ASEGURADO AS TIPO_ID,
+        p.KEY_ID_ASEGURADO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        2 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_ASEGURADO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+    UNION ALL
+
+    -- Tercer conjunto de resultados (BENEFICIARIO)
+    SELECT
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_BENEFICIARIO AS TIPO_ID,
+        p.KEY_ID_BENEFICIARIO AS KEY_ID,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        3 AS ROL
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+    INNER JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON p.TIPO_DOCUMENTO_BENEFICIARIO = t.TIPO_DOCUMENTO_TERCERO
+        AND p.KEY_ID_BENEFICIARIO = t.KEY_ID
+    WHERE 
+        t.CODIGO_RESTRICCION IS NOT NULL 
+        AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+)
+
+-- Seleccionar solo los registros nuevos que no existen en la tabla destino
+SELECT 
+    DISTINCT r.CODIGO_COMPANIA,
+    r.CODIGO_RAMO_EMISION,
+    r.NOMBRE_RAMO_EMISION,
+    r.CODIGO_PRODUCTO,
+    r.NOMBRE_PRODUCTO,
+    r.NUMERO_POLIZA,
+    r.TIPO_ID,
+    r.KEY_ID,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION,
+    r.ROL,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM ranked_data r
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.cliente_restringidos c
+    ON r.KEY_ID = c.KEY_ID 
+    AND r.TIPO_ID = c.TIPO_ID
+WHERE c.KEY_ID IS NULL -- Solo insertar los nuevos registros (los que no existen en la tabla)
+ORDER BY r.KEY_ID;
