@@ -174,8 +174,7 @@ ORDER BY
 
 
 INSERT -----
-
--- Insertar solo los registros nuevos en la tabla SEG_0005_VISOR_REPO
+-- Insertar solo los registros nuevos que no existan en la tabla SEG_0005_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO
 (
     CODIGO_COMPANIA,
@@ -257,35 +256,37 @@ WITH registros_ordenados AS (
              OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%')
 )
 SELECT
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_POLIZA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,    
-    COD_MOTIVO_CANCELACION_POLIZA,
-    DES_MOTIVO_CANCELACION_POLIZA,
-    FECHA_EMISION_ENDOSO,
-    FECHA_INICIO_ENDOSO,
-    FECHA_FIN_ENDOSO,
-    FECHA_INICIO_POLIZA,
-    FECHA_FIN_POLIZA,
-    TIPO_ENDOSO,
-    DESCRIPCION_ENDOSO,
-    FECHA_ORIGEN,
-    FECHA_SUSCRIPCION,
-    FECHA_SINIESTRO,
-    LIQUIDADO_BOLIVAR,
-    FECHA_ORDEN_PAGO,
-    DIFERENCIA_DIAS,
+    r.CODIGO_COMPANIA,
+    r.CODIGO_RAMO_EMISION,
+    r.NOMBRE_RAMO_EMISION,
+    r.CODIGO_PRODUCTO,
+    r.NOMBRE_PRODUCTO,
+    r.NUMERO_POLIZA,
+    r.TIPO_DOCUMENTO_TOMADOR,
+    r.KEY_ID_TOMADOR,    
+    r.COD_MOTIVO_CANCELACION_POLIZA,
+    r.DES_MOTIVO_CANCELACION_POLIZA,
+    r.FECHA_EMISION_ENDOSO,
+    r.FECHA_INICIO_ENDOSO,
+    r.FECHA_FIN_ENDOSO,
+    r.FECHA_INICIO_POLIZA,
+    r.FECHA_FIN_POLIZA,
+    r.TIPO_ENDOSO,
+    r.DESCRIPCION_ENDOSO,
+    r.FECHA_ORIGEN,
+    r.FECHA_SUSCRIPCION,
+    r.FECHA_SINIESTRO,
+    r.LIQUIDADO_BOLIVAR,
+    r.FECHA_ORDEN_PAGO,
+    r.DIFERENCIA_DIAS,
     CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha de alerta
 FROM 
     registros_ordenados r
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO existing
-    ON r.NUMERO_POLIZA = existing.NUMERO_POLIZA
-    AND r.KEY_ID_TOMADOR = existing.KEY_ID_TOMADOR
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO t
+    ON r.NUMERO_POLIZA = t.NUMERO_POLIZA
+    AND r.KEY_ID_TOMADOR = t.KEY_ID_TOMADOR
 WHERE 
-    existing.NUMERO_POLIZA IS NULL;  -- Solo insertar los registros nuevos
-
+    r.fila = 1
+    AND t.NUMERO_POLIZA IS NULL  -- Esto asegura que solo se inserten los registros nuevos
+ORDER BY 
+    r.LIQUIDADO_BOLIVAR DESC;
