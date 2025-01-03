@@ -74,3 +74,211 @@ SELECT
     VALOR_ASEGURADO
 FROM fila_unica
 WHERE rn = 1;
+
+
+
+
+------CREATE 
+
+
+-- Crear o reemplazar la tabla SEG_0103_VISOR_REPO y agregar la columna FECHA_ALERTA
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO AS
+WITH fila_unica AS (
+    SELECT
+        c.NUMERO_SECUENCIA_POLIZA,
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        c.NOMBRE,
+        c.NOMBRE_COMERCIAL,
+        c.SECTOR_ECONOMICO,
+        c.ACTIVIDAD_ECONOMICA,
+        c.CODIGO_CIIU,
+        p.codigo_ramo_emision,
+        p.nombre_ramo_emision,
+        p.codigo_producto,
+        p.nombre_producto,
+        p.COD_MOTIVO_CANCELACION_POLIZA,
+        p.DES_MOTIVO_CANCELACION_POLIZA,
+        DATE(c.FECHA_NACIMIENTO) AS FECHA_NACIMIENTO,
+        c.GRAN_CONTRIBUYENTE,
+        c.VALOR_EGRESOS,
+        c.VALOR_INGRESOS,
+        c.VALOR_ACTIVO,
+        c.VALOR_PASIVO,
+        c.VALOR_PATRIMONIO,
+        DATE(c.FECHA_ACTUALIZACION) AS FECHA_ACTUALIZACION,
+        p.CODIGO_COMPANIA,
+        p.NUMERO_POLIZA,
+        p.KEY_ID_ASEGURADO,
+        DATE(p.FECHA_FIN_ENDOSO) AS FECHA_FIN_ENDOSO,
+        DATE(p.FECHA_FIN_POLIZA) AS FECHA_FIN_POLIZA,
+        p.VALOR_ASEGURADO,
+        ROW_NUMBER() OVER (PARTITION BY c.NUMERO_SECUENCIA_POLIZA, c.TIPO_DOCUMENTO, c.KEY_ID ORDER BY c.FECHA_ACTUALIZACION DESC) AS rn
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
+    JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+        ON c.KEY_ID = p.KEY_ID_TOMADOR
+    WHERE 
+        c.FECHA_NACIMIENTO IS NOT NULL
+        AND DATE(p.FECHA_FIN_ENDOSO) > CURRENT_DATE()
+        AND DATE(p.FECHA_FIN_POLIZA) > CURRENT_DATE()
+        AND p.VALOR_ASEGURADO > 16500000
+        AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
+        AND CODIGO_COMPANIA = 2
+)
+
+SELECT
+    NUMERO_SECUENCIA_POLIZA,
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NOMBRE,
+    NOMBRE_COMERCIAL,
+    SECTOR_ECONOMICO,
+    ACTIVIDAD_ECONOMICA,
+    CODIGO_CIIU,
+    codigo_ramo_emision,
+    nombre_ramo_emision,
+    codigo_producto,
+    nombre_producto,
+    COD_MOTIVO_CANCELACION_POLIZA,
+    DES_MOTIVO_CANCELACION_POLIZA,
+    FECHA_NACIMIENTO,
+    GRAN_CONTRIBUYENTE,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    VALOR_PATRIMONIO,
+    FECHA_ACTUALIZACION,
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    KEY_ID_ASEGURADO,
+    FECHA_FIN_ENDOSO,
+    FECHA_FIN_POLIZA,
+    VALOR_ASEGURADO,
+    CURRENT_DATE() AS FECHA_ALERTA -- Columna con la fecha de alerta
+FROM fila_unica
+WHERE rn = 1;
+
+
+
+INSERT ----------
+-- Insertar solo los registros nuevos en la tabla SEG_0103_VISOR_REPO
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO
+(
+    NUMERO_SECUENCIA_POLIZA,
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NOMBRE,
+    NOMBRE_COMERCIAL,
+    SECTOR_ECONOMICO,
+    ACTIVIDAD_ECONOMICA,
+    CODIGO_CIIU,
+    codigo_ramo_emision,
+    nombre_ramo_emision,
+    codigo_producto,
+    nombre_producto,
+    COD_MOTIVO_CANCELACION_POLIZA,
+    DES_MOTIVO_CANCELACION_POLIZA,
+    FECHA_NACIMIENTO,
+    GRAN_CONTRIBUYENTE,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    VALOR_PATRIMONIO,
+    FECHA_ACTUALIZACION,
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    KEY_ID_ASEGURADO,
+    FECHA_FIN_ENDOSO,
+    FECHA_FIN_POLIZA,
+    VALOR_ASEGURADO,
+    FECHA_ALERTA
+)
+WITH fila_unica AS (
+    SELECT
+        c.NUMERO_SECUENCIA_POLIZA,
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        c.NOMBRE,
+        c.NOMBRE_COMERCIAL,
+        c.SECTOR_ECONOMICO,
+        c.ACTIVIDAD_ECONOMICA,
+        c.CODIGO_CIIU,
+        p.codigo_ramo_emision,
+        p.nombre_ramo_emision,
+        p.codigo_producto,
+        p.nombre_producto,
+        p.COD_MOTIVO_CANCELACION_POLIZA,
+        p.DES_MOTIVO_CANCELACION_POLIZA,
+        DATE(c.FECHA_NACIMIENTO) AS FECHA_NACIMIENTO,
+        c.GRAN_CONTRIBUYENTE,
+        c.VALOR_EGRESOS,
+        c.VALOR_INGRESOS,
+        c.VALOR_ACTIVO,
+        c.VALOR_PASIVO,
+        c.VALOR_PATRIMONIO,
+        DATE(c.FECHA_ACTUALIZACION) AS FECHA_ACTUALIZACION,
+        p.CODIGO_COMPANIA,
+        p.NUMERO_POLIZA,
+        p.KEY_ID_ASEGURADO,
+        DATE(p.FECHA_FIN_ENDOSO) AS FECHA_FIN_ENDOSO,
+        DATE(p.FECHA_FIN_POLIZA) AS FECHA_FIN_POLIZA,
+        p.VALOR_ASEGURADO,
+        ROW_NUMBER() OVER (PARTITION BY c.NUMERO_SECUENCIA_POLIZA, c.TIPO_DOCUMENTO, c.KEY_ID ORDER BY c.FECHA_ACTUALIZACION DESC) AS rn
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
+    JOIN 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+        ON c.KEY_ID = p.KEY_ID_TOMADOR
+    WHERE 
+        c.FECHA_NACIMIENTO IS NOT NULL
+        AND DATE(p.FECHA_FIN_ENDOSO) > CURRENT_DATE()
+        AND DATE(p.FECHA_FIN_POLIZA) > CURRENT_DATE()
+        AND p.VALOR_ASEGURADO > 16500000
+        AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
+        AND CODIGO_COMPANIA = 2
+)
+
+-- Seleccionar solo los registros nuevos que no están en la tabla SEG_0103_VISOR_REPO
+SELECT
+    f.NUMERO_SECUENCIA_POLIZA,
+    f.TIPO_DOCUMENTO,
+    f.KEY_ID,
+    f.NOMBRE,
+    f.NOMBRE_COMERCIAL,
+    f.SECTOR_ECONOMICO,
+    f.ACTIVIDAD_ECONOMICA,
+    f.CODIGO_CIIU,
+    f.codigo_ramo_emision,
+    f.nombre_ramo_emision,
+    f.codigo_producto,
+    f.nombre_producto,
+    f.COD_MOTIVO_CANCELACION_POLIZA,
+    f.DES_MOTIVO_CANCELACION_POLIZA,
+    f.FECHA_NACIMIENTO,
+    f.GRAN_CONTRIBUYENTE,
+    f.VALOR_EGRESOS,
+    f.VALOR_INGRESOS,
+    f.VALOR_ACTIVO,
+    f.VALOR_PASIVO,
+    f.VALOR_PATRIMONIO,
+    f.FECHA_ACTUALIZACION,
+    f.CODIGO_COMPANIA,
+    f.NUMERO_POLIZA,
+    f.KEY_ID_ASEGURADO,
+    f.FECHA_FIN_ENDOSO,
+    f.FECHA_FIN_POLIZA,
+    f.VALOR_ASEGURADO,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM fila_unica f
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO existing
+    ON f.NUMERO_SECUENCIA_POLIZA = existing.NUMERO_SECUENCIA_POLIZA
+    AND f.TIPO_DOCUMENTO = existing.TIPO_DOCUMENTO
+    AND f.KEY_ID = existing.KEY_ID
+WHERE f.rn = 1
+  AND existing.NUMERO_SECUENCIA_POLIZA IS NULL;
+
+
