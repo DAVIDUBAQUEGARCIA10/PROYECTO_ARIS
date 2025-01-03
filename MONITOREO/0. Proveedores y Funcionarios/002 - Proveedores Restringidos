@@ -1,0 +1,260 @@
+WITH RankedData AS (
+    SELECT  
+    c.razon_social_cia,
+    c.numero_radicado, 
+            t.TIPO_DOCUMENTO, 
+            t.NUMERO_DOCUMENTO, 
+            c.codigo_tipo_documento_cobro, 
+            c.codigo_tipo_persona,
+            c.codigo_tipo_identificacion_emisor, 
+            c.key_id_emisor, 
+            c.descripcion_tipo_identificacion_emisor, 
+            c.razon_social_emisor,
+            c.codigo_dane_ciudad, 
+            c.nombre_ciudad, 
+            c.codigo_dane_departamento, 
+            c.nombre_departamento, 
+            c.fecha_emision, 
+            c.codigo_iso_moneda, 
+            c.nombre_comun_moneda, 
+            c.concepto_cobro,
+            c.valor_base,
+            c.valor_iva, 
+            c.descripcion_bien_servicio, 
+            c.tipo_unidad_bien_servicio,  
+            c.marca_requiere_documento_soporte, 
+            c.estado_documento_cobro,
+            c.descripcion_estado, 
+            c.fecha_estado,
+            ROW_NUMBER() OVER (PARTITION BY c.key_id_emisor, c.razon_social_cia ORDER BY c.fecha_emision DESC) AS row_num
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes t
+        ON c.key_id_emisor = t.KEY_ID 
+        AND c.codigo_tipo_identificacion_emisor = t.TIPO_DOCUMENTO
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      )
+)
+SELECT r.*,
+       tr.CODIGO_RESTRICCION,
+       tr.DESCRIPCION
+FROM RankedData r
+JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos tr
+    ON r.TIPO_DOCUMENTO = tr.TIPO_DOCUMENTO_TERCERO
+    AND r.key_id_emisor = tr.KEY_ID
+WHERE r.row_num = 1 and tr.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+ORDER BY r.fecha_emision DESC;
+
+
+CREATE----
+
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.proveedores_restringidos AS
+WITH RankedData AS (
+    SELECT  
+        c.razon_social_cia,
+        c.numero_radicado, 
+        t.TIPO_DOCUMENTO, 
+        t.NUMERO_DOCUMENTO,
+        c.codigo_tipo_documento_cobro, 
+        c.codigo_tipo_persona,
+        c.codigo_tipo_identificacion_emisor, 
+        c.key_id_emisor, 
+        c.descripcion_tipo_identificacion_emisor, 
+        c.razon_social_emisor,
+        c.codigo_dane_ciudad, 
+        c.nombre_ciudad, 
+        c.codigo_dane_departamento, 
+        c.nombre_departamento, 
+        c.fecha_emision, 
+        c.codigo_iso_moneda, 
+        c.nombre_comun_moneda, 
+        c.concepto_cobro,
+        c.valor_base,
+        c.valor_iva, 
+        c.descripcion_bien_servicio, 
+        c.tipo_unidad_bien_servicio,  
+        c.marca_requiere_documento_soporte, 
+        c.estado_documento_cobro,
+        c.descripcion_estado, 
+        c.fecha_estado,
+        ROW_NUMBER() OVER (PARTITION BY c.key_id_emisor, c.razon_social_cia ORDER BY c.fecha_emision DESC) AS row_num
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes t
+        ON c.key_id_emisor = t.KEY_ID 
+        AND c.codigo_tipo_identificacion_emisor = t.TIPO_DOCUMENTO
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN (
+          'Seguros Comerciales Bolívar S.A.',
+          'Bolívar Salud IPS S.A.S.',
+          'Compañía de Seguros Bolívar S.A.',
+          'Fundación Bolívar Davivienda',
+          'Servicios Bolívar S.A.',
+          'Capitalizadora Bolívar S.A.',
+          'Grupo Bolívar S.A.',
+          'Servicios Bolívar Facilities S.A.S.',
+          'Salud Bolivar EPS S.A.S',
+          'Fundación Cultiva el Arte y la Cultura',
+          'Soluciones Bolívar S.A.S.',
+          'Multinversiones Bolívar S.A.',
+          'Sentido Empresarial S.A.',
+          'Inversiones Financieras Bolívar S.A.S.'
+      )
+)
+SELECT 
+    r.*, 
+    tr.CODIGO_RESTRICCION, 
+    tr.DESCRIPCION,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM RankedData r
+JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos tr
+    ON r.TIPO_DOCUMENTO = tr.TIPO_DOCUMENTO_TERCERO
+    AND r.key_id_emisor = tr.KEY_ID
+WHERE r.row_num = 1 
+  AND tr.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+ORDER BY r.fecha_emision DESC;
+
+
+INSERT ---
+
+-- Insertar solo registros nuevos en la tabla
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.proveedores_restringidos
+(
+    razon_social_cia,
+    numero_radicado, 
+    TIPO_DOCUMENTO, 
+    NUMERO_DOCUMENTO, 
+    codigo_tipo_documento_cobro, 
+    codigo_tipo_persona,
+    codigo_tipo_identificacion_emisor, 
+    key_id_emisor, 
+    descripcion_tipo_identificacion_emisor, 
+    razon_social_emisor,
+    codigo_dane_ciudad, 
+    nombre_ciudad, 
+    codigo_dane_departamento, 
+    nombre_departamento, 
+    fecha_emision, 
+    codigo_iso_moneda, 
+    nombre_comun_moneda, 
+    concepto_cobro,
+    valor_base,
+    valor_iva, 
+    descripcion_bien_servicio, 
+    tipo_unidad_bien_servicio,  
+    marca_requiere_documento_soporte, 
+    estado_documento_cobro,
+    descripcion_estado, 
+    fecha_estado,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_ALERTA
+)
+WITH RankedData AS (
+    SELECT  
+        c.razon_social_cia,
+        c.numero_radicado, 
+        t.TIPO_DOCUMENTO, 
+        t.NUMERO_DOCUMENTO, 
+        c.codigo_tipo_documento_cobro, 
+        c.codigo_tipo_persona,
+        c.codigo_tipo_identificacion_emisor, 
+        c.key_id_emisor, 
+        c.descripcion_tipo_identificacion_emisor, 
+        c.razon_social_emisor,
+        c.codigo_dane_ciudad, 
+        c.nombre_ciudad, 
+        c.codigo_dane_departamento, 
+        c.nombre_departamento, 
+        c.fecha_emision, 
+        c.codigo_iso_moneda, 
+        c.nombre_comun_moneda, 
+        c.concepto_cobro,
+        c.valor_base,
+        c.valor_iva, 
+        c.descripcion_bien_servicio, 
+        c.tipo_unidad_bien_servicio,  
+        c.marca_requiere_documento_soporte, 
+        c.estado_documento_cobro,
+        c.descripcion_estado, 
+        c.fecha_estado,
+        ROW_NUMBER() OVER (PARTITION BY c.key_id_emisor, c.razon_social_cia ORDER BY c.fecha_emision DESC) AS row_num
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes t
+        ON c.key_id_emisor = t.KEY_ID 
+        AND c.codigo_tipo_identificacion_emisor = t.TIPO_DOCUMENTO
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      )
+)
+SELECT 
+    r.razon_social_cia,
+    r.numero_radicado, 
+    r.TIPO_DOCUMENTO, 
+    r.NUMERO_DOCUMENTO, 
+    r.codigo_tipo_documento_cobro, 
+    r.codigo_tipo_persona,
+    r.codigo_tipo_identificacion_emisor, 
+    r.key_id_emisor, 
+    r.descripcion_tipo_identificacion_emisor, 
+    r.razon_social_emisor,
+    r.codigo_dane_ciudad, 
+    r.nombre_ciudad, 
+    r.codigo_dane_departamento, 
+    r.nombre_departamento, 
+    r.fecha_emision, 
+    r.codigo_iso_moneda, 
+    r.nombre_comun_moneda, 
+    r.concepto_cobro,
+    r.valor_base,
+    r.valor_iva, 
+    r.descripcion_bien_servicio, 
+    r.tipo_unidad_bien_servicio,  
+    r.marca_requiere_documento_soporte, 
+    r.estado_documento_cobro,
+    r.descripcion_estado, 
+    r.fecha_estado,
+    tr.CODIGO_RESTRICCION,
+    tr.DESCRIPCION,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Fecha de alerta para los registros nuevos
+FROM RankedData r
+JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos tr
+    ON r.TIPO_DOCUMENTO = tr.TIPO_DOCUMENTO_TERCERO
+    AND r.key_id_emisor = tr.KEY_ID
+WHERE r.row_num = 1 
+  AND tr.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.proveedores_restringidos pr
+      WHERE pr.numero_radicado = r.numero_radicado
+      AND pr.key_id_emisor = r.key_id_emisor
+  )
+ORDER BY r.fecha_emision DESC;
+
+
+
