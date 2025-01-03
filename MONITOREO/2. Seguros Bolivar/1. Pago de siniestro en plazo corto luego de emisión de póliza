@@ -112,8 +112,7 @@ WHERE
 
 
 INSERT INTO -------------------------------------
-
--- Insertar nuevos registros
+-- Insertar solo nuevos registros que no estén ya en la tabla
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO (
     CODIGO_COMPANIA, 
     CODIGO_RAMO_CONTABLE, 
@@ -151,11 +150,11 @@ WITH SiniestrosConFila AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'  -- Aquí las fechas se definen directamente en la consulta
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'  -- Definir las fechas directamente
         AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
         AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'
         AND CODIGO_COMPANIA = 2
-        AND DATE(FECHA_SINIESTRO) BETWEEN '2024-01-01' AND '2024-12-31'  -- Definir las fechas directamente
+        AND DATE(FECHA_SINIESTRO) BETWEEN '2024-01-01' AND '2024-12-31'  -- Fechas definidas directamente
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
         AND LIQUIDADO_BOLIVAR > 0
@@ -163,22 +162,30 @@ WITH SiniestrosConFila AS (
         AND CODIGO_RAMO_CONTABLE NOT IN (70,26,118,27,888,13,310,1)
 )
 SELECT 
-    CODIGO_COMPANIA, 
-    CODIGO_RAMO_CONTABLE, 
-    NOMBRE_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_SECUENCIA_POLIZA,
-    NUMERO_POLIZA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    FECHA_SINIESTRO,
-    FECHA_SUSCRIPCION,
-    ESTADO_SINIESTRO,
-    FECHA_ORDEN_PAGO,
-    LIQUIDADO_BOLIVAR,
+    S.CODIGO_COMPANIA, 
+    S.CODIGO_RAMO_CONTABLE, 
+    S.NOMBRE_RAMO_CONTABLE,
+    S.CODIGO_PRODUCTO,
+    S.NOMBRE_PRODUCTO,
+    S.NUMERO_SECUENCIA_POLIZA,
+    S.NUMERO_POLIZA,
+    S.TIPO_DOCUMENTO_TOMADOR,
+    S.KEY_ID_TOMADOR,
+    S.FECHA_SINIESTRO,
+    S.FECHA_SUSCRIPCION,
+    S.ESTADO_SINIESTRO,
+    S.FECHA_ORDEN_PAGO,
+    S.LIQUIDADO_BOLIVAR,
     CURRENT_DATE() AS FECHA_ALERTA
 FROM 
-    SiniestrosConFila
+    SiniestrosConFila S
 WHERE 
-    fila = 1;
+    S.fila = 1
+    AND NOT EXISTS (  -- Excluir registros que ya existen en la tabla
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO T
+        WHERE 
+            T.KEY_ID_TOMADOR = S.KEY_ID_TOMADOR
+            AND T.NUMERO_POLIZA = S.NUMERO_POLIZA
+            AND T.FECHA_SINIESTRO = S.FECHA_SINIESTRO
+    );
