@@ -53,5 +53,171 @@ JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
 JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
     ON a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
     AND a.KEY_ID = c.KEY_ID
-WHERE a.rn = 1
+WHERE a.rn = 1 and t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+ORDER BY a.FECHA_CORTE DESC;
+
+
+CREATE -----
+
+-- Crear o reemplazar la tabla empleados_restringidos
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.empleados_restringidos AS
+WITH AgentesOrdenados AS (
+    SELECT 
+        FECHA_CORTE,
+        CLAVE_AGENTE,
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_LOCALIDAD,
+        LOCALIDAD,
+        FECHA_INGRESO,
+        FECHA_RETIRO,
+        CODIGO_CARGO,
+        NOMBRE_CARGO,
+        CLAVE_JEFE,
+        PRIMER_NOMBRE,
+        SEGUNDO_NOMBRE,
+        PRIMER_APELLIDO,
+        SEGUNDO_APELLIDO,
+        FECHA_NACIMIENTO,
+        EDAD,
+        GENERO,
+        ESTADO_CIVIL,
+        SALARIO,
+        ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_CORTE DESC) AS rn
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_param_agentes_empleados
+)
+SELECT 
+    a.FECHA_CORTE,
+    a.CLAVE_AGENTE,
+    a.TIPO_DOCUMENTO,
+    a.KEY_ID,
+    c.NUMERO_DOCUMENTO,       
+    a.CODIGO_LOCALIDAD,
+    a.LOCALIDAD,
+    a.FECHA_INGRESO,
+    a.FECHA_RETIRO,
+    a.CODIGO_CARGO,
+    a.NOMBRE_CARGO,
+    a.CLAVE_JEFE,
+    a.PRIMER_NOMBRE,
+    a.SEGUNDO_NOMBRE,
+    a.PRIMER_APELLIDO,
+    a.SEGUNDO_APELLIDO,
+    a.FECHA_NACIMIENTO,
+    a.EDAD,
+    a.GENERO,
+    a.ESTADO_CIVIL,
+    a.SALARIO,
+    t.CODIGO_RESTRICCION,
+    t.DESCRIPCION,
+    c.NIVEL_DE_RIESGO,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Fecha de alerta con la fecha de ejecución
+FROM AgentesOrdenados a
+JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+    ON a.TIPO_DOCUMENTO = t.TIPO_DOCUMENTO_TERCERO
+    AND a.KEY_ID = t.KEY_ID
+JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
+    ON a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    AND a.KEY_ID = c.KEY_ID
+WHERE a.rn = 1 
+  AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+ORDER BY a.FECHA_CORTE DESC;
+
+INSERT ---
+
+-- Insertar los registros nuevos en la tabla empleados_restringidos
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.empleados_restringidos 
+(
+    FECHA_CORTE,
+    CLAVE_AGENTE,
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NUMERO_DOCUMENTO,
+    CODIGO_LOCALIDAD,
+    LOCALIDAD,
+    FECHA_INGRESO,
+    FECHA_RETIRO,
+    CODIGO_CARGO,
+    NOMBRE_CARGO,
+    CLAVE_JEFE,
+    PRIMER_NOMBRE,
+    SEGUNDO_NOMBRE,
+    PRIMER_APELLIDO,
+    SEGUNDO_APELLIDO,
+    FECHA_NACIMIENTO,
+    EDAD,
+    GENERO,
+    ESTADO_CIVIL,
+    SALARIO,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    NIVEL_DE_RIESGO,
+    FECHA_ALERTA
+)
+WITH AgentesOrdenados AS (
+    SELECT 
+        FECHA_CORTE,
+        CLAVE_AGENTE,
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_LOCALIDAD,
+        LOCALIDAD,
+        FECHA_INGRESO,
+        FECHA_RETIRO,
+        CODIGO_CARGO,
+        NOMBRE_CARGO,
+        CLAVE_JEFE,
+        PRIMER_NOMBRE,
+        SEGUNDO_NOMBRE,
+        PRIMER_APELLIDO,
+        SEGUNDO_APELLIDO,
+        FECHA_NACIMIENTO,
+        EDAD,
+        GENERO,
+        ESTADO_CIVIL,
+        SALARIO,
+        ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_CORTE DESC) AS rn
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_param_agentes_empleados
+)
+SELECT 
+    a.FECHA_CORTE,
+    a.CLAVE_AGENTE,
+    a.TIPO_DOCUMENTO,
+    a.KEY_ID,
+    c.NUMERO_DOCUMENTO,       
+    a.CODIGO_LOCALIDAD,
+    a.LOCALIDAD,
+    a.FECHA_INGRESO,
+    a.FECHA_RETIRO,
+    a.CODIGO_CARGO,
+    a.NOMBRE_CARGO,
+    a.CLAVE_JEFE,
+    a.PRIMER_NOMBRE,
+    a.SEGUNDO_NOMBRE,
+    a.PRIMER_APELLIDO,
+    a.SEGUNDO_APELLIDO,
+    a.FECHA_NACIMIENTO,
+    a.EDAD,
+    a.GENERO,
+    a.ESTADO_CIVIL,
+    a.SALARIO,
+    t.CODIGO_RESTRICCION,
+    t.DESCRIPCION,
+    c.NIVEL_DE_RIESGO,
+    CURRENT_DATE() AS FECHA_ALERTA -- Fecha de alerta con la fecha de ejecución
+FROM AgentesOrdenados a
+JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+    ON a.TIPO_DOCUMENTO = t.TIPO_DOCUMENTO_TERCERO
+    AND a.KEY_ID = t.KEY_ID
+JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
+    ON a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    AND a.KEY_ID = c.KEY_ID
+WHERE a.rn = 1 
+  AND t.CODIGO_RESTRICCION IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.empleados_restringidos er
+      WHERE er.TIPO_DOCUMENTO = a.TIPO_DOCUMENTO
+      AND er.KEY_ID = a.KEY_ID
+  ) -- Asegura que solo se inserten los nuevos registros
 ORDER BY a.FECHA_CORTE DESC;
