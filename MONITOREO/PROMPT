@@ -1,10 +1,8 @@
 necesito que al siguiente codigo lo estructures para crear o remplazar tabla asi:
 create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.XXX  AS    (cambia la XXX por el valor real de la tabla del script el cual es:  )
-a la tabla resultante agregale una columna con la fecha de alerta, con la fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA, el codigo es:
-
-
-
-necesito modificar este codigo para que se inserten solo los registros nuevos , y conserve los que ya estan, USANDO INSER asi INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.XXXXX  
-(cambia la XXX por el valor real de la tabla del script el cual es: SEG_0101_VISOR_REPO ), adicionalmente
+a la tabla resultante agregale una columna con la fecha de alerta, con la fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA, y adicionalmente, creame otro codigo 
+para que se inserten solo los registros nuevos , y conserve los que ya estan, USANDO INSER asi INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.XXXXX  
+(cambia la XXX por el valor real de la tabla del script con el valor dado anteriormente ), adicionalmente
 a la tabla resultante agregale una columna con la fecha de alerta, con la fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA, y solo actualiza la fecha de los
-registros nuevos agregados, los registros existentes dejalos con la fecha que tiene , EL INSERT DEBE IR AL INICIO, el codigo es:
+registros nuevos agregados, los registros existentes dejalos con la fecha que tiene, PARA EL INSERT DEBE INGRESAR SOLO REGISTROS NUEVOS
+LOS QUE YA ESTAN NO INGRESARLOS DE NUEVO, EL INSERT DEBE IR AL INICIO, el codigo es:
