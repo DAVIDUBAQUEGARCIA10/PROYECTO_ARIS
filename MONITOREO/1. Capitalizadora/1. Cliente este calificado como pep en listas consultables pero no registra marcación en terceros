@@ -59,6 +59,7 @@ ORDER BY FECHA_MODIFICACION DESC;
 
 CREATE -----
 
+
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
 WITH RankedData AS (
     SELECT 
@@ -112,13 +113,13 @@ SELECT
     NIVEL_ALERTA,
     MARCA_ACTIVO,
     PUBLICAMENTE_EXPUESTA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA  -- Se agrega la fecha actual aquí
 FROM RankedData
 WHERE rn = 1
 ORDER BY FECHA_MODIFICACION DESC;
 
 INSERT ------
-
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO
 WITH RankedData AS (
     SELECT 
@@ -139,6 +140,7 @@ WITH RankedData AS (
         b.NIVEL_ALERTA,
         b.MARCA_ACTIVO,
         c.PUBLICAMENTE_EXPUESTA,
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,    
         ROW_NUMBER() OVER (PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO ORDER BY b.FECHA_MODIFICACION DESC) AS rn
     FROM 
         sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
@@ -172,6 +174,7 @@ SELECT
     NIVEL_ALERTA,
     MARCA_ACTIVO,
     PUBLICAMENTE_EXPUESTA,
+    FECHA_ALERTA_MES,    
     CURRENT_DATE() AS FECHA_ALERTA -- Inserta la fecha actual
 FROM RankedData rd
 WHERE rd.rn = 1
@@ -181,6 +184,6 @@ WHERE rd.rn = 1
         WHERE t.TITULO = rd.TITULO
           AND t.KEY_ID_BENEFICIARIO = rd.KEY_ID_BENEFICIARIO
           AND t.TIPO_DOCUMENTO = rd.TIPO_DOCUMENTO
+           AND t.FECHA_ALERTA_MES = rd.FECHA_ALERTA_MES
 )
 ORDER BY rd.FECHA_MODIFICACION DESC;
-
