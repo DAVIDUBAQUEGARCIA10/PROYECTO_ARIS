@@ -1,3 +1,12 @@
+Necesito estructurar el siguiente codigo crear una tabla a partir de el, tomando como referencia, el siguiente fragemento de codigo el cual siempre debe ir al inicio
+Create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.XXX, las XXX deben ser cambiadas por el nombre de la concicion el cual doy mas adelante, la tabla resultante tambien 
+debe tener fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA.
+nombre de la concicion:
+Codigo:
+
+y ahora convierte el anterior codigo, para que no sea create o replace, sino insert, ya que necesito ir acumulando o consolidando
+los registros nuevos que vayan saliendo, avitando asi duplicados
+
 necesito que al siguiente codigo lo estructures para crear o remplazar tabla asi:
 create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.XXX  AS    (cambia la XXX por el valor real de la tabla del script el cual es:  )
 a la tabla resultante agregale una columna con la fecha de alerta, con la fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA, y adicionalmente, creame otro codigo 
