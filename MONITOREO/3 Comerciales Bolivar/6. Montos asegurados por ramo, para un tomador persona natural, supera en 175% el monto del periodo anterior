@@ -478,7 +478,7 @@ FROM ranked_policies rp
 WHERE rp.row_num = 1 AND CODIGO_RAMO_EMISION NOT IN (1,5,37,23)
   AND NOT EXISTS (
     SELECT 1
-    FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO existing
+    FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0115_VISOR_REPO existing
     WHERE existing.NUMERO_POLIZA_ANTERIOR = rp.NUMERO_POLIZA_ANTERIOR
       AND existing.NUMERO_POLIZA_ACTUAL = rp.NUMERO_POLIZA_ACTUAL
       AND existing.TIPO_DOCUMENTO_TOMADOR = rp.TIPO_DOCUMENTO_TOMADOR
