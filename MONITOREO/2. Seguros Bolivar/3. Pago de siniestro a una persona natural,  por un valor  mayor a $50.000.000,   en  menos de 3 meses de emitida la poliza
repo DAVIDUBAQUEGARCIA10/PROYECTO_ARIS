@@ -19,7 +19,7 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
@@ -85,7 +85,7 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
@@ -117,6 +117,7 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,    
     CURRENT_DATE() AS FECHA_ALERTA -- Columna con la fecha de ejecución
 FROM 
     SiniestrosConFila
@@ -148,6 +149,7 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101B_VISOR_REPO
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+    FECHA_ALERTA_MES,
     FECHA_ALERTA -- Agregamos la fecha de alerta
 )
 WITH SiniestrosConFila AS (
@@ -168,7 +170,7 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
@@ -200,6 +202,7 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA
 FROM 
     SiniestrosConFila
