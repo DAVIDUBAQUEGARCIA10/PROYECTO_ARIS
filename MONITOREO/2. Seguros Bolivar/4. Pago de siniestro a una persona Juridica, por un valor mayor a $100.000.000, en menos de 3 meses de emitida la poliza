@@ -19,7 +19,7 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
@@ -27,7 +27,7 @@ WITH SiniestrosConFila AS (
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 --en  menos de 3 meses de emitida la poliza
         --AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
         AND CODIGO_COMPANIA = 2 --Filtro para solo Seguros Bolivar
-        --AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        --AND DATE(FECHA_SINIESTRO) >= '2024-01-01'  -- Convertir FECHA_SINIESTRO a DATE
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34) -- Excluir ramos de Salud y otros
         AND LIQUIDADO_BOLIVAR > 100000000 -- Siniestros mayores a este monto
@@ -63,8 +63,6 @@ WHERE
 
 CREATE ----
 
-DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
-DECLARE fecha_final DATE DEFAULT '2024-12-31';
 
 -- Crear o reemplazar la tabla SEG_0102B_VISOR_REPO y agregar la columna FECHA_ALERTA
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO AS
@@ -86,15 +84,15 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'  -- Convertir FECHA_SUSCRIPCION a DATE
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 -- En menos de 3 meses de emitida la póliza
         --AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
         AND CODIGO_COMPANIA = 2 -- Filtro para solo Seguros Bolívar
-        --AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        --AND DATE(FECHA_SINIESTRO) > '2024-01-01'
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34) -- Excluir ramos de Salud y otros
         AND LIQUIDADO_BOLIVAR > 100000000 -- Siniestros mayores a este monto
@@ -119,6 +117,7 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la columna FECHA_ALERTA con la fecha de ejecución
 FROM 
     SiniestrosConFila
@@ -128,10 +127,6 @@ WHERE
 
 
 INSERT --
-
-
-DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
-DECLARE fecha_final DATE DEFAULT '2024-12-31';
 
 -- INSERTAR NUEVOS REGISTROS Y AGREGAR LA COLUMNA FECHA_ALERTA
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO 
@@ -152,6 +147,7 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+    FECHA_ALERTA_MES,
     FECHA_ALERTA
 )
 WITH SiniestrosConFila AS (
@@ -172,11 +168,11 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SUSCRIPCION) AS fila
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SINIESTRO) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        DATE(FECHA_SINIESTRO) >= '2024-01-01'  -- Convertir FECHA_SUSCRIPCION a DATE
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 -- En menos de 3 meses de emitida la póliza
         AND CODIGO_COMPANIA = 2 -- Filtro para solo Seguros Bolívar
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
@@ -203,6 +199,7 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
+     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha de alerta con la fecha de ejecución
 FROM 
     SiniestrosConFila
