@@ -113,6 +113,7 @@ WITH fila_unica AS (
         DATE(p.FECHA_FIN_ENDOSO) AS FECHA_FIN_ENDOSO,
         DATE(p.FECHA_FIN_POLIZA) AS FECHA_FIN_POLIZA,
         p.VALOR_ASEGURADO,
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
         ROW_NUMBER() OVER (PARTITION BY c.NUMERO_SECUENCIA_POLIZA, c.TIPO_DOCUMENTO, c.KEY_ID ORDER BY c.FECHA_ACTUALIZACION DESC) AS rn
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
@@ -157,6 +158,7 @@ SELECT
     FECHA_FIN_ENDOSO,
     FECHA_FIN_POLIZA,
     VALOR_ASEGURADO,
+    FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA -- Columna con la fecha de alerta
 FROM fila_unica
 WHERE rn = 1;
@@ -195,6 +197,7 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO
     FECHA_FIN_ENDOSO,
     FECHA_FIN_POLIZA,
     VALOR_ASEGURADO,
+    FECHA_ALERTA_MES,
     FECHA_ALERTA
 )
 WITH fila_unica AS (
@@ -272,6 +275,7 @@ SELECT
     f.FECHA_FIN_ENDOSO,
     f.FECHA_FIN_POLIZA,
     f.VALOR_ASEGURADO,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
     CURRENT_DATE() AS FECHA_ALERTA
 FROM fila_unica f
 LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO existing
@@ -280,5 +284,3 @@ LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO existing
     AND f.KEY_ID = existing.KEY_ID
 WHERE f.rn = 1
   AND existing.NUMERO_SECUENCIA_POLIZA IS NULL;
-
-
