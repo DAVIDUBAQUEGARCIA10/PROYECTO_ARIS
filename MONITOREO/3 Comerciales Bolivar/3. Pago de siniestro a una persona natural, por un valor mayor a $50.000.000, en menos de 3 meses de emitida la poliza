@@ -64,7 +64,7 @@ CREATE ---
 
 
 -- Crear o reemplazar la tabla y agregar la columna FECHA_ALERTA con la fecha de ejecución
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0065_VISOR_REPO AS 
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO AS 
 WITH SiniestrosConFila AS (
     SELECT
         CODIGO_COMPANIA, 
@@ -125,7 +125,7 @@ WHERE
 
 INSERT ----
 -- Insertar solo registros nuevos
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0065_VISOR_REPO 
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO 
 (
     CODIGO_COMPANIA, 
     CODIGO_RAMO_CONTABLE, 
@@ -205,7 +205,7 @@ WHERE
     AND NOT EXISTS (
         -- Verifica si el registro ya existe en la tabla
         SELECT 1
-        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0065_VISOR_REPO existing
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO existing
         WHERE existing.NUMERO_POLIZA = SiniestrosConFila.NUMERO_POLIZA
         AND existing.KEY_ID_TOMADOR = SiniestrosConFila.KEY_ID_TOMADOR
     );
