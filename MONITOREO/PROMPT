@@ -5,7 +5,7 @@ nombre de la concicion:
 Codigo:
 
 y ahora convierte el anterior codigo, para que no sea create o replace, sino insert, ya que necesito ir acumulando o consolidando
-los registros nuevos que vayan saliendo, avitando asi duplicados
+los registros nuevos que vayan saliendo, avitando asi duplicados Y asi evitar que se inserten valores que ya estaban en la tabla
 
 necesito que al siguiente codigo lo estructures para crear o remplazar tabla asi:
 create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.XXX  AS    (cambia la XXX por el valor real de la tabla del script el cual es:  )
