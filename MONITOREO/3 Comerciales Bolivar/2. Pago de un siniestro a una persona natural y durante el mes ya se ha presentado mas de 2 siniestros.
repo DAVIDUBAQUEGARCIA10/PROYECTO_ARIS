@@ -1,6 +1,3 @@
-DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
-DECLARE fecha_final DATE DEFAULT '2024-12-31';
-
 WITH SiniestrosPorMes AS (
     SELECT 
         CODIGO_COMPANIA, 
@@ -32,9 +29,9 @@ WITH SiniestrosPorMes AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
         AND CODIGO_COMPANIA = 3
-        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
         AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
         AND LIQUIDADO_BOLIVAR > 0
@@ -66,3 +63,182 @@ WHERE
     AND fila = 1  -- Eliminar duplicados, quedando solo el primer registro para cada KEY_ID_TOMADOR
 ORDER BY 
     FECHA_SINIESTRO DESC;
+
+
+
+
+CREATE -----
+
+-- Crear la tabla con los registros seleccionados para la condición COM_0100_VISOR_REPO
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO AS
+WITH SiniestrosPorMes AS (
+    SELECT 
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,        
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        EXTRACT(YEAR FROM FECHA_SINIESTRO) AS ANIO_SINIESTRO,
+        EXTRACT(MONTH FROM FECHA_SINIESTRO) AS MES_SINIESTRO,
+        ESTADO_SINIESTRO_CALCULADO,
+        LIQUIDADO_BOLIVAR,
+        INCURRIDO_BOLIVAR,
+        
+        -- Contamos los días únicos dentro de cada mes y para cada tomador
+        COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos,
+        
+        -- Asignamos un número de fila para garantizar que no haya duplicados por KEY_ID_TOMADOR
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SINIESTRO DESC) AS fila
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
+        AND CODIGO_COMPANIA = 3
+        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
+        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
+        AND LIQUIDADO_BOLIVAR > 0
+        AND FECHA_ORDEN_PAGO IS NOT NULL
+)
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    ESTADO_SINIESTRO_CALCULADO,
+    LIQUIDADO_BOLIVAR,
+    INCURRIDO_BOLIVAR,
+ FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,    
+    CURRENT_DATE() AS FECHA_ALERTA  -- Fecha de ejecución del código
+FROM 
+    SiniestrosPorMes
+WHERE 
+    count_dias_distintos >= 3  -- Filtrar aquellos registros con 3 o más días distintos en el mes
+    AND fila = 1  -- Eliminar duplicados, quedando solo el primer registro para cada KEY_ID_TOMADOR
+ORDER BY 
+    FECHA_SINIESTRO DESC;
+
+
+INSERT ------
+
+-- Insertar registros nuevos en la tabla sin duplicados
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO (
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    ESTADO_SINIESTRO_CALCULADO,
+    LIQUIDADO_BOLIVAR,
+    INCURRIDO_BOLIVAR,
+    FECHA_ALERTA_MES,   
+    FECHA_ALERTA  -- Nueva columna con la fecha de ejecución
+)
+WITH SiniestrosPorMes AS (
+    SELECT 
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,        
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        EXTRACT(YEAR FROM FECHA_SINIESTRO) AS ANIO_SINIESTRO,
+        EXTRACT(MONTH FROM FECHA_SINIESTRO) AS MES_SINIESTRO,
+        ESTADO_SINIESTRO_CALCULADO,
+        LIQUIDADO_BOLIVAR,
+        INCURRIDO_BOLIVAR,
+        
+        -- Contamos los días únicos dentro de cada mes y para cada tomador
+        COUNT(DISTINCT DATE(FECHA_SINIESTRO)) OVER (PARTITION BY KEY_ID_TOMADOR, EXTRACT(YEAR FROM FECHA_SINIESTRO), EXTRACT(MONTH FROM FECHA_SINIESTRO)) AS count_dias_distintos,
+        
+        -- Asignamos un número de fila para garantizar que no haya duplicados por KEY_ID_TOMADOR
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_SINIESTRO DESC) AS fila
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE 
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
+        AND CODIGO_COMPANIA = 3
+        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
+        AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
+        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
+        AND LIQUIDADO_BOLIVAR > 0
+        AND FECHA_ORDEN_PAGO IS NOT NULL
+)
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    ESTADO_SINIESTRO_CALCULADO,
+    LIQUIDADO_BOLIVAR,
+    INCURRIDO_BOLIVAR,
+     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Fecha de ejecución del código
+FROM 
+    SiniestrosPorMes
+WHERE 
+    count_dias_distintos >= 3  -- Filtrar aquellos registros con 3 o más días distintos en el mes
+    AND fila = 1  -- Eliminar duplicados, quedando solo el primer registro para cada KEY_ID_TOMADOR
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO r
+        WHERE r.NUMERO_POLIZA = SiniestrosPorMes.NUMERO_POLIZA
+        AND r.KEY_ID_TOMADOR = SiniestrosPorMes.KEY_ID_TOMADOR
+        AND r.FECHA_SINIESTRO = SiniestrosPorMes.FECHA_SINIESTRO
+    )
+ORDER BY 
+    FECHA_SINIESTRO DESC;
+
+
+
