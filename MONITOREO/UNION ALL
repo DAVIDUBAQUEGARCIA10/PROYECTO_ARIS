@@ -1,3 +1,6 @@
+----------------------- CAPITALIZADORA BOLIVAR
+
+
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Resultado_Alertamiento_ARIS AS 
 SELECT DISTINCT
     TIPO_DOCUMENTO,
@@ -6,6 +9,7 @@ SELECT DISTINCT
     'CAP_0304' AS ALERTA, 
     'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA , 
     1 AS COMPANIA,
+    FECHA_ALERTA_MES,
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO`
@@ -19,6 +23,7 @@ SELECT DISTINCT
     'CAP_0069' AS ALERTA,
     'Pep realiza pago de cuotas en el titulo de capitalización por un valor  mayor  a  $1.000.000' AS DESCRIPCION_ALERTA,    
     1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS`
@@ -32,12 +37,20 @@ SELECT DISTINCT
     'CAP_0009' AS ALERTA,
     'Pagos de cuotas por valor estrictamente mayor al pactado inicialmente y en menos de 90 dias de aperturado el titulo.' AS DESCRIPCION_ALERTA ,     
     1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0009_VISOR_TRANS`
 
 
 UNION ALL
+
+
+
+
+----------------------- SEGUROS BOLIVAR
+
+
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
@@ -46,6 +59,7 @@ SELECT DISTINCT
     'SEG_0311' AS ALERTA,
     'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO`
@@ -59,6 +73,7 @@ SELECT DISTINCT
     'SEG_0101' AS ALERTA,
     'Montos asegurados por ramo, para un tomador persona natural, supera en 175% el monto del periodo anterior' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO`
@@ -72,6 +87,7 @@ SELECT DISTINCT
     'SEG_0103' AS ALERTA,
     'Persona Jurídica tiene un valor asegurado estrictamente mayor a $16,500,000 y su fecha de constitución es menor a dos años.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO`
@@ -86,6 +102,7 @@ SELECT DISTINCT
     'SEG_0002' AS ALERTA,
     'Retiro del fondo de ahorro por un monto estrictamente mayor a $25.000.000 o 15.000 usd y la poliza aun no ha vencido ' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0002_VISOR_REPO`
@@ -100,6 +117,7 @@ SELECT DISTINCT
     'SEG_0003' AS ALERTA,
     'Cancelacion anticipada de una poliza  emitida en menos de 90 días' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0003_VISOR_REPO`
@@ -113,6 +131,7 @@ SELECT DISTINCT
     'SEG_0004' AS ALERTA,
     'Tomador solicita cambiar de beneficiario 90 dias antes de la cancelacion del seguro' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO`
@@ -126,6 +145,7 @@ SELECT DISTINCT
     'SEG_0005' AS ALERTA,
     'Cambio de beneficiaro y en menos de 90 dias se presenta el pago de siniestro.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO`
@@ -139,6 +159,7 @@ SELECT DISTINCT
     'SEG_0007' AS ALERTA,
     'Pago de siniestro en un tiempo estrictamente menor a 3 meses de emitida la poliza.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO`
@@ -152,6 +173,7 @@ SELECT DISTINCT
     'SEG_0014' AS ALERTA,
     'Pago de siniestro a algun tercero diferente al tomador, beneficiario o relacionado en la poliza.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0014_VISOR_REPO`
@@ -165,6 +187,7 @@ SELECT DISTINCT
     'SEG_0061' AS ALERTA,
     'Reciben mas de 2 aportes extraordinarios en un periodo inferior a 90 dias de emitida la poliza al fondo de ahorro y el monto de la operación es superior a $500.000' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO`
@@ -178,6 +201,7 @@ SELECT DISTINCT
     'SEG_0062' AS ALERTA,
     'Pagos al fondo de ahorro por valor estrictamente mayor al pactado inicialmente.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO`    
@@ -193,6 +217,7 @@ SELECT DISTINCT
     'SEG_0070' AS ALERTA,
     'Tomador cliente PEP realiza pagos por aportes extraordinarios a los seguros de vida con componente de ahorro por valor mayor a $1.280.951.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO`   
@@ -206,6 +231,7 @@ SELECT DISTINCT
     'SEG_0071' AS ALERTA,
     'Cliente PEP realiza el pago de la prima en más de dos seguros de vida con componente de ahorro.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO`  
@@ -219,6 +245,7 @@ SELECT DISTINCT
     'SEG_0101B' AS ALERTA,
     'Pago de siniestro a una persona natural,  por un valor  mayor a $50.000.000,   en  menos de 3 meses de emitida la poliza.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101B_VISOR_REPO`  
@@ -232,6 +259,198 @@ SELECT DISTINCT
     'SEG_0102B' AS ALERTA,
     'Pago de siniestro a una persona juridica, por un valor mayor a $100.000.000, en  menos de 3 meses de emitida la poliza.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
     FECHA_ALERTA
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO`          
+
+
+
+
+
+
+
+----------------------- COMERCIALES BOLIVAR
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0312' AS ALERTA,
+    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0106' AS ALERTA,
+    'Producto de alto riesgo y el tomador  tiene nacionalidad o residencia a una Jurisdicción de alto riesgo.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0106_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA_ACTUAL,
+    'COM_0115' AS ALERTA,
+    'Montos asegurados, para un tomador persona natural, supera en 175% el monto del periodo anterior' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0115_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NUMERO_POLIZA,
+    'COM_0116' AS ALERTA,
+    'Persona Jurídica tiene un valor asegurado estrictamente mayor a $16,500,000 y su fecha de constitución es menor a dos años.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0116_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0050' AS ALERTA,
+    'Ramo 14 (Equipo y Maquinaria de contratistas) y tiene una actividad economica de alto riesgo' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0063' AS ALERTA,
+    'Pago de siniestro en un tiempo estrictamente menor a 3 meses de emitida la poliza' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0063_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0064' AS ALERTA,
+    'Pago de siniestro a una persona juridica, por un valor mayor a $100.000.000,   en  menos de 3 meses de emitida la poliza' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0064_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0065' AS ALERTA,
+    'Pago de siniestro a una persona natural,  por un valor  mayor a $50.000.000,   en  menos de 3 meses de emitida la poliza' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0066' AS ALERTA,
+    'Pago de siniestro a algun tercero diferente al tomador, beneficiario o relacionado en la poliza.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0066_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0067' AS ALERTA,
+    'Cancelacion anticipada de una poliza emitida en menos de 90 días' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0067_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0068' AS ALERTA,
+    'Cambio de beneficiaro y en menos de 90 dias se presenta el pago de siniestro.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0068_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0072' AS ALERTA,
+    'Pago de siniestros en productos de alto riesgo y el beneficiario este catalogado como PEP' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO`
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0100' AS ALERTA,
+    'Pago de un siniestro a una persona natural y durante el mes ya se ha presentado mas de 2 siniestros.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO`;
