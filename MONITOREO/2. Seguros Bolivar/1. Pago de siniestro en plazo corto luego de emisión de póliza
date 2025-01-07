@@ -1,6 +1,3 @@
-DECLARE fecha_inicial DATE DEFAULT '2024-01-01';
-DECLARE fecha_final DATE DEFAULT '2024-12-31';
-
 WITH SiniestrosConFila AS (
     SELECT
         CODIGO_COMPANIA, 
@@ -21,11 +18,11 @@ WITH SiniestrosConFila AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= fecha_inicial  -- Convertir FECHA_SUSCRIPCION a DATE
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
         AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
         AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'  -- Filtrar por pólizas que terminan en '01'
         AND CODIGO_COMPANIA = 2
-        AND DATE(FECHA_SINIESTRO) BETWEEN fecha_inicial AND fecha_final  -- Convertir FECHA_SINIESTRO a DATE
+        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
         AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
         AND LIQUIDADO_BOLIVAR > 0
