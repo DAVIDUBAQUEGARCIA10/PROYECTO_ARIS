@@ -44,6 +44,139 @@ WHERE
     p.FECHA_EMISION_ENDOSO > '2024-01-01' 
     AND p.FECHA_INICIO_ENDOSO > '2024-01-01'
     AND c.CODIGO_CIIU IN (
+
+
+
+create -------------
+
+
+
+-- Crear la tabla
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO AS
+
+-- Consulta para obtener los datos
+SELECT DISTINCT
+    p.CODIGO_COMPANIA,
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+    p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO,
+    p.NOMBRE_CANAL,
+    p.NUMERO_POLIZA_ANTERIOR,
+    p.NUMERO_POLIZA,
+    p.NUMERO_POLIZA_SIGUIENTE,
+    p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+    p.TIPO_DOCUMENTO_ASEGURADO,
+    p.KEY_ID_ASEGURADO,
+    CAST(p.FECHA_EMISION_ENDOSO AS DATE) AS FECHA_EMISION_ENDOSO,
+    CAST(p.FECHA_INICIO_ENDOSO AS DATE) AS FECHA_INICIO_ENDOSO,
+    CAST(p.FECHA_FIN_ENDOSO AS DATE) AS FECHA_FIN_ENDOSO,
+    CAST(p.FECHA_INICIO_POLIZA AS DATE) AS FECHA_INICIO_POLIZA,
+    CAST(p.FECHA_FIN_POLIZA AS DATE) AS FECHA_FIN_POLIZA,
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
+LEFT JOIN 
+    (
+        SELECT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA,
+            CODIGO_CIIU
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+        UNION ALL
+        SELECT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA,
+            CODIGO_CIIU
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+    ) c
+    ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO 
+    AND p.KEY_ID_TOMADOR = c.KEY_ID
+WHERE 
+    p.FECHA_EMISION_ENDOSO > '2024-01-01' 
+    AND p.FECHA_INICIO_ENDOSO > '2024-01-01'
+    AND c.CODIGO_CIIU IN (
+        710, 721, 722, 723, 729, 811, 812, 820, 891, 892, 899, 990
+    )   
+    AND CODIGO_RAMO_EMISION = 14;
+
         710, 721, 722, 723, 729, 811, 812, 820, 891, 892, 899, 990)   
     and CODIGO_RAMO_EMISION = 14
+
+
+
+INSERT-----------------
+
+-- Insertar nuevos registros evitando duplicados
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO
+SELECT DISTINCT
+    p.CODIGO_COMPANIA,
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+    p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO,
+    p.NOMBRE_CANAL,
+    p.NUMERO_POLIZA_ANTERIOR,
+    p.NUMERO_POLIZA,
+    p.NUMERO_POLIZA_SIGUIENTE,
+    p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+    p.TIPO_DOCUMENTO_ASEGURADO,
+    p.KEY_ID_ASEGURADO,
+    CAST(p.FECHA_EMISION_ENDOSO AS DATE) AS FECHA_EMISION_ENDOSO,
+    CAST(p.FECHA_INICIO_ENDOSO AS DATE) AS FECHA_INICIO_ENDOSO,
+    CAST(p.FECHA_FIN_ENDOSO AS DATE) AS FECHA_FIN_ENDOSO,
+    CAST(p.FECHA_INICIO_POLIZA AS DATE) AS FECHA_INICIO_POLIZA,
+    CAST(p.FECHA_FIN_POLIZA AS DATE) AS FECHA_FIN_POLIZA,
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
+LEFT JOIN 
+    (
+        SELECT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA,
+            CODIGO_CIIU
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+        UNION ALL
+        SELECT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA,
+            CODIGO_CIIU
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+    ) c
+    ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO 
+    AND p.KEY_ID_TOMADOR = c.KEY_ID
+WHERE 
+    p.FECHA_EMISION_ENDOSO > '2024-01-01' 
+    AND p.FECHA_INICIO_ENDOSO > '2024-01-01'
+    AND c.CODIGO_CIIU IN (
+        710, 721, 722, 723, 729, 811, 812, 820, 891, 892, 899, 990
+    )   
+    AND CODIGO_RAMO_EMISION = 14
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO t
+        WHERE 
+            t.CODIGO_COMPANIA = p.CODIGO_COMPANIA
+            AND t.CODIGO_RAMO_EMISION = p.CODIGO_RAMO_EMISION
+            AND t.CODIGO_PRODUCTO = p.CODIGO_PRODUCTO
+            AND t.NUMERO_POLIZA = p.NUMERO_POLIZA
+            AND t.TIPO_DOCUMENTO_TOMADOR = p.TIPO_DOCUMENTO_TOMADOR
+            AND t.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR
+            AND t.FECHA_EMISION_ENDOSO = CAST(p.FECHA_EMISION_ENDOSO AS DATE)
+    );
 
