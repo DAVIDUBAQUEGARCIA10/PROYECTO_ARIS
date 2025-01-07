@@ -76,6 +76,7 @@ SELECT DISTINCT
     CAST(p.FECHA_FIN_POLIZA AS DATE) AS FECHA_FIN_POLIZA,
     c.ACTIVIDAD_ECONOMICA,
     c.CODIGO_CIIU,
+ FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
 FROM 
     sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
@@ -137,6 +138,7 @@ SELECT DISTINCT
     CAST(p.FECHA_FIN_POLIZA AS DATE) AS FECHA_FIN_POLIZA,
     c.ACTIVIDAD_ECONOMICA,
     c.CODIGO_CIIU,
+ FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
 FROM 
     sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
