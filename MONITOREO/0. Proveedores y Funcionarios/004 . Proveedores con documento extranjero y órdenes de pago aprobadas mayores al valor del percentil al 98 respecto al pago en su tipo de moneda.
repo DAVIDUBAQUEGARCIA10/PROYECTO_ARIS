@@ -1,0 +1,28 @@
+SELECT      c.razon_social_cia,  
+            c.*
+FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores as c
+WHERE fecha_emision >= '2024-01-01'   
+  AND razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      ) 
+      AND estado_documento_cobro = 'Aprobado'
+      AND codigo_tipo_identificacion_emisor IN ('NE',"PP","CE","DE","PT")
+      AND (
+            (codigo_iso_moneda = 'COP' AND valor_base >= 194000000)
+         OR (codigo_iso_moneda = 'USD' AND valor_base >= 226009)
+         OR (codigo_iso_moneda = 'EUR' AND valor_base >= 19700)
+         OR (codigo_iso_moneda = 'CHF' AND valor_base >= 47055)
+         OR (codigo_iso_moneda = 'GBP' AND valor_base >= 540)
+      )
