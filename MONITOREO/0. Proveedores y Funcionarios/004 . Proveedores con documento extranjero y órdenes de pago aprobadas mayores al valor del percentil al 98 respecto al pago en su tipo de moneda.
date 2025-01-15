@@ -26,3 +26,53 @@ WHERE fecha_emision >= '2024-01-01'
          OR (codigo_iso_moneda = 'CHF' AND valor_base >= 47055)
          OR (codigo_iso_moneda = 'GBP' AND valor_base >= 540)
       )
+
+
+CREACION DE TABLA PARA CALCULO DE LO PERCENTILES------------------
+
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.CALIBRAR_distribucion_umbral_proveedores AS
+select * 
+ FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores
+ where fecha_emision >= '2024-01-01'
+  AND razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      ) 
+      --AND codigo_tipo_identificacion_emisor IN ('NE',"PP","CE","DE","PT")
+      --AND valor_base >= 19191696
+      --AND codigo_iso_moneda = 'GBP'
+
+
+CALCULO DE LOS PERCENTILES -------------
+
+SELECT 
+  APPROX_QUANTILES(valor_base, 100)[OFFSET(98)] AS percentil_90
+FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores
+where fecha_emision >= '2024-01-01'
+  AND razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      ) 
+      AND codigo_iso_moneda = 'GBP'
