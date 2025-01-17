@@ -62,3 +62,31 @@ GROUP BY
     END
 ORDER BY 
     CODIGO_COMPANIA, tipo_tomador;
+------------------
+ASEGURADO
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Cantidad_clientes_segcom_asegurado AS
+
+SELECT 
+    CODIGO_COMPANIA, 
+    CASE
+        WHEN TIPO_DOCUMENTO_ASEGURADO IN ('CC', 'CD', 'CE', 'CF', 'PE', 'PP', 'PT', 'RC', 'RE', 'TI', 'CI', 'NM', 'NN', '') THEN 'Persona Natural'
+        WHEN TIPO_DOCUMENTO_ASEGURADO IN ('NC', 'NE', 'NT') THEN 'Persona Juridica'
+        ELSE 'Otro' 
+    END AS tipo_tomador,
+    COUNT(DISTINCT KEY_ID_ASEGURADO) AS cantidad_tomadores,
+    FORMAT_TIMESTAMP('%Y-%m-%d', TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY))) AS ano_mes_actual
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
+WHERE 
+    FECHA_EMISION_ENDOSO <= TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY))
+    AND (FECHA_FIN_ENDOSO >= TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)) OR FECHA_FIN_ENDOSO IS NULL)
+    AND MCA_ANU_POLIZA != 'S'
+GROUP BY 
+    CODIGO_COMPANIA, 
+    CASE
+        WHEN TIPO_DOCUMENTO_ASEGURADO IN ('CC', 'CD', 'CE', 'CF', 'PE', 'PP', 'PT', 'RC', 'RE', 'TI', 'CI', 'NM', 'NN', '') THEN 'Persona Natural'
+        WHEN TIPO_DOCUMENTO_ASEGURADO IN ('NC', 'NE', 'NT') THEN 'Persona Juridica'
+        ELSE 'Otro'
+    END
+ORDER BY 
+    CODIGO_COMPANIA, tipo_tomador;
