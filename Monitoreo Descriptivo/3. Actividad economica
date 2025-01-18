@@ -1,0 +1,115 @@
+-------------------Capitalizadora
+
+
+
+------seguros bolivar 
+
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Cantidad_actividad_economica AS
+SELECT 
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    p.CODIGO_COMPANIA,
+    COUNT(DISTINCT CONCAT(p.TIPO_DOCUMENTO_TOMADOR, '-', p.KEY_ID_TOMADOR)) AS conteo,
+    FORMAT_TIMESTAMP('%Y-%m-%d', TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY))) AS ano_mes_actual
+
+FROM 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+JOIN 
+    (
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            '' as PUBLICAMENTE_EXPUESTA,
+            '' as CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+
+        UNION ALL
+
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            PUBLICAMENTE_EXPUESTA,
+            CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
+    ) c
+ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+AND p.KEY_ID_TOMADOR = c.KEY_ID
+WHERE p.FECHA_FIN_POLIZA >= TIMESTAMP(CURRENT_DATE())
+GROUP BY 
+    c.ACTIVIDAD_ECONOMICA,
+        c.CODIGO_CIIU,
+    p.CODIGO_COMPANIA
+
+
+
+    ------ INSERTAR 
+
+
+    CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Cantidad_actividad_economica AS
+SELECT 
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    p.CODIGO_COMPANIA,
+    COUNT(DISTINCT CONCAT(p.TIPO_DOCUMENTO_TOMADOR, '-', p.KEY_ID_TOMADOR)) AS conteo,
+    FORMAT_TIMESTAMP('%Y-%m-%d', TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY))) AS ano_mes_actual
+
+FROM 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+JOIN 
+    (
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            '' as PUBLICAMENTE_EXPUESTA,
+            '' as CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+
+        UNION ALL
+
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            PUBLICAMENTE_EXPUESTA,
+            CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
+    ) c
+ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+AND p.KEY_ID_TOMADOR = c.KEY_ID
+WHERE p.FECHA_FIN_POLIZA >= TIMESTAMP(CURRENT_DATE())
+GROUP BY 
+    c.ACTIVIDAD_ECONOMICA,
+        c.CODIGO_CIIU,
+    p.CODIGO_COMPANIA
+
