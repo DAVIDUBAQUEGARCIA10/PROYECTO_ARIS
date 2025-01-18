@@ -1,5 +1,64 @@
 -------------------Capitalizadora
 
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Cantidad_actividad_economica_capi AS
+SELECT 
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    COUNT(DISTINCT CONCAT(p.tipo_documento, '-', p.key_id)) AS conteo,
+    FORMAT_TIMESTAMP('%Y-%m-%d', TIMESTAMP(DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY))) AS ano_mes_actual,
+    CASE 
+        WHEN p.tipo_documento IN ('CC', 'CD', 'CE', 'CF', 'PE', 'PP', 'PT', 'RC', 'RE', 'TI', 'CI', 'NM', 'NN', '') 
+            THEN 'Persona Natural'
+        WHEN p.tipo_documento IN ('NC', 'NE', 'NT') 
+            THEN 'Persona Juridica'
+        ELSE 'Otro'
+    END AS tipo_documento
+FROM 
+    `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` p
+JOIN 
+    (
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            '' as PUBLICAMENTE_EXPUESTA,
+            '' as CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+
+        UNION ALL
+
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CIIU,
+            ACTIVIDAD_ECONOMICA,
+            PUBLICAMENTE_EXPUESTA,
+            CARGO
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
+    ) c
+ON p.tipo_documento = c.TIPO_DOCUMENTO
+AND p.key_id = c.KEY_ID
+WHERE p.fecha_corte = (
+    SELECT MAX(fecha_corte)
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+)
+GROUP BY 
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    tipo_documento;
 
 
 ------seguros bolivar 
