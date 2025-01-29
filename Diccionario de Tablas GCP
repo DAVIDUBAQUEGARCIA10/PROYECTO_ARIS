@@ -1,0 +1,80 @@
+Resultado_Alertamiento_ARIS   -> ✔️ Contiene Resultado concatenado de todas las alertas en una sola tabla
+Resultado_Alertamiento_ARIS_con_analisis -> ✔️ Tabla que contiene los resultados del analisis por parte del profesional de Monitoreo anidado a la Appsheet 
+Resultado_Alertamiento_ARIS_NUEVO -> ✔️ Tabla que contiene nuevos registros por alimentar en la hoja de calculo directamente y manualmente
+Resultado_Alertamiento_ARIS_con_analisis_PRODUCTIVA -> tabla espejo para publicar en Power BI
+
+Aris_Modelo_Riesgo_Backup -> Contiene la data sincronizada en linea del modelo de riesgo hoja de calculo  https://docs.google.com/spreadsheets/d/1uMBu-y_BPB3RYXU0bMvRbXCp0jBxGedesMwtf7C8o9I   -> Resultado_Matriz!A1:T10000 
+
+CAP_0009_VISOR_TRANS -> Contiene Condicion de monitoreo
+CAP_0069_VISOR_TRANS -> Contiene Condicion de monitoreo
+CAP_0304_VISOR_REPO -> Contiene Condicion de monitoreo
+
+COM_0050_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0063_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0064_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0065_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0066_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0067_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0068_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0072_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0100_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0106_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0115_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0116_VISOR_REPO -> Contiene Condicion de monitoreo
+COM_0312_VISOR_REPO -> Contiene Condicion de monitoreo
+
+SEG_0002_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0003_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0004_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0005_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0007_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0014_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0061_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0062_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0070_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0071_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0101B_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0101_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0102B_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0103_VISOR_REPO -> Contiene Condicion de monitoreo
+SEG_0311_VISOR_REPO -> Contiene Condicion de monitoreo
+
+
+Cantidad_RECAUDOS -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_SINIESTROS -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_actividad_economica -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_actividad_economica_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_cargo -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_cargo_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_clientes_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_clientes_marcacion -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_clientes_marcacion_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_clientes_segcom -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_clientes_segcom_asegurado -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_jurisdiccion -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_jurisdiccion_cap -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_pagos_rescisiones_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_pep -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_pep_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_polizas_canal_localidad -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_polizas_canal_localidad_CAPI -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_polizas_canal_localidad_CAPI_COUNT -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_recaudo_capi -> Contiene cifras estadisticas para tablero de contexto interno
+Cantidad_sorteos_capi -> Contiene cifras estadisticas para tablero de contexto interno
+
+
+cliente_restringidos
+empleados_restringidos
+proveedores_restringidos
+
+t_actividad_economica_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_canal_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_categoria_restringido_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_clientes_score_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_jurisdicciones_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_nacionalidad_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_ocupacion_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_productos_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
+t_sarlatf_4_0_variables -> Ingesta desde hojas de calculo anidadas a ARIS
+t_score_clientes -> Ingesta desde hojas de calculo anidadas a ARIS
+t_terceros_clientes -> Ingesta desde hojas de calculo anidadas a ARIS 
