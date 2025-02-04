@@ -83,8 +83,6 @@ WHERE
 
 
 
-CREATE ----
-
 -- Crear o reemplazar la tabla SEG_0070_VISOR_REPO con la fecha de alerta
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO AS
 WITH CTE AS (
@@ -115,6 +113,7 @@ WITH CTE AS (
         a.VALOR_RECAUDO_MES,
         a.FECHA_CARGUE,
         c.PUBLICAMENTE_EXPUESTA,
+        a.VALOR_AHORRO_EXTRA,
         ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR,a.TIPO_DOCUMENTO_TOMADOR,a.VALOR_RECAUDO_MES ORDER BY a.FECHA_RECAUDO DESC) AS rn
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
@@ -129,11 +128,10 @@ WITH CTE AS (
         b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
         AND b.KEY_ID = c.KEY_ID
     WHERE 
-        a.VALOR_RECAUDO_MES > 1280951       
+        ABS(a.VALOR_AHORRO_EXTRA) > 653223       
         AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
         AND a.FECHA_RECAUDO >= "2024-01-01"        
         AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
-        AND a.FORMA_COBRO != "CONVENIO"
         AND a.TIPO_REGISTRO = 'RECAUDO'
         AND c.PUBLICAMENTE_EXPUESTA = 'S'
 )
@@ -164,6 +162,7 @@ SELECT
     VALOR_RECAUDO_MES,
     FECHA_CARGUE,
     PUBLICAMENTE_EXPUESTA,
+    VALOR_AHORRO_EXTRA,
      FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA  -- Agregar la fecha de alerta
 FROM 
