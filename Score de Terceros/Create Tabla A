@@ -1,11 +1,11 @@
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_A AS
 SELECT DISTINCT
-  -- Datos de cliente
+--Datos de cliebte
   clientes.TIPO_DOCUMENTO,
   clientes.KEY_ID,
   polizas.CODIGO_COMPANIA,
 
-  -- Actividad económica, nivel de riesgo y valor
+--Actividad economica, nivel de riesgo y valor
   clientes.CODIGO_CIIU as Codigo_Ciiu,
   nivel_riesgo_actividad_economica.Nivel_de_riesgo as Nivel_de_riesgo_Codigo_Ciiu,  
   CASE
@@ -15,7 +15,8 @@ SELECT DISTINCT
     ELSE 48.125
   END AS Score_riesgo_actividad_economica,
 
-  -- Jurisdicción, nivel de riesgo y valor municipios
+--Jurisdicción, nivel de riesgo y valor municipios
+  --divpol.CODIGO_CODAZZI as Codigo_jurisdiccon_municipio, 
   clientes.CODIGO_LUGAR_NACIMIENTO, 
   clientes.NOMBRE_LUGAR_NACIMIENTO,
   nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO as Nivel_Riesgo_jurisdiccon_municipio,
@@ -26,7 +27,7 @@ SELECT DISTINCT
     ELSE 37.5
   END AS Score_riesgo_jurisdicciones_municipio,
 
-  -- Nacionalidad, nivel de riesgo y valor 
+--Nacionalidad, nivel de riesgo y valor 
   divpol.DIVPOL_CODIGO as Codigo_Nacionalidad,
   divpol.NACIONALIDAD as Nacionalidad,
   nivel_riesgo_nacionalidad_pais.C__digo_Codazzi,
@@ -35,18 +36,19 @@ SELECT DISTINCT
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Alto' THEN 115.5
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Medio' THEN 77
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Bajo' THEN 38.5
+    WHEN divpol.NACIONALIDAD  = 'COLOMBIANO' THEN 38.5
     ELSE 37.5
   END AS Score_riesgo_nacionalidad,
 
-  -- Producto, nivel de riesgo y valor
+--Producto, nivel de riesgo y valor
   restringidos.CODIGO_RESTRICCION as Codigo_Restringido,
   CASE
-    WHEN restringidos.CODIGO_RESTRICCION in (1, 2, 3, 5, 9, 24, 25, 26, 27) THEN 1000
+    WHEN restringidos.CODIGO_RESTRICCION in (1, 2, 3, 5, 9, 24, 25, 26,  27) THEN 1000
     WHEN restringidos.CODIGO_RESTRICCION = 23 THEN 750
     ELSE 0
   END AS Score_riesgo_restringido,
 
-  -- Producto, nivel de riesgo y valor
+-- Producto, nivel de riesgo y valor
   polizas.CODIGO_RAMO_EMISION as Codigo_de_Ramo,
   polizas.CODIGO_PRODUCTO as Codigo_de_Producto,
   nivel_riesgo_producto.NIVEL_DE_RIESGO as Nivel_riesgo_productos,
@@ -57,14 +59,14 @@ SELECT DISTINCT
     ELSE 37.5
   END AS Score_riesgo_producto,
 
-  -- Capitalizadora  
+ ---capitalizadora  
   capitalizadora.titulo AS Productos_capitalizadora,
   CASE
-      WHEN capitalizadora.titulo > 0 THEN 112.5
+      WHEN  capitalizadora.titulo > 0 THEN 112.5
       ELSE 0
   END AS Score_riesgo_productos_capi, 
 
-  -- Canal, nivel de riesgo y valor
+-- Canal, nivel de riesgo y valor
   polizas.NOMBRE_CANAL as Canal,
   nivel_riesgo_canal.Nivel_de_riesgo as Nivel_Riesgo_Canal,
   CASE
@@ -74,77 +76,32 @@ SELECT DISTINCT
     ELSE 25
   END AS Score_riesgo_canal,
 
-  -- Alertas Transaccionales
-  Alertas_Monitoreo.ALERTA,
+
+
+---Alertas Transaccionales
+Alertas_Monitoreo.ALERTA,
   CASE
-      WHEN Alertas_Monitoreo.ALERTA != "" THEN 250
+      WHEN  Alertas_Monitoreo.ALERTA != "" THEN 250
       ELSE 0
   END AS Score_riesgo_Transaccional,
-  Alertas_Monitoreo.Es_ROS,
+Alertas_Monitoreo.Es_ROS,
   CASE
-      WHEN Alertas_Monitoreo.Es_ROS = "Si" THEN 250
+      WHEN  Alertas_Monitoreo.Es_ROS = "Si" THEN 250
       ELSE 0
-  END AS Score_riesgo_Transaccional_ROS,
+  END AS Score_riesgo_Transaccional_ROS,  
 
-  -- Suma de Scores
-  (CASE
-    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'ALTO' THEN 144.375
-    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'MEDIO' THEN 96.25
-    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'BAJO' THEN 48.125
-    ELSE 48.125
-  END + 
-  CASE
-    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Alto' THEN 112.5
-    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Medio' THEN 75
-    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Bajo' THEN 37.5
-    ELSE 37.5
-  END + 
-  CASE
-    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Alto' THEN 115.5
-    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Medio' THEN 77
-    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Bajo' THEN 38.5
-    ELSE 37.5
-  END + 
-  CASE
-    WHEN restringidos.CODIGO_RESTRICCION in (1, 2, 3, 5, 9, 24, 25, 26, 27) THEN 1000
-    WHEN restringidos.CODIGO_RESTRICCION = 23 THEN 750
-    ELSE 0
-  END + 
-  CASE
-    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'ALTO' THEN 112.5
-    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'MEDIO' THEN 75
-    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'BAJO' THEN 37.5
-    ELSE 37.5
-  END + 
-  CASE
-    WHEN capitalizadora.titulo > 0 THEN 112.5
-    ELSE 0
-  END + 
-  CASE
-    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Alto' THEN 75
-    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Medio' THEN 20
-    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Bajo' THEN 25
-    ELSE 25
-  END + 
-  CASE
-    WHEN Alertas_Monitoreo.ALERTA != "" THEN 250
-    ELSE 0
-  END + 
-  CASE
-    WHEN Alertas_Monitoreo.Es_ROS = "Si" THEN 250
-    ELSE 0
-  END) AS Total_Score
-  
 FROM (
   SELECT 
         TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA,CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
   FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+--  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
   
   UNION ALL
 
   SELECT 
     TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA, CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
   FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+--  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
 ) AS clientes
 LEFT JOIN 
   `sb-sandbox-usuarios.sandbox_cumplimiento.t_divpol` AS divpol
@@ -189,4 +146,8 @@ LEFT JOIN
   ON clientes.TIPO_DOCUMENTO = Alertas_Monitoreo.TIPO_DOCUMENTO  
   AND clientes.KEY_ID = Alertas_Monitoreo.KEY_ID_BENEFICIARIO
   AND Alertas_Monitoreo.KEY_ID_BENEFICIARIO IS NOT NULL
+
+         
+   
+
 
