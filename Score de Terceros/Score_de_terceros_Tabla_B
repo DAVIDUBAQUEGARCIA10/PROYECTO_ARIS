@@ -1,0 +1,32 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_B AS
+WITH RankedScores AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID, CODIGO_COMPANIA
+                           ORDER BY Score_riesgo_producto DESC) AS rn
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_A`
+),
+ScoreWithTotal AS (
+    SELECT 
+        *,
+        CASE 
+            WHEN Score_riesgo_restringido > 0 THEN Score_riesgo_restringido
+            WHEN Score_riesgo_Transaccional_ROS = 1000 THEN Score_riesgo_Transaccional_ROS
+            ELSE Score_riesgo_actividad_economica + Score_riesgo_jurisdicciones_municipio + 
+                 Score_riesgo_nacionalidad + Score_riesgo_producto +
+                 Score_riesgo_canal + Score_riesgo_Transaccional
+        END AS Score_total
+    FROM RankedScores
+    WHERE rn = 1
+)
+SELECT 
+    *,
+    CASE 
+        WHEN Score_total BETWEEN 751 AND 1000 THEN 'Especial'
+        WHEN Score_total BETWEEN 501 AND 750 THEN 'Alto'
+        WHEN Score_total BETWEEN 251 AND 500 THEN 'Medio'
+        WHEN Score_total BETWEEN 0 AND 250 THEN 'Bajo'
+        ELSE 'No definido'
+    END AS Nivel_de_Riesgo
+FROM ScoreWithTotal
+ORDER BY Score_total DESC;
