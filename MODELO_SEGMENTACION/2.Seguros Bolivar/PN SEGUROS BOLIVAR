@@ -2,7 +2,7 @@ WITH
 Riesgo_LAFT AS (
   SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
-  WHERE NIVEL_DE_RIESGO = 'Riesgo Bajo' and CODIGO_ENTIDAD_COMPANIA = 2
+  WHERE NIVEL_DE_RIESGO = 'Riesgo Bajo' and CODIGO_ENTIDAD_COMPANIA = 2 and  TIPO_DOCUMENTO in ("CC","CE")
 ), --- Validado ok procesa aprox 602.387 registros
 
 
@@ -173,9 +173,9 @@ Segmento1 AS (
    JOIN ActivoPasivo AS d ON a.KEY_ID = d.KEY_ID AND a.TIPO_DOCUMENTO = d.TIPO_DOCUMENTO --34585
    JOIN IngresosEgresos AS e ON a.KEY_ID = e.KEY_ID AND a.TIPO_DOCUMENTO = e.TIPO_DOCUMENTO -- 31655
    JOIN Ocupacion AS c ON a.KEY_ID = c.KEY_ID AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO --8662
-   JOIN Transacciones_sini_reca_valor AS f ON a.KEY_ID = f.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = f.TIPO_DOCUMENTO_TOMADOR --286
-   JOIN Transacciones_sini_reca_cantidad AS l ON a.KEY_ID = l.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TOMADOR -- 29
-   JOIN Pago_siniestros_valor AS g ON a.KEY_ID = g.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = g.TIPO_DOCUMENTO_TOMADOR --29
-   JOIN Pago_siniestros_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR --29  
+ --  JOIN Transacciones_sini_reca_valor AS f ON a.KEY_ID = f.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = f.TIPO_DOCUMENTO_TOMADOR --286
+--   JOIN Transacciones_sini_reca_cantidad AS l ON a.KEY_ID = l.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TOMADOR -- 29
+--   JOIN Pago_siniestros_valor AS g ON a.KEY_ID = g.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = g.TIPO_DOCUMENTO_TOMADOR --29
+--   JOIN Pago_siniestros_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR --29  
 )
 SELECT * FROM Segmento1;
