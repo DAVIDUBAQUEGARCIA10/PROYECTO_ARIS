@@ -3,77 +3,135 @@ Riesgo_LAFT AS (
   SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
   WHERE NIVEL_DE_RIESGO = 'Riesgo Bajo' and CODIGO_ENTIDAD_COMPANIA = 2
-), --- Validado ok 
+), --- Validado ok procesa aprox 602.387 registros
 
 
 ActivoPasivo AS (
   SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS d
   WHERE SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO) <= 34.8
-), --- Validado ok 
+), --- Validado ok procesa aprox 924.794 registros
+
+
 
 IngresosEgresos AS (
   SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` AS e
   WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.0
-), --- Validado ok
+), ---  Validado ok procesa aprox 1.510.207 registros
 
-TransaccionesPago_valor AS (
-    SELECT DISTINCT
-        t.TIPO_DOCUMENTO, t.KEY_ID
-    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS f
-    JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` AS t
-        ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
-        AND f.NUMERO_DOCUMENTO_TOMADOR = t.NUMERO_DOCUMENTO
-    WHERE f.CODIGO_COMPANIA = 2
-      AND f.VALOR_RECAUDO_TOTAL_MES <= 125984610
-      AND EXTRACT(YEAR FROM f.FECHA_RECAUDO) = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)) --Revisar periodo evaluado
-      AND EXTRACT(MONTH FROM f.FECHA_RECAUDO) = EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
 
-),   --- Validado ok
 
-TransaccionesPago_cantidad AS (
-SELECT DISTINCT
-        t.TIPO_DOCUMENTO, t.KEY_ID,
-        COUNT(*) AS REGISTROS_MES_ANTERIOR
-    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` AS l
-    JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` AS t
-        ON l.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
-        AND l.NUMERO_DOCUMENTO_TOMADOR = t.NUMERO_DOCUMENTO
-    WHERE l.CODIGO_COMPANIA = 2
-      AND EXTRACT(YEAR FROM l.FECHA_RECAUDO) = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)) --Revisar periodo evaluado
-      AND EXTRACT(MONTH FROM l.FECHA_RECAUDO) = EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
-GROUP BY t.TIPO_DOCUMENTO, t.KEY_ID
-HAVING REGISTROS_MES_ANTERIOR BETWEEN 1 AND 5
-),  --- Validado ok
+Pago_siniestros_valor AS (
+    SELECT 
+        TIPO_DOCUMENTO_TOMADOR, 
+        KEY_ID_TOMADOR,
+        SUM(CAST(LIQUIDADO_BOLIVAR AS INT64)) AS SUM_LIQUIDADO_BOLIVAR
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
+    WHERE CODIGO_COMPANIA = 2
+      AND LIQUIDADO_BOLIVAR BETWEEN -245938589 AND 316673675
+      AND EXTRACT(YEAR FROM FECHA_ORDEN_PAGO) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 24 MONTH))
+    GROUP BY 
+        TIPO_DOCUMENTO_TOMADOR, 
+        KEY_ID_TOMADOR
+), --- Validado ok procesa aprox 42.516 registros 
 
-TransaccionesSiniestro_valor AS (
-  SELECT DISTINCT TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS g
-  WHERE CODIGO_COMPANIA = 2
-    AND LIQUIDADO_BOLIVAR BETWEEN -245938589 AND 316673675
-    AND EXTRACT(YEAR FROM FECHA_ORDEN_PAGO) = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH))
-    AND EXTRACT(MONTH FROM FECHA_ORDEN_PAGO) = EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) --Revisar periodo evaluado
-), --- Validado ok
 
-TransaccionesSiniestro_cantidad AS (
+
+Pago_siniestros_cantidad AS (
 SELECT DISTINCT TIPO_DOCUMENTO_TOMADOR, 
                 KEY_ID_TOMADOR,
                 COUNT(*) AS REGISTROS_MES_ANTERIOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS z
-  WHERE CODIGO_COMPANIA = 2
-    AND EXTRACT(YEAR FROM FECHA_ORDEN_PAGO) = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH))
-    AND EXTRACT(MONTH FROM FECHA_ORDEN_PAGO) = EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) --Revisar periodo evaluado
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` AS z
+WHERE CODIGO_COMPANIA = 2
+  AND EXTRACT(YEAR FROM FECHA_ORDEN_PAGO) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 24 MONTH))
 GROUP BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR
-HAVING REGISTROS_MES_ANTERIOR BETWEEN 1 AND 5
-), --- Validado ok
+HAVING REGISTROS_MES_ANTERIOR BETWEEN 0 AND 1
+), --- Validado ok procesa aprox 5.402 registro
 
-PolizasVigentes AS (
-  SELECT DISTINCT  TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR
-  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` AS h
-    WHERE date(FECHA_FIN_POLIZA) >= CURRENT_DATE()
-    AND CODIGO_COMPANIA = 2 --- unir la base de cancelaciones
-),
+
+Transacciones_sini_reca_valor AS (
+            SELECT 
+                f.TIPO_DOCUMENTO_TOMADOR, 
+                f.NUMERO_DOCUMENTO_TOMADOR, 
+                SUM(f.VALOR_TRANSACCION) AS SUM_VALOR_TRANSACCION
+            FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` as t
+            JOIN (
+                            SELECT DISTINCT
+                                CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+                                CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+                                SUM(VALOR_RECAUDO_TOTAL_MES) AS VALOR_TRANSACCION, 
+                                CODIGO_COMPANIA, 
+                                FECHA_RECAUDO AS FECHA_TRANSACCION
+                            FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+                            GROUP BY 
+                                CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+                                CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING),
+                                CODIGO_COMPANIA,
+                                FECHA_RECAUDO
+
+                            UNION ALL
+
+                            SELECT DISTINCT
+                                CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+                                CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR, 
+                                SUM(CAST(LIQUIDADO_BOLIVAR AS int64)) AS VALOR_TRANSACCION,
+                                CODIGO_COMPANIA, 
+                                FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+                            FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+                            GROUP BY 
+                                CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+                                CAST(KEY_ID_TOMADOR AS STRING),
+                                CODIGO_COMPANIA,
+                                FECHA_ORDEN_PAGO
+            ) AS f
+            ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+            AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+            WHERE f.CODIGO_COMPANIA = 2
+              AND f.VALOR_TRANSACCION <= 125984610
+              AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 24 MONTH))
+            GROUP BY 
+                f.TIPO_DOCUMENTO_TOMADOR, 
+                f.NUMERO_DOCUMENTO_TOMADOR
+),   --- Validado ok procesa aprox 55.391 registroS 
+
+
+
+Transacciones_sini_reca_cantidad AS (
+      SELECT 
+          f.TIPO_DOCUMENTO_TOMADOR, 
+          f.NUMERO_DOCUMENTO_TOMADOR, 
+          COUNT(f.VALOR_TRANSACCION) AS COUNT_TRANSACCIONES
+      FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` as t
+      JOIN (
+                    SELECT DISTINCT
+                        CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+                        CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+                        VALOR_RECAUDO_TOTAL_MES AS VALOR_TRANSACCION, 
+                        CODIGO_COMPANIA, 
+                        FECHA_RECAUDO AS FECHA_TRANSACCION
+                    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+                    
+                    UNION ALL
+                    
+                    SELECT DISTINCT
+                        CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+                        CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR, 
+                        CAST(LIQUIDADO_BOLIVAR AS int64) AS VALOR_TRANSACCION,
+                        CODIGO_COMPANIA, 
+                        FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+                    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+      ) AS f
+      ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+      AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+      WHERE f.CODIGO_COMPANIA = 2
+        AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 24 MONTH))
+      GROUP BY 
+          f.TIPO_DOCUMENTO_TOMADOR, 
+          f.NUMERO_DOCUMENTO_TOMADOR
+      HAVING COUNT_TRANSACCIONES BETWEEN 0 AND 1
+),  --- Validado ok procesa aprox 11.296 registros 
+
 
 ocupacion AS (
 SELECT DISTINCT 
@@ -100,21 +158,24 @@ SELECT DISTINCT
   END AS CATEGORIA
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` as c
 WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
-),
+),  --- Validado ok procesa aprox 15.656.435 registros 
+
+
+
+
 
 Segmento1 AS (
   SELECT DISTINCT 
     a.KEY_ID AS KEY_TOMADOR, 
     a.TIPO_DOCUMENTO AS TIPO_TOMADOR,
     1 AS Segmento
-  FROM Riesgo_LAFT AS a
-  JOIN ActivoPasivo AS d ON a.KEY_ID = d.KEY_ID AND a.TIPO_DOCUMENTO = d.TIPO_DOCUMENTO
-  JOIN IngresosEgresos AS e ON a.KEY_ID = e.KEY_ID AND a.TIPO_DOCUMENTO = e.TIPO_DOCUMENTO
-  JOIN TransaccionesPago_valor AS f ON a.KEY_ID = f.KEY_ID AND a.TIPO_DOCUMENTO = f.TIPO_DOCUMENTO
-  JOIN TransaccionesPago_cantidad AS l ON a.KEY_ID = l.KEY_ID AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO
-  JOIN TransaccionesSiniestro_valor AS g ON a.KEY_ID = g.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = g.TIPO_DOCUMENTO_TOMADOR
-  JOIN TransaccionesSiniestro_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR
-  JOIN PolizasVigentes AS h ON a.KEY_ID = h.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = h.TIPO_DOCUMENTO_TOMADOR
-  JOIN Ocupacion AS c ON a.KEY_ID = c.KEY_ID AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+  FROM Riesgo_LAFT AS a  --- 602.387
+   JOIN ActivoPasivo AS d ON a.KEY_ID = d.KEY_ID AND a.TIPO_DOCUMENTO = d.TIPO_DOCUMENTO --34585
+   JOIN IngresosEgresos AS e ON a.KEY_ID = e.KEY_ID AND a.TIPO_DOCUMENTO = e.TIPO_DOCUMENTO -- 31655
+   JOIN Ocupacion AS c ON a.KEY_ID = c.KEY_ID AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO --8662
+   JOIN Transacciones_sini_reca_valor AS f ON a.KEY_ID = f.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = f.TIPO_DOCUMENTO_TOMADOR --286
+   JOIN Transacciones_sini_reca_cantidad AS l ON a.KEY_ID = l.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TOMADOR -- 29
+   JOIN Pago_siniestros_valor AS g ON a.KEY_ID = g.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = g.TIPO_DOCUMENTO_TOMADOR --29
+   JOIN Pago_siniestros_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR --29  
 )
 SELECT * FROM Segmento1;
