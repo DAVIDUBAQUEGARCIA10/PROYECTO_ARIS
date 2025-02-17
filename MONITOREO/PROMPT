@@ -15,3 +15,8 @@ para que se inserten solo los registros nuevos , y conserve los que ya estan, US
 a la tabla resultante agregale una columna con la fecha de alerta, con la fecha de la ejecucion del codigo asi CURRENT_DATE() AS FECHA_ALERTA, y solo actualiza la fecha de los
 registros nuevos agregados, los registros existentes dejalos con la fecha que tiene, PARA EL INSERT DEBE INGRESAR SOLO REGISTROS NUEVOS
 LOS QUE YA ESTAN NO INGRESARLOS DE NUEVO, EL INSERT DEBE IR AL INICIO, el codigo es:
+
+
+A pertir del siguiente codigo creame una ficha tecnica detallada que describa lo que se está realizando en la consulta SQL que proporcionaste. 
+La ficha describe cada parte de la consulta y lo que hace, lo cual es útil tanto para documentación como para que otros puedan entender fácilmente el propósito y funcionamiento del código.
+
