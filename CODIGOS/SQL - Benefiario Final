@@ -8,3 +8,45 @@ where  c.jur_secuencia = 140089  --(ejemplo de la secuencia del juridico que se 
                         and  c1.numero_documento = c.numero_documento
                         and  c1.tipdoc_codigo = c.tipdoc_codigo)
   and  c.marca_activo = 'A'
+
+
+---
+
+
+SELECT 
+    j.NUMERO_DOCUMENTO,
+    j.TIPDOC_CODIGO,
+    j.RAZON_SOCIAL,
+    j.NUMERO_DOCUMENTO,
+   j.OBSERVACIONES,
+    j.FECHA_MODIFICACION,    
+    j.MANEJA_MONEDA_EXTRANJERA,       
+    j.OPERACIONES_INTERNACIONALES, 
+    j.PUBLICAMENTE_EXPUESTA, 
+    c."TIPDOC_CODIGO",    
+    c.NUMERO_DOCUMENTO as NUM_DOCUMENTO_CONTACTO,
+    c."NOMBRE_CONTACTO",
+    c."CARGO_CONTACTO",
+    c."USUARIO_CREACION",
+    c."FECHA_CREACION",
+    c."USUARIO_MODIFICACION",
+    c."FECHA_MODIFICACION" AS "FECHA_MODIFICACION_CONTACTO",
+    c."PORCENTAJE_PARTICIPACION",
+    c."PUBLICAMENTE_EXPUESTA",
+    c."COTIZA_BOLSA",
+    c."MARCA_ACTIVO"
+FROM 
+    contactos c
+JOIN 
+    juridicos j ON j."SECUENCIA" = c."JUR_SECUENCIA"
+WHERE  
+    c."PORCENTAJE_PARTICIPACION" IS NOT NULL
+    AND c."SECUENCIA" = (
+        SELECT MAX(c1."SECUENCIA")
+        FROM contactos c1
+        WHERE c1."JUR_SECUENCIA" = c."JUR_SECUENCIA"
+        AND c1."NUMERO_DOCUMENTO" = c."NUMERO_DOCUMENTO"
+        AND c1."TIPDOC_CODIGO" = c."TIPDOC_CODIGO"
+    )
+    AND c."MARCA_ACTIVO" = 'A'
+
