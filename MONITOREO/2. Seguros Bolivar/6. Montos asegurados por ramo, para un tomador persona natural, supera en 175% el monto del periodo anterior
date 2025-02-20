@@ -1,117 +1,4 @@
-WITH ranked_policies AS (
-    SELECT 
-        t1.CODIGO_COMPANIA,
-        t1.CODIGO_RAMO_EMISION,
-        t1.NOMBRE_RAMO_EMISION,
-        t1.CODIGO_PRODUCTO,
-        t1.NOMBRE_PRODUCTO,
-        t1.CODIGO_SUBPRODUCTO,
-        t1.NOMBRE_SUBPRODUCTO,
-        t1.NUMERO_POLIZA_ANTERIOR,
-        t2.SUM_VALOR_ASEGURADO AS VALOR_ASEGURADO_POLIZA_ANTERIOR, 
-        t1.NUMERO_POLIZA  AS NUMERO_POLIZA_ACTUAL,
-        t1.SUM_VALOR_ASEGURADO AS VALOR_ASEGURADO_POLIZA_ACTUAL,    
-        t1.TIPO_DOCUMENTO_TOMADOR,
-        t1.KEY_ID_TOMADOR,
-        t1.FECHA_INICIO_POLIZA,
-        t1.FECHA_FIN_ENDOSO,
-        t1.FECHA_FIN_POLIZA,
-        t1.CODIGO_COBERTURA,
-        ROW_NUMBER() OVER (PARTITION BY t1.TIPO_DOCUMENTO_TOMADOR, t1.KEY_ID_TOMADOR 
-                           ORDER BY t1.FECHA_INICIO_POLIZA DESC) AS row_num
-    FROM 
-        (
-            SELECT distinct
-                CODIGO_COMPANIA,
-                CODIGO_RAMO_EMISION,
-                NOMBRE_RAMO_EMISION,
-                CODIGO_PRODUCTO,
-                NOMBRE_PRODUCTO,
-                CODIGO_SUBPRODUCTO,
-                NOMBRE_SUBPRODUCTO,
-                NUMERO_POLIZA_ANTERIOR,
-                NUMERO_POLIZA,
-                TIPO_DOCUMENTO_TOMADOR,
-                KEY_ID_TOMADOR,
-                FECHA_INICIO_POLIZA,
-                FECHA_FIN_ENDOSO,
-                FECHA_FIN_POLIZA,
-                VALOR_ASEGURADO AS SUM_VALOR_ASEGURADO,
-                CODIGO_COBERTURA
-            FROM 
-                sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
-            WHERE FECHA_EMISION_ENDOSO >= "2024-01-01"
-                AND FECHA_EMISION_ENDOSO <= "2024-11-30"
-                AND FECHA_FIN_ENDOSO > "2024-11-30"
-                AND VALOR_ASEGURADO > 0            
-                AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
-                AND CODIGO_RAMO_EMISION NOT IN (18, 20, 22, 24, 26, 29, 30, 33, 34, 42, 69, 70, 118, 10,12,66, 310)
-                AND NUMERO_POLIZA_ANTERIOR IS NOT NULL 
-                AND ALTURA_POLIZA != "1"
-                AND CODIGO_COMPANIA = 2
-                AND NUMERO_ENDOSO = 0 
-                AND CODIGO_RIESGO = 1
-        ) t1
-    LEFT JOIN 
-        (
-            SELECT distinct
-                CODIGO_COMPANIA,
-                CODIGO_RAMO_EMISION,
-                NOMBRE_RAMO_EMISION,
-                CODIGO_PRODUCTO,
-                NOMBRE_PRODUCTO,
-                CODIGO_SUBPRODUCTO,
-                NOMBRE_SUBPRODUCTO,
-                NUMERO_POLIZA_ANTERIOR,
-                NUMERO_POLIZA,
-                TIPO_DOCUMENTO_TOMADOR,
-                KEY_ID_TOMADOR,
-                FECHA_INICIO_POLIZA,
-                FECHA_FIN_ENDOSO,
-                FECHA_FIN_POLIZA,
-                VALOR_ASEGURADO AS SUM_VALOR_ASEGURADO,
-                CODIGO_COBERTURA
-            FROM 
-                sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
-            WHERE TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
-                AND CODIGO_RAMO_EMISION NOT IN (18, 20, 22, 24, 26, 29, 30, 33, 34, 42, 69, 70, 118, 10,12,66, 310)
-                AND CODIGO_COMPANIA = 2
-                AND NUMERO_ENDOSO = 0 
-                AND CODIGO_RIESGO = 1
-                AND VALOR_ASEGURADO > 0                       
-        ) t2     
-    ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA 
-    WHERE t1.SUM_VALOR_ASEGURADO > 1.75 * t2.SUM_VALOR_ASEGURADO
-      AND RIGHT(CAST(t1.NUMERO_POLIZA_ANTERIOR AS STRING), 2) != RIGHT(CAST(t1.NUMERO_POLIZA AS STRING), 2)
-      AND t1.CODIGO_COBERTURA = t2.CODIGO_COBERTURA
-)
-SELECT 
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    CODIGO_SUBPRODUCTO,
-    NOMBRE_SUBPRODUCTO,
-    NUMERO_POLIZA_ANTERIOR,
-    VALOR_ASEGURADO_POLIZA_ANTERIOR, 
-    NUMERO_POLIZA_ACTUAL,
-    VALOR_ASEGURADO_POLIZA_ACTUAL,    
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    FECHA_INICIO_POLIZA,
-    FECHA_FIN_ENDOSO,
-    FECHA_FIN_POLIZA,
-    CODIGO_COBERTURA
-FROM ranked_policies
-WHERE row_num = 1
-ORDER BY FECHA_INICIO_POLIZA DESC;
-
-
-
-
-CREATE -----
-
+--CREATE
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO AS
 WITH ranked_policies AS (
     SELECT 
@@ -168,6 +55,7 @@ WITH ranked_policies AS (
                 AND CODIGO_COMPANIA = 2
                 AND NUMERO_ENDOSO = 0 
                 AND CODIGO_RIESGO = 1
+                AND PRIMA_EMITIDA > 0
         ) t1
     LEFT JOIN 
         (
@@ -195,7 +83,8 @@ WITH ranked_policies AS (
                 AND CODIGO_COMPANIA = 2
                 AND NUMERO_ENDOSO = 0 
                 AND CODIGO_RIESGO = 1
-                AND VALOR_ASEGURADO > 0                       
+                AND VALOR_ASEGURADO > 0    
+                AND PRIMA_EMITIDA > 0                                   
         ) t2     
     ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA 
     WHERE t1.SUM_VALOR_ASEGURADO > 1.75 * t2.SUM_VALOR_ASEGURADO
@@ -227,7 +116,6 @@ WHERE row_num = 1
 ORDER BY FECHA_INICIO_POLIZA DESC;
 
 
-
 INSERT ---
 
 
@@ -249,6 +137,7 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO (
     FECHA_FIN_ENDOSO,
     FECHA_FIN_POLIZA,
     CODIGO_COBERTURA,
+    FECHA_ALERTA_MES,
     FECHA_ALERTA
 )
 WITH ranked_policies AS (
@@ -270,6 +159,7 @@ WITH ranked_policies AS (
         t1.FECHA_FIN_ENDOSO,
         t1.FECHA_FIN_POLIZA,
         t1.CODIGO_COBERTURA,
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
         ROW_NUMBER() OVER (
             PARTITION BY t1.TIPO_DOCUMENTO_TOMADOR, t1.KEY_ID_TOMADOR 
             ORDER BY t1.FECHA_INICIO_POLIZA DESC
@@ -306,6 +196,7 @@ WITH ranked_policies AS (
                 AND CODIGO_COMPANIA = 2
                 AND NUMERO_ENDOSO = 0 
                 AND CODIGO_RIESGO = 1
+                AND PRIMA_EMITIDA > 0
         ) t1
     LEFT JOIN 
         (
@@ -333,7 +224,8 @@ WITH ranked_policies AS (
                 AND CODIGO_COMPANIA = 2
                 AND NUMERO_ENDOSO = 0 
                 AND CODIGO_RIESGO = 1
-                AND VALOR_ASEGURADO > 0                       
+                AND VALOR_ASEGURADO > 0   
+                AND PRIMA_EMITIDA > 0                    
         ) t2     
     ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA 
     WHERE t1.SUM_VALOR_ASEGURADO > 1.75 * t2.SUM_VALOR_ASEGURADO
@@ -358,7 +250,7 @@ SELECT
     FECHA_FIN_ENDOSO,
     FECHA_FIN_POLIZA,
     CODIGO_COBERTURA,
--   FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
     CURRENT_DATE() AS FECHA_ALERTA
 FROM ranked_policies rp
 WHERE rp.row_num = 1
@@ -371,4 +263,5 @@ WHERE rp.row_num = 1
       AND existing.KEY_ID_TOMADOR = rp.KEY_ID_TOMADOR
   )
 ORDER BY rp.FECHA_INICIO_POLIZA DESC;
+
 
