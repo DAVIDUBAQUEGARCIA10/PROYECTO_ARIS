@@ -17,6 +17,6 @@ registros nuevos agregados, los registros existentes dejalos con la fecha que ti
 LOS QUE YA ESTAN NO INGRESARLOS DE NUEVO, EL INSERT DEBE IR AL INICIO, el codigo es:
 
 
-A pertir del siguiente codigo creame una ficha tecnica detallada que describa lo que se está realizando en la consulta SQL que proporcionaste. 
-La ficha describe cada parte de la consulta y lo que hace, lo cual es útil tanto para documentación como para que otros puedan entender fácilmente el propósito y funcionamiento del código.
+A pertir del siguiente codigo creame una ficha tecnica tipo informe, es decir para pegar en mi informe, detallada que describa lo que se está realizando en la consulta SQL que proporcionaste. 
+La ficha describe cada parte de la consulta y lo que hace, lo cual es útil tanto para documentación como para que otros puedan entender fácilmente el propósito y funcionamiento del código, ojo no me pongas de nuevo todo el codigo, solo texto 
 
