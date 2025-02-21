@@ -1,3 +1,4 @@
+---CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Factor_cliente_PN_SB as 
 WITH 
 Riesgo_LAFT AS (
   SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
@@ -160,8 +161,15 @@ FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` as c
 WHERE (CARGO IN ('ASALARIADO') OR CARGO IS NULL OR CARGO = '')
 ),  --- Validado ok procesa aprox 15.656.435 registros 
 
-
-
+actividad_economica AS (
+    SELECT   
+      TIPO_DOCUMENTO, 
+      KEY_ID
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` nat
+    LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo ciiud
+    ON nat.CODIGO_CIIU = ciiud.C__digo
+     where Nivel_de_riesgo IN ("BAJO","ALTO","MEDIO") 
+),--- Validado ok procesa aprox 3.600.459 registros  
 
 
 Segmento1 AS (
@@ -170,12 +178,13 @@ Segmento1 AS (
     a.TIPO_DOCUMENTO AS TIPO_TOMADOR,
     1 AS Segmento
   FROM Riesgo_LAFT AS a  --- 602.387
-   JOIN ActivoPasivo AS d ON a.KEY_ID = d.KEY_ID AND a.TIPO_DOCUMENTO = d.TIPO_DOCUMENTO --34585
+   JOIN ActivoPasivo AS d ON a.KEY_ID = d.KEY_ID AND a.TIPO_DOCUMENTO = d.TIPO_DOCUMENTO --34585   
    JOIN IngresosEgresos AS e ON a.KEY_ID = e.KEY_ID AND a.TIPO_DOCUMENTO = e.TIPO_DOCUMENTO -- 31655
    JOIN Ocupacion AS c ON a.KEY_ID = c.KEY_ID AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO --8662
+   JOIN actividad_economica AS m ON a.KEY_ID = m.KEY_ID AND a.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO -- 8671----
    JOIN Transacciones_sini_reca_valor AS f ON a.KEY_ID = f.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = f.TIPO_DOCUMENTO_TOMADOR --286
-  JOIN Transacciones_sini_reca_cantidad AS l ON a.KEY_ID = l.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TOMADOR -- 16
+   JOIN Transacciones_sini_reca_cantidad AS l ON a.KEY_ID = l.NUMERO_DOCUMENTO_TOMADOR AND a.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TOMADOR -- 16
    JOIN Pago_siniestros_valor AS g ON a.KEY_ID = g.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = g.TIPO_DOCUMENTO_TOMADOR --16
-   JOIN Pago_siniestros_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR --16 
+  JOIN Pago_siniestros_cantidad AS z ON a.KEY_ID = z.KEY_ID_TOMADOR AND a.TIPO_DOCUMENTO = z.TIPO_DOCUMENTO_TOMADOR --16 
 )
-SELECT * FROM Segmento1;
+SELECT * FROM Segmento1
