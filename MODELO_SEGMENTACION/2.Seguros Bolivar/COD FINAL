@@ -1,9 +1,17 @@
 WITH 
 Riesgo_LAFT AS (
-  SELECT DISTINCT TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO, KEY_ID_TOMADOR AS KEY_ID
-  FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas AS a
-  --WHERE NIVEL_DE_RIESGO = 'Riesgo Bajo' 
-  where FECHA_FIN_POLIZA >= "2024-01-01"  and CODIGO_COMPANIA = 2 and  TIPO_DOCUMENTO_TOMADOR in ("CC","CE")
+  
+  --SELECT DISTINCT TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO, KEY_ID_TOMADOR AS KEY_ID
+  --FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas AS a
+  --where FECHA_FIN_POLIZA >= "2024-01-01"  and CODIGO_COMPANIA = 2 and  TIPO_DOCUMENTO_TOMADOR in ("CC","CE")
+ 
+  --SELECT DISTINCT TIPO_DOCUMENTO,KEY_ID
+  --FROM sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_B AS a
+  --where  NIVEL_DE_RIESGO = 'Bajo' and CODIGO_COMPANIA  = 2 and  TIPO_DOCUMENTO  in ("CC","CE") ---17884
+ 
+  SELECT DISTINCT TIPO_DOCUMENTO,KEY_ID
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes AS a
+  where  NIVEL_DE_RIESGO = 'Riesgo Bajo' and CODIGO_ENTIDAD_COMPANIA  = 2 and  TIPO_DOCUMENTO  in ("CC","CE")  ---94681
 ),
 
 actividad_economica AS (
