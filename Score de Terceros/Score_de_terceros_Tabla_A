@@ -81,9 +81,34 @@ Alertas_Monitoreo.Es_ROS,
   END AS Score_riesgo_Transaccional_ROS,  
 
 FROM (
-  SELECT DISTINCT
-        TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA,CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
-  FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    SELECT DISTINCT
+        tcn.TIPO_DOCUMENTO,
+        tcn.KEY_ID,
+        COALESCE(tcn.ACTIVIDAD_ECONOMICA, tcn_other.ACTIVIDAD_ECONOMICA) AS ACTIVIDAD_ECONOMICA,
+        COALESCE(tcn.CODIGO_CIIU, tcn_other.CODIGO_CIIU) AS CODIGO_CIIU,
+        tcn.CODIGO_LUGAR_NACIMIENTO,
+        tcn.NOMBRE_LUGAR_NACIMIENTO
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+    LEFT JOIN (
+        SELECT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA,
+            CODIGO_CIIU,
+            ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_PROCESO DESC) AS rn
+        FROM 
+            `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes`
+        WHERE 
+            TIPO_DOCUMENTO IS NOT NULL
+            AND KEY_ID IS NOT NULL
+            AND ACTIVIDAD_ECONOMICA IS NOT NULL
+            AND CODIGO_CIIU IS NOT NULL
+    ) tcn_other
+        ON tcn.TIPO_DOCUMENTO = tcn_other.TIPO_DOCUMENTO
+        AND tcn.KEY_ID = tcn_other.KEY_ID
+        AND tcn_other.rn = 1
+
 --  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
   
   UNION ALL
@@ -144,5 +169,3 @@ LEFT JOIN
 
          
    
-
-
