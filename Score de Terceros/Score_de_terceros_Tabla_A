@@ -81,42 +81,42 @@ Alertas_Monitoreo.Es_ROS,
   END AS Score_riesgo_Transaccional_ROS,  
 
 FROM (
-    SELECT DISTINCT
-        tcn.TIPO_DOCUMENTO,
-        tcn.KEY_ID,
-        COALESCE(tcn.ACTIVIDAD_ECONOMICA, tcn_other.ACTIVIDAD_ECONOMICA) AS ACTIVIDAD_ECONOMICA,
-        COALESCE(tcn.CODIGO_CIIU, tcn_other.CODIGO_CIIU) AS CODIGO_CIIU,
-        tcn.CODIGO_LUGAR_NACIMIENTO,
-        tcn.NOMBRE_LUGAR_NACIMIENTO
-    FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-    LEFT JOIN (
-        SELECT 
-            TIPO_DOCUMENTO,
-            KEY_ID,
-            ACTIVIDAD_ECONOMICA,
-            CODIGO_CIIU,
-            ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_PROCESO DESC) AS rn
-        FROM 
-            `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes`
-        WHERE 
-            TIPO_DOCUMENTO IS NOT NULL
-            AND KEY_ID IS NOT NULL
-            AND ACTIVIDAD_ECONOMICA IS NOT NULL
-            AND CODIGO_CIIU IS NOT NULL
-    ) tcn_other
-        ON tcn.TIPO_DOCUMENTO = tcn_other.TIPO_DOCUMENTO
-        AND tcn.KEY_ID = tcn_other.KEY_ID
-        AND tcn_other.rn = 1
+              SELECT DISTINCT
+                  tcn.TIPO_DOCUMENTO,
+                  tcn.KEY_ID,
+                  COALESCE(tcn.ACTIVIDAD_ECONOMICA, tcn_other.ACTIVIDAD_ECONOMICA) AS ACTIVIDAD_ECONOMICA,
+                  COALESCE(tcn.CODIGO_CIIU, tcn_other.CODIGO_CIIU) AS CODIGO_CIIU,
+                  tcn.CODIGO_LUGAR_NACIMIENTO,
+                  tcn.NOMBRE_LUGAR_NACIMIENTO
+              FROM 
+                  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+              LEFT JOIN (
+                  SELECT 
+                      TIPO_DOCUMENTO,
+                      KEY_ID,
+                      ACTIVIDAD_ECONOMICA,
+                      CODIGO_CIIU,
+                      ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_PROCESO DESC) AS rn
+                  FROM 
+                      `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes`
+                  WHERE 
+                      TIPO_DOCUMENTO IS NOT NULL
+                      AND KEY_ID IS NOT NULL
+                      AND ACTIVIDAD_ECONOMICA IS NOT NULL
+                      AND CODIGO_CIIU IS NOT NULL
+              ) tcn_other
+                  ON tcn.TIPO_DOCUMENTO = tcn_other.TIPO_DOCUMENTO
+                  AND tcn.KEY_ID = tcn_other.KEY_ID
+                  AND tcn_other.rn = 1
 
---  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
-  
-  UNION ALL
+          --  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
+            
+            UNION ALL
 
-  SELECT DISTINCT
-    TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA, CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
-  FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
---  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
+            SELECT DISTINCT
+              TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA, CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
+            FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+          --  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
 
 ) AS clientes
 LEFT JOIN 
@@ -128,16 +128,19 @@ LEFT JOIN
   AND clientes.KEY_ID = restringidos.KEY_ID
   AND restringidos.KEY_ID IS NOT NULL
 LEFT JOIN ( 
-  select CODIGO_COMPANIA,TIPO_DOCUMENTO_TOMADOR,KEY_ID_TOMADOR,CODIGO_RAMO_EMISION,CODIGO_PRODUCTO,NOMBRE_CANAL
-  from `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` 
-  where date(FECHA_FIN_POLIZA) >= CURRENT_DATE()
 
-  UNION ALL
+          SELECT 1 as CODIGO_COMPANIA,tipo_documento as TIPO_DOCUMENTO_TOMADOR,key_id as KEY_ID_TOMADOR,
+          801 as CODIGO_RAMO_EMISION,51 as CODIGO_PRODUCTO,"CAPITALIZADORA" as NOMBRE_CANAL
+          FROM  sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora
+          where date(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH)
 
-  SELECT 1 as CODIGO_COMPANIA,tipo_documento as TIPO_DOCUMENTO_TOMADOR,key_id as KEY_ID_TOMADOR,
-    801 as CODIGO_RAMO_EMISION,51 as CODIGO_PRODUCTO,"CAPITALIZADORA" as NOMBRE_CANAL
-  FROM  sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora
-  where date(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH)
+          UNION ALL
+
+
+          select CODIGO_COMPANIA,TIPO_DOCUMENTO_TOMADOR,KEY_ID_TOMADOR,CODIGO_RAMO_EMISION,CODIGO_PRODUCTO,NOMBRE_CANAL
+          from `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` 
+          where date(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+
   ) polizas 
   ON clientes.TIPO_DOCUMENTO = polizas.TIPO_DOCUMENTO_TOMADOR  
   AND clientes.KEY_ID = polizas.KEY_ID_TOMADOR
