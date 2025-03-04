@@ -56,4 +56,4 @@ WITH CTE AS (
 )
 SELECT * 
 FROM CTE
-WHERE Coincidencia = 'No Coincide';
+--WHERE Coincidencia IN('No Coincide',"Coincide","Vacio Plus","Vacio ARIS");
