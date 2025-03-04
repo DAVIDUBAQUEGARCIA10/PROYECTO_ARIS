@@ -78,3 +78,8 @@ t_productos_nivel_riesgo -> Ingesta desde hojas de calculo anidadas a ARIS
 t_sarlatf_4_0_variables -> Ingesta desde hojas de calculo anidadas a ARIS
 t_score_clientes -> Ingesta desde hojas de calculo anidadas a ARIS
 t_terceros_clientes -> Ingesta desde hojas de calculo anidadas a ARIS 
+
+-->Modelo de Madurez de programa
+sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_modelo_madurez_full
+-->Espejo para power Bi
+sb-sandbox-usuarios.sandbox_cumplimiento.t_modelo_madurez
