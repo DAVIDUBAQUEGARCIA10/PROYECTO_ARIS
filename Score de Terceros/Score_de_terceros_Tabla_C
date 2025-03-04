@@ -1,0 +1,59 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C AS
+WITH CTE AS (
+    SELECT 
+        A.TIPO_DOCUMENTO,
+        A.KEY_ID,
+        A.CODIGO_COMPANIA,
+        A.Codigo_Ciiu,
+        A.Nivel_de_riesgo_Codigo_Ciiu,
+        A.Score_riesgo_actividad_economica,
+        A.CODIGO_LUGAR_NACIMIENTO,
+        A.NOMBRE_LUGAR_NACIMIENTO,
+        A.Nivel_Riesgo_jurisdiccon_municipio,
+        A.Score_riesgo_jurisdicciones_municipio,
+        A.Codigo_Nacionalidad,
+        A.Nacionalidad,
+        A.C__digo_Codazzi,
+        A.Nivel_Riesgo_Nacionalidad,
+        A.Score_riesgo_nacionalidad,
+        A.Codigo_Restringido,
+        A.Score_riesgo_restringido,
+        A.Codigo_de_Ramo,
+        A.Codigo_de_Producto,
+        A.Nivel_riesgo_productos,
+        A.Score_riesgo_producto,
+        A.Canal,
+        A.Nivel_Riesgo_Canal,
+        A.Score_riesgo_canal,
+        A.ALERTA,
+        A.Score_riesgo_Transaccional,
+        A.Es_ROS,
+        A.Score_riesgo_Transaccional_ROS,
+        A.rn,
+        A.Score_total,
+        A.Nivel_de_Riesgo,
+        B.NIVEL_DE_RIESGO AS NIVEL_DE_RIESGO_CLIENTE,
+        B.FECHA_CALIFICACION,
+        C.KEY_ID AS KEY_ID_T_SERIAL,  -- Nuevo campo desde t_serial
+        -- Nueva columna de coincidencia con validaciones adicionales
+        CASE 
+            WHEN B.NIVEL_DE_RIESGO IS NULL OR B.NIVEL_DE_RIESGO = '' THEN 'Vacio Plus'
+            WHEN A.Nivel_de_Riesgo IS NULL OR A.Nivel_de_Riesgo = '' THEN 'Vacio ARIS'
+            WHEN A.Nivel_de_Riesgo = 'Bajo' AND B.NIVEL_DE_RIESGO = 'Riesgo Bajo' THEN 'Coincide'
+            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'Coincide'
+            WHEN A.Nivel_de_Riesgo = 'Alto' AND B.NIVEL_DE_RIESGO = 'Riesgo Alto' THEN 'Coincide'
+            ELSE 'No Coincide'
+        END AS Coincidencia
+    FROM sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_B A
+    LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes B
+        ON A.TIPO_DOCUMENTO = B.TIPO_DOCUMENTO
+        AND A.KEY_ID = B.KEY_ID
+        AND A.CODIGO_COMPANIA = B.CODIGO_ENTIDAD_COMPANIA
+    LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_serial C
+        ON B.CODIGO_ENTIDAD_COMPANIA = C.CODIGO_ENTIDAD_COMPANIA
+        AND B.TIPO_DOCUMENTO = C.TIPO_DOCUMENTO
+        AND B.SERIAL = C.SERIAL  -- Unión con t_serial para obtener KEY_ID
+)
+SELECT * 
+FROM CTE
+WHERE Coincidencia = 'No Coincide';
