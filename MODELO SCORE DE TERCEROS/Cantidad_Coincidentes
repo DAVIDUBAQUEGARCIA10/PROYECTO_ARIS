@@ -1,4 +1,0 @@
-SELECT CODIGO_COMPANIA,Coincidencia, COUNT(DISTINCT  KEY_ID)
-    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` 
-    --WHERE Coincidencia IN('No Coincide',"Coincide","Vacio Plus","Vacio ARIS")
-    GROUP BY CODIGO_COMPANIA,Coincidencia
