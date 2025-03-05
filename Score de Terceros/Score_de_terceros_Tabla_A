@@ -55,6 +55,9 @@ SELECT DISTINCT
     WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'ALTO' THEN 112.5
     WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'MEDIO' THEN 75
     WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'BAJO' THEN 37.5
+    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Alto' THEN 112.5
+    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Medio' THEN 75
+    WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Bajo' THEN 37.5
     ELSE 37.5
   END AS Score_riesgo_producto,
 
