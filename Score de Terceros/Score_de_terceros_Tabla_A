@@ -63,7 +63,7 @@ SELECT DISTINCT
   nivel_riesgo_canal.Nivel_de_riesgo as Nivel_Riesgo_Canal,
   CASE
     WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Alto' THEN 75
-    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Medio' THEN 20
+    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Medio' THEN 50
     WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Bajo' THEN 25
     ELSE 25
   END AS Score_riesgo_canal,
