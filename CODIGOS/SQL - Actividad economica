@@ -5,3 +5,14 @@ select *
 from actividades_economicas
 
 -- Cruzar con Naturales y Juridicos
+
+SELECT 
+    ae.CODIGO,
+    ae.DESCRIPCION,
+    j.*, 
+    a.ACTECO_SECUENCIA
+FROM juridicos j
+LEFT JOIN acteco_tercero a ON j.SECUENCIA = a.JUR_SECUENCIA
+LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA
+WHERE j.EXCEPTUADO_SARLAFT = 'S' 
+--AND NUMERO_DOCUMENTO = 800250048
