@@ -22,9 +22,9 @@ ScoreWithTotal AS (
 SELECT 
     *,
     CASE 
-        WHEN Score_total BETWEEN 751 AND 1000 THEN 'Especial'
-        WHEN Score_total BETWEEN 501 AND 750 THEN 'Alto'
-        WHEN Score_total BETWEEN 251 AND 500 THEN 'Medio'
+        WHEN Score_total BETWEEN 750.0001 AND 1000 THEN 'Especial'
+        WHEN Score_total BETWEEN 500..0001 AND 750 THEN 'Alto'
+        WHEN Score_total BETWEEN 250.0001 AND 500 THEN 'Medio'
         WHEN Score_total BETWEEN 0 AND 250 THEN 'Bajo'
         ELSE 'No definido'
     END AS Nivel_de_Riesgo
