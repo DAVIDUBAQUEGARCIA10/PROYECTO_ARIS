@@ -12,6 +12,9 @@ SELECT DISTINCT
     WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'ALTO' THEN 144.375
     WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'MEDIO' THEN 96.25
     WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'BAJO' THEN 48.125
+    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Alto' THEN 144.375
+    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Medio' THEN 96.25
+    WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Bajo' THEN 48.125    
     ELSE 48.125
   END AS Score_riesgo_actividad_economica,
 
@@ -19,11 +22,18 @@ SELECT DISTINCT
   --divpol.CODIGO_CODAZZI as Codigo_jurisdiccon_municipio, 
   clientes.CODIGO_LUGAR_NACIMIENTO, 
   clientes.NOMBRE_LUGAR_NACIMIENTO,
+  clientes.municipio_direccion_1, 
+  clientes.departamento_direccion_1, 
+  clientes.municipio_direccion_2, 
+  clientes.departamento_direccion_2,
   nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO as Nivel_Riesgo_jurisdiccon_municipio,
   CASE
     WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Alto' THEN 112.5
     WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Medio' THEN 75
     WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Bajo' THEN 37.5
+    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'ALTO' THEN 112.5
+    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'MEDIO' THEN 75
+    WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'BAJO' THEN 37.5    
     ELSE 37.5
   END AS Score_riesgo_jurisdicciones_municipio,
 
@@ -36,6 +46,9 @@ SELECT DISTINCT
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Alto' THEN 115.5
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Medio' THEN 77
     WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Bajo' THEN 38.5
+    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'ALTO' THEN 115.5
+    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'MEDIO' THEN 77
+    WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'BAJO' THEN 38.5    
     ELSE 38.5
   END AS Score_riesgo_nacionalidad,
 
@@ -68,6 +81,9 @@ SELECT DISTINCT
     WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Alto' THEN 75
     WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Medio' THEN 50
     WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Bajo' THEN 25
+    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'ALTO' THEN 75
+    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'MEDIO' THEN 50
+    WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'BAJO' THEN 25    
     ELSE 25
   END AS Score_riesgo_canal,
 
@@ -90,7 +106,11 @@ FROM (
                   COALESCE(tcn.ACTIVIDAD_ECONOMICA, tcn_other.ACTIVIDAD_ECONOMICA) AS ACTIVIDAD_ECONOMICA,
                   COALESCE(tcn.CODIGO_CIIU, tcn_other.CODIGO_CIIU) AS CODIGO_CIIU,
                   tcn.CODIGO_LUGAR_NACIMIENTO,
-                  tcn.NOMBRE_LUGAR_NACIMIENTO
+                  tcn.NOMBRE_LUGAR_NACIMIENTO,
+                  INITCAP(tcn_other.municipio_direccion_1) AS municipio_direccion_1,
+                  INITCAP(tcn_other.departamento_direccion_1) AS departamento_direccion_1,
+                  INITCAP(tcn_other.municipio_direccion_2) AS municipio_direccion_2,
+                  INITCAP(tcn_other.departamento_direccion_2) AS departamento_direccion_2
               FROM 
                   `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
               LEFT JOIN (
@@ -99,27 +119,43 @@ FROM (
                       KEY_ID,
                       ACTIVIDAD_ECONOMICA,
                       CODIGO_CIIU,
+                      municipio_direccion_1, 
+                      departamento_direccion_1, 
+                      municipio_direccion_2, 
+                      departamento_direccion_2,
                       ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_PROCESO DESC) AS rn
                   FROM 
                       `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes`
                   WHERE 
-                      TIPO_DOCUMENTO IS NOT NULL
-                      AND KEY_ID IS NOT NULL
-                      AND ACTIVIDAD_ECONOMICA IS NOT NULL
-                      AND CODIGO_CIIU IS NOT NULL
+                      (TIPO_DOCUMENTO IS NOT NULL
+                      OR KEY_ID IS NOT NULL
+                      OR ACTIVIDAD_ECONOMICA IS NOT NULL
+                      OR CODIGO_CIIU IS NOT NULL
+                      OR municipio_direccion_1 IS NOT NULL
+                      OR departamento_direccion_1 IS NOT NULL
+                      OR municipio_direccion_2 IS NOT NULL
+                      OR departamento_direccion_2 IS NOT NULL) and FECHA_PROCESO >= "2024-01-02" 
               ) tcn_other
                   ON tcn.TIPO_DOCUMENTO = tcn_other.TIPO_DOCUMENTO
                   AND tcn.KEY_ID = tcn_other.KEY_ID
                   AND tcn_other.rn = 1
+                --WHERE  tcn_other.KEY_ID = 'mpLLfNrKhvobA+x2iOUggm76Fp22ZJMeIWU11PFJ+CXrBF9q2lo+CcbLJKfilSdjxnt5sCtQYB1KPPIG6lLDCQ=='
 
-          --  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
-            
             UNION ALL
 
             SELECT DISTINCT
-              TIPO_DOCUMENTO,KEY_ID,ACTIVIDAD_ECONOMICA, CODIGO_CIIU,CODIGO_LUGAR_NACIMIENTO,NOMBRE_LUGAR_NACIMIENTO
+              TIPO_DOCUMENTO,
+              KEY_ID,
+              ACTIVIDAD_ECONOMICA, 
+              CODIGO_CIIU,
+              CODIGO_LUGAR_NACIMIENTO,
+              NOMBRE_LUGAR_NACIMIENTO,
+                  "" as municipio_direccion_1,
+                  "" as departamento_direccion_1, 
+                  "" as municipio_direccion_2, 
+                  "" as departamento_direccion_2
             FROM  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
-          --  WHERE  KEY_ID = 'IBknxZ/fpmrYraVjc1C/JK+VjanHAkkW0qUho7QO1vJgiW+qL/goh+qdgYX1d6/YpZJCmdPSk+Ci8ylhj0daew=='
+          --WHERE  KEY_ID = 'mpLLfNrKhvobA+x2iOUggm76Fp22ZJMeIWU11PFJ+CXrBF9q2lo+CcbLJKfilSdjxnt5sCtQYB1KPPIG6lLDCQ=='
 
 ) AS clientes
 LEFT JOIN 
@@ -158,8 +194,8 @@ LEFT JOIN
   AND nivel_riesgo_actividad_economica.C__digo IS NOT NULL
 LEFT JOIN   
   `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` AS nivel_riesgo_jurisdicciones_municipio
-  ON divpol.CODIGO_CODAZZI = nivel_riesgo_jurisdicciones_municipio.C__DIGO_DANE_DEL_MUNICIPIO
-  AND nivel_riesgo_jurisdicciones_municipio.C__DIGO_DANE_DEL_MUNICIPIO IS NOT NULL
+  ON clientes.municipio_direccion_1 = nivel_riesgo_jurisdicciones_municipio.MUNICIPIO
+  AND nivel_riesgo_jurisdicciones_municipio.MUNICIPIO IS NOT NULL
 LEFT JOIN   
   `sb-sandbox-usuarios.sandbox_cumplimiento.t_nacionalidad_nivel_riesgo` AS nivel_riesgo_nacionalidad_pais
   ON divpol.NACIONALIDAD = nivel_riesgo_nacionalidad_pais.NOMBRE
@@ -172,6 +208,5 @@ LEFT JOIN
   ON clientes.TIPO_DOCUMENTO = Alertas_Monitoreo.TIPO_DOCUMENTO  
   AND clientes.KEY_ID = Alertas_Monitoreo.KEY_ID_BENEFICIARIO
   AND Alertas_Monitoreo.KEY_ID_BENEFICIARIO IS NOT NULL
-
          
    
