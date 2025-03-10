@@ -1,1 +1,12 @@
+Cluster 1, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8 o Nulo
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 1
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 903 en cantidad y valor sumado maximo sea de 362280144 y minimo -796579 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 1 y valor sumado maximo sea de 13000000 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+Union ALL
+
 
