@@ -1,6 +1,6 @@
 Cluster 1, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
 Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
-Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8 o Nulo
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8 o nulo
 Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
 Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4
 Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 1
@@ -9,4 +9,130 @@ Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variabl
 
 Union ALL
 
+Cluster 2, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como minimo 1 y maximo 2
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 1871 en cantidad y valor sumado maximo sea de 510552161 y minimo -4321136 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 22 y valor sumado maximo sea de 185669029 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
 
+Union ALL
+
+Cluster 3, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2 o Nulo
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 3
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 1
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 22139 en cantidad y valor sumado maximo sea de 1112239225 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+
+Union ALL
+
+Cluster 4, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Medio
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 8 y minimo 3
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 3
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 73 en cantidad y valor sumado maximo sea de 160967750 y minimo -9497350 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 4 y valor sumado maximo sea de 15433056 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 5, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8 o nulo
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 3
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 1
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 7928 en cantidad y valor sumado maximo sea de 3282166089 y minimo -21023140 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 11 y valor sumado maximo sea de 69155026 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 6, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 5 y minimo 2
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 6671 en cantidad y valor sumado maximo sea de 767038217 y minimo -12565800 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 8 y valor sumado maximo sea de 43614787 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 7, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Alto
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 8 y minimo 5
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 1023 en cantidad y valor sumado maximo sea de 538803566 y minimo -367200 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 6 y valor sumado maximo sea de 405514418 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 8, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Medio
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 6
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4 y minimo 2
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 1009 en cantidad y valor sumado maximo sea de 2176486821 y minimo -25874 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 7 y valor sumado maximo sea de 577572794 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 9, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Medio
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 6
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4 y minimo 2
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 1555 en cantidad y valor sumado maximo sea de 854909300 y minimo -894571 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 8 y valor sumado maximo sea de 149027462 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL 
+
+Cluster 10, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2 y minimo 1
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 42482 en cantidad y valor sumado maximo sea de 7304326430 y minimo -538656 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 26 y valor sumado maximo sea de 575969071 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 11, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8 o nulo
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 5
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2 y minimo 0
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 10798 en cantidad y valor sumado maximo sea de 8613212626 y minimo -3804298 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 34 y valor sumado maximo sea de 457771579 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 12, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2,8
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 3
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2 y minimo 0
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 1 y 5767 en cantidad y valor sumado maximo sea de 606912527 y minimo -17263682 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 7 y valor sumado maximo sea de 201000000 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
+
+UNION ALL
+
+Cluster 13, La lleve de las tablas es ID_TOMADOR Y KEY_TOMADOR
+Clientes que en la columna (VARIABLE: NIVEL_DE_RIESGO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio, Riesgo Bajo, Riesgo Alto
+Clientes que en la columna (VARIABLE: TIPO_EMPRESA (1=Privada, 8=Mixta, 2=Pública) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a 1,2
+Clientes que en la columna (VARIABLE: NACIONALIDAD de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea igual a COLOMBIANO
+Clientes que en la columna  formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 2 y minimo 1
+Clientes que en la columna  formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) sea como maximo 4 y minimo 0
+Clientes de compañía 2 que tengan los siguientes resultados de transaccicones (Variable = VALOR_TRANSACCION) cantidad entre 4 y 725445 en cantidad y valor sumado maximo sea de 34920995313 y minimo 220835794 de la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario sumada a la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Clientes de compañía 2 que tengan los siguientes resultados por pagos (Variable = LIQUIDADO_BOLIVAR) cantidad de máximo 466 y minimo 3 y valor sumado maximo sea de 1621285376 y minimo 536872642 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros 
