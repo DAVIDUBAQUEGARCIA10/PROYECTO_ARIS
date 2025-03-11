@@ -1,1 +1,35 @@
+Reglas para cada segmento
+
+Segmento 12: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea mayor o igual a 0 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+Segmento 3: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ASALARIADO" "ESTUDIANTE" "PENSIONADO"
+Segmento 10 a 13: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor a 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) menor a 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3 a 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) mayor o igual a 223543 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3 a 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) menor a 223543 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 12: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a No aplica
+Segmento 11 a 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
+Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+Segmento 12 a 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor o igual a 10 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 12 a 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) menor a 10 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea mayor a 0 y menor o igual a 1500 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+Segmento 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) menor o igual a 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 1: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ASALARIADO" "ESTUDIANTE" "PENSIONADO"
+Segmento 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) mayor o igual a 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) menor a 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 8 a 1: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "NO APLICA"
+Segmento 3 a 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor a 9 y menor o igual a 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) menor a 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3 a 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) mayor o igual a 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3 a 1: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) menor a 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 1: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea mayor a 1500 y menor o igual a 2053 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+Segmento 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) menor o igual a 2 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 1: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ESTUDIANTE" "NO APLICA" "PENSIONADO"
+Segmento 1: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "ASALARIADO"
+Segmento 10 a 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor a 2 y menor o igual a 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3 a 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor a 9 y menor o igual a 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+Segmento 3: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) mayor a 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+
+
+
+
 
