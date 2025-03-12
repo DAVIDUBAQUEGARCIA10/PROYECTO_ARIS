@@ -1,0 +1,8 @@
+Código por variable
+IngresosEgresos AS (
+  SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes` AS e
+  WHERE SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) <= 13.0 OR SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS) IS NULL
+),
+
+
