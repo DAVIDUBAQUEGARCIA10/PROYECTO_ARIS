@@ -1,1 +1,108 @@
-d
+WITH polizas_union AS (
+    SELECT DISTINCT
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_EMISION, 
+        NOMBRE_RAMO_EMISION, 
+        CODIGO_PRODUCTO, 
+        NOMBRE_PRODUCTO,
+        NUMERO_POLIZA AS NUMERO_PRODUCTO, 
+        CAST(CODIGO_LOCALIDAD AS STRING) AS CODIGO_LOCALIDAD,  
+        NOMBRE_LOCALIDAD, 
+        FECHA_EMISION_ENDOSO AS FECHA_EMISION,
+        CAST(CLAVE_AGENTE AS STRING) AS CLAVE_AGENTE,          
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas
+    where DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+
+    UNION ALL
+
+    SELECT DISTINCT
+        1 AS CODIGO_COMPANIA,
+        801 AS CODIGO_RAMO_EMISION, 
+        'TITULOS DE CAPITALIZACION' AS NOMBRE_RAMO_EMISION, 
+        51 AS CODIGO_PRODUCTO, 
+        'MAGNATE 2005 GRUPO 100000' AS NOMBRE_PRODUCTO,
+        TITULO AS NUMERO_PRODUCTO, 
+        CAST("" AS STRING) AS CODIGO_LOCALIDAD, 
+        "" AS NOMBRE_LOCALIDAD, 
+        FECHA_EMISION,  
+        CAST("" AS STRING) AS CLAVE_AGENTE,  
+        TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR
+    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
+    WHERE a.FECHA_CORTE = (
+        SELECT MAX(FECHA_CORTE) 
+        FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
+    )
+),
+
+polizas_sin_duplicados AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY CODIGO_COMPANIA, TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR ORDER BY FECHA_EMISION DESC) AS rn
+    FROM polizas_union
+)
+
+SELECT 
+    p.CODIGO_COMPANIA, 
+    p.CODIGO_RAMO_EMISION, 
+    p.NOMBRE_RAMO_EMISION, 
+    p.CODIGO_PRODUCTO, 
+    p.NOMBRE_PRODUCTO,
+    p.NUMERO_PRODUCTO, 
+    p.CODIGO_LOCALIDAD, 
+    p.NOMBRE_LOCALIDAD, 
+    p.FECHA_EMISION, 
+    p.CLAVE_AGENTE,
+    p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+    c.NOMBRE,
+    c.NOMBRE_COMERCIAL,
+    c.PUBLICAMENTE_EXPUESTA,
+    c.TIP_DOC_REPRESENTANTE_LEGAL,
+    c.KEY_ID_REPRESENTANTE_LEGAL,
+    b.CODIGO_RESTRICCION,
+    b.DESCRIPCION,
+    b.FECHA_BAJA,
+    b.FECHA_CREACION,
+    b.FECHA_MODIFICACION,
+    b.VALOR_RIESGO,
+    b.NIVEL_ALERTA,
+    b.MARCA_ACTIVO
+FROM polizas_sin_duplicados p
+LEFT JOIN (
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO, 
+        KEY_ID, 
+        "" AS NOMBRE, 
+        "" AS NOMBRE_COMERCIAL, 
+        PUBLICAMENTE_EXPUESTA, 
+        "" AS TIP_DOC_REPRESENTANTE_LEGAL, 
+        "" AS KEY_ID_REPRESENTANTE_LEGAL,
+        --VINCULO_PERSONA_RECONOCIDA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+    WHERE PUBLICAMENTE_EXPUESTA != 'S'
+     
+    UNION ALL
+
+    SELECT DISTINCT
+        TIPO_DOCUMENTO, 
+        KEY_ID, 
+        NOMBRE, 
+        NOMBRE_COMERCIAL, 
+        PUBLICAMENTE_EXPUESTA, 
+        TIP_DOC_REPRESENTANTE_LEGAL, 
+        KEY_ID_REPRESENTANTE_LEGAL,
+        --VINCULO_PERSONA_RECONOCIDA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+    WHERE PUBLICAMENTE_EXPUESTA != 'S'
+) c
+ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+AND p.KEY_ID_TOMADOR = c.KEY_ID
+
+LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b
+ON p.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TERCERO
+
+where p.KEY_ID_TOMADOR = b.KEY_ID
+AND b.CODIGO_RESTRICCION = 23 AND c.PUBLICAMENTE_EXPUESTA != 'S'
+AND CODIGO_RAMO_EMISION != 310;
