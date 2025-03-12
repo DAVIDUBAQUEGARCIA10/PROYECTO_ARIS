@@ -1,3 +1,31 @@
 select * 
 from a2000020    
 where cod_campo in ( 'COD_BENEF', 'BENEFICIARIO' )
+
+
+
+---
+
+
+SELECT DISTINCT 
+    a.COD_CIA,
+    a.TDOC_TERCERO,
+    a.NRO_DOCUMTO,
+    a.NUM_POL1,
+    a.COD_RAMO,
+    a.FECHA_EMI,
+    a.FECHA_EMI_END,
+    a.FECHA_VENC_POL,
+    a.COD_PROD,
+    a.MCA_ANU_POL,
+    b.num_end, 
+    b.cod_ries,
+    b.cod_campo,
+    b.valor_campo,
+    b.mca_vigente
+FROM A2000030 a
+INNER JOIN A2000020 b 
+    ON a.NUM_SECU_POL = b.NUM_SECU_POL
+WHERE 
+    a.FECHA_VENC_POL >=  '20/02/25'
+    AND b.COD_CAMPO IN ('COD_BENEF', 'BENEFICIARIO');
