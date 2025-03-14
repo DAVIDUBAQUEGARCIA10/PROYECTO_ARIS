@@ -33,4 +33,3 @@ Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALO
         Segmento 7: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
     Segmento 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
 
-
