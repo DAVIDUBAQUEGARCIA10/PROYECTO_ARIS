@@ -14,7 +14,7 @@ WITH polizas_union AS (
         TIPO_DOCUMENTO_TOMADOR,
         KEY_ID_TOMADOR
     FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes
-    where DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
 
     UNION ALL
 
@@ -32,8 +32,8 @@ WITH polizas_union AS (
         CAST("" AS STRING) AS NOMBRE_AGENTE,
         TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
         KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR
-    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
-    WHERE a.FECHA_CORTE = (
+    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
+    WHERE FECHA_CORTE = (
         SELECT MAX(FECHA_CORTE) 
         FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
     )
@@ -41,11 +41,11 @@ WITH polizas_union AS (
 
 polizas_sin_duplicados AS (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY CODIGO_COMPANIA, TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR ORDER BY FECHA_EMISION DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR ORDER BY FECHA_EMISION DESC) AS rn
     FROM polizas_union
 )
 
-SELECT DISTINCT
+SELECT 
     p.CODIGO_COMPANIA, 
     p.CODIGO_RAMO_EMISION, 
     p.NOMBRE_RAMO_EMISION, 
@@ -55,7 +55,6 @@ SELECT DISTINCT
     p.CODIGO_LOCALIDAD, 
     p.NOMBRE_LOCALIDAD, 
     p.FECHA_EMISION, 
-    p.CLAVE_AGENTE as CLAVE_AGENTE_1 ,
     p.CLAVE_AGENTE,
     p.NOMBRE_AGENTE,
     p.TIPO_DOCUMENTO_TOMADOR,
@@ -70,7 +69,8 @@ SELECT DISTINCT
     b.CODIGO_RESTRICCION,
     b.DESCRIPCION,
     f.PEP_CUENTA_CON__FORMATO__, 
-    f.COMENTARIO____DETALLE_DEL__FORMATO
+    f.COMENTARIO____DETALLE_DEL__FORMATO,
+    l.MARCA_CANCELACION_DEFINITIVA
 FROM polizas_sin_duplicados p
 LEFT JOIN (
     SELECT DISTINCT 
@@ -96,25 +96,42 @@ LEFT JOIN (
         KEY_ID_REPRESENTANTE_LEGAL,
         VINCULO_PERSONA_RECONOCIDA
     FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
-   
 ) c
 ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
 AND p.KEY_ID_TOMADOR = c.KEY_ID
 
 LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b
 ON p.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TERCERO
-AND p.KEY_ID_TOMADOR = c.KEY_ID
+AND p.KEY_ID_TOMADOR = b.KEY_ID
 
 LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes m
 ON p.TIPO_DOCUMENTO_TOMADOR = m.TIPO_DOCUMENTO
 AND p.KEY_ID_TOMADOR = m.KEY_ID
 
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato  f
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato f
 ON m.TIPO_DOCUMENTO = f.TIPO_ID
 AND m.NUMERO_DOCUMENTO = f.NO__ID
 
+LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones as l
+ON p.NUMERO_PRODUCTO = l.NUMERO_POLIZA
 
-where p.KEY_ID_TOMADOR = b.KEY_ID
+
+WHERE rn = 1  
 AND p.CODIGO_RAMO_EMISION != 310
-AND (b.CODIGO_RESTRICCION = 23 or c.PUBLICAMENTE_EXPUESTA = "S" or c.VINCULO_PERSONA_RECONOCIDA = "S" )
-and f.PEP_CUENTA_CON__FORMATO__ != "SI"
+AND p.CODIGO_RAMO_EMISION != 70
+AND p.CODIGO_RAMO_EMISION != 39 
+and (p.CODIGO_RAMO_EMISION != 23 and p.CODIGO_PRODUCTO != 339) 
+and (p.CODIGO_RAMO_EMISION != 42 and p.CODIGO_PRODUCTO != 759)
+and (p.CODIGO_RAMO_EMISION != 4 and p.CODIGO_PRODUCTO != 455)
+and (p.CODIGO_RAMO_EMISION != 10 and p.CODIGO_PRODUCTO != 215)
+and (p.CODIGO_RAMO_EMISION != 15 and p.CODIGO_PRODUCTO != 40)
+and (p.CODIGO_RAMO_EMISION != 18 and p.CODIGO_PRODUCTO != 541)
+and (p.CODIGO_RAMO_EMISION != 18 and p.CODIGO_PRODUCTO != 540)
+and (p.CODIGO_RAMO_EMISION != 20 and p.CODIGO_PRODUCTO != 721)
+and (p.CODIGO_RAMO_EMISION != 30 and p.CODIGO_PRODUCTO != 734)
+and (p.CODIGO_RAMO_EMISION != 34 and p.CODIGO_PRODUCTO != 90)
+and (p.CODIGO_RAMO_EMISION != 923 and p.CODIGO_PRODUCTO != 923)
+and (p.CODIGO_RAMO_EMISION != 1 and p.CODIGO_PRODUCTO not IN (3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 251, 999)) 
+AND (b.CODIGO_RESTRICCION = 23 OR c.PUBLICAMENTE_EXPUESTA = "S" OR c.VINCULO_PERSONA_RECONOCIDA = "S")
+AND (f.PEP_CUENTA_CON__FORMATO__ = "NO"  OR f.PEP_CUENTA_CON__FORMATO__ IS NULL OR f.PEP_CUENTA_CON__FORMATO__ = ""  AND f.PEP_CUENTA_CON__FORMATO__ != "SI"  )
+AND  (l.MARCA_CANCELACION_DEFINITIVA = "N" OR l.MARCA_CANCELACION_DEFINITIVA IS NULL OR l.MARCA_CANCELACION_DEFINITIVA = "" AND l.MARCA_CANCELACION_DEFINITIVA != "S" )
