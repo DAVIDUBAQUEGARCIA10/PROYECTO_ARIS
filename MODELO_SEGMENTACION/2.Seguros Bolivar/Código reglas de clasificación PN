@@ -72,32 +72,69 @@ transacciones_cantidad AS (
     GROUP BY 
         f.TIPO_DOCUMENTO_TOMADOR, 
         f.NUMERO_DOCUMENTO_TOMADOR
-)
-SELECT 
-    c.TIPO_DOCUMENTO,
-    c.KEY_ID,
-    CASE
-        WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0 THEN NULL
-        WHEN c.COD_OCUPACION IN (4,1,2,3) THEN
-                  CASE
-                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 9 THEN '10'
-                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 9 THEN
-                        CASE
-                            WHEN COALESCE(t_valor.total_transacciones, 0) <= 223543 THEN '3'
-                            ELSE '3'
-                        END
-                    ELSE NULL
-                END
-            WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN
-                    CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '11'
-                        WHEN sc.NIVEL_DE_RIESGO = 'Riesgo Medio' AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
+) 
+
+UNION ALL
+ 
+WITH regla_1 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0 THEN NULL
+            WHEN c.COD_OCUPACION IN (4,1,2,3) THEN
+                      CASE
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 9 THEN '10'
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 9 THEN
                             CASE
-                                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 10 THEN '12'
-                                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 10 THEN '12'
-                                ELSE NULL
+                                WHEN COALESCE(t_valor.total_transacciones, 0) <= 223543 THEN '3'
+                                ELSE '3'
                             END
                         ELSE NULL
+                    END
+            WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN
+                        CASE
+                            WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '11'
+                            WHEN sc.NIVEL_DE_RIESGO = 'Riesgo Medio' AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
+                                CASE
+                                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 10 THEN '12'
+                                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 10 THEN '12'
+                                    ELSE NULL
+                                END
+                            ELSE NULL
+                        END
+                    ELSE 'No Segmentado'
+                END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+) ------------ Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+
+WITH regla_2 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.5 THEN NULL
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 9 THEN
+                    CASE
+                        WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN    
+                            CASE
+                                WHEN COALESCE(t_valor.total_transacciones, 0) <= 423406 THEN '1'
+                                ELSE '1'
+                            END      
+                        WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN '8'
+                        ELSE '1'
+                    END
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 9 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 11 THEN '3'
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 11 THEN
+                    CASE
+                        WHEN COALESCE(t_valor.total_transacciones, 0) <= 423406 THEN '3'
+                        ELSE '3'
                     END
                 ELSE 'No Segmentado'
             END AS segmento
@@ -108,4 +145,10 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-) ------------ Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+) -------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+
+
+SELECT * FROM regla_1
+UNION ALL
+SELECT * FROM regla_2;
+
