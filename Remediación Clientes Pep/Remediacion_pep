@@ -24,19 +24,18 @@ WITH polizas_union AS (
         'TITULOS DE CAPITALIZACION' AS NOMBRE_RAMO_EMISION, 
         51 AS CODIGO_PRODUCTO, 
         'MAGNATE 2005 GRUPO 100000' AS NOMBRE_PRODUCTO,
-        TITULO AS NUMERO_PRODUCTO, 
+        c.TITULO AS NUMERO_PRODUCTO, 
         CAST("" AS STRING) AS CODIGO_LOCALIDAD, 
         "" AS NOMBRE_LOCALIDAD, 
-        FECHA_EMISION,  
+        h.FECHA_EMISION,  
         CAST("" AS STRING) AS CLAVE_AGENTE,  
         CAST("" AS STRING) AS NOMBRE_AGENTE,
-        TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR
-    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
-    WHERE FECHA_CORTE = (
-        SELECT MAX(FECHA_CORTE) 
-        FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
-    )
+        c.TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+        c.KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR
+    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
+    INNER JOIN sb-ecosistemaanalitico-lago.capitalizadora.t_historico_titulos_capitalizacion h
+        ON c.TITULO = h.NUMERO_TITULO
+    WHERE h.ESTADO_TITULO = 1
 ),
 
 polizas_sin_duplicados AS (
