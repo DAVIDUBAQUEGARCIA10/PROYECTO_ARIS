@@ -72,11 +72,9 @@ transacciones_cantidad AS (
     GROUP BY 
         f.TIPO_DOCUMENTO_TOMADOR, 
         f.NUMERO_DOCUMENTO_TOMADOR
-) 
+), 
 
-UNION ALL
- 
-WITH regla_1 AS(
+regla_1 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -112,9 +110,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-) ------------ Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+), ------------ Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_2 AS(
+regla_2 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -145,9 +143,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-) -------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+), -------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_3 AS(
+regla_3 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -174,9 +172,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-) -------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+), -------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_4 AS(
+regla_4 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -204,9 +202,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.660.020 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_5 AS(
+regla_5 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -230,9 +228,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_6 AS(
+regla_6 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -260,9 +258,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_7 AS(
+regla_7 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -287,9 +285,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_8 AS(
+regla_8 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -314,9 +312,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_9 AS(
+regla_9 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -340,9 +338,9 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-WITH regla_10 AS(
+regla_10 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
@@ -367,7 +365,7 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
 
 SELECT * FROM regla_1
@@ -388,5 +386,6 @@ SELECT * FROM regla_8
 UNION ALL
 SELECT * FROM regla_9
 UNION ALL
-SELECT * FROM regla_10;
+SELECT * FROM regla_10
+)
 
