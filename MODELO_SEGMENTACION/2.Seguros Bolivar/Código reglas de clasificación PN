@@ -1,5 +1,7 @@
 Agrupación de bases cantidades y transaccional
 
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPN` AS 
+
 (WITH 
 transacciones_valor AS (
     SELECT  DISTINCT
@@ -365,7 +367,7 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-),-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
 
 SELECT * FROM regla_1
