@@ -390,6 +390,3 @@ SELECT * FROM regla_9
 UNION ALL
 SELECT * FROM regla_10
 )
-
-El código arroja un error por ser demasiado grande para correrlo, por ende, Chat CPT recomienda ejecutarlo en una tabla especifica, entiendo debemos crearla en nuestras carpetas de CGP base de usuarios, asociandolo al Factor PN de Seguros Bolivar
-Pordría ser entonces el CREATE OR REPLACE TABLE `Seguros_Bolivar.segmentacion_clientes_PN` AS, al incio del código o como tal la tabla en la cual referenciaremos este resultado.
