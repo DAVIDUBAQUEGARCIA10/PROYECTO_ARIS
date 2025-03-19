@@ -289,6 +289,87 @@ LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
 )-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
+WITH regla_8 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 6.441 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 8.777 THEN NULL
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '3'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0.980 THEN '5'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0.980 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 6.767 THEN
+                    CASE
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '5'
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '3'
+                    END
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 6.767 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 15 THEN '5'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 15 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 31.818 THEN '4'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 31.818 THEN '7'
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+
+WITH regla_9 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 8.777 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 13.333 THEN NULL
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '2'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2 THEN '2'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 15 THEN
+                    CASE
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '5'
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '2'
+                    END
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 15 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 31.818 THEN '4'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 31.818 THEN '7'
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+
+WITH regla_10 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 13.333 THEN NULL
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '13'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 3.5 THEN
+                    CASE
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '13'
+                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN '13'
+                    END
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 3.5 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 6.767 THEN '13'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 6.767 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 15 THEN '13'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 15 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 31.818 THEN '13'
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 31.818 THEN '7'
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+)-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
+
+
 SELECT * FROM regla_1
 UNION ALL
 SELECT * FROM regla_2
@@ -301,5 +382,11 @@ SELECT * FROM regla_5
 UNION ALL
 SELECT * FROM regla_6
 UNION ALL
-SELECT * FROM regla_7;
+SELECT * FROM regla_7
+UNION ALL
+SELECT * FROM regla_8
+UNION ALL
+SELECT * FROM regla_9
+UNION ALL
+SELECT * FROM regla_10;
 
