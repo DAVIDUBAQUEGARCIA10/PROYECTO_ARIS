@@ -39,7 +39,7 @@ Segmento Moda 1: Clientes que en la columna formula o razon de division de (VALO
         Segmento 3: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
         Segmento 3: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 423406 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
 
-Regla 3
+Regla 4
 
 Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 2.053 y <= 2.833 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 6 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
@@ -51,7 +51,7 @@ Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALO
             Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <=0.980
             Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) >0.980
 
-Regla 4
+Regla 5
 
 Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 2.833 y <= 3.750 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 1: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 6 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
@@ -62,7 +62,7 @@ Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALO
         Segmento 5: Clientes que de acuerdo con (VARIABLE: Nivel_de_riesgo de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo cruzando el campo C__digo) sea igual a "Alto" cruzando el campo CODIGO_CIIU tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
         Segmento 3: Clientes que de acuerdo con (VARIABLE: Nivel_de_riesgo de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo cruzando el campo C__digo) sea igual a "Bajo","Medio" cruzando el campo CODIGO_CIIU tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
 
-Regla 5
+Regla 6
 
 Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 3.750 y <= 4.969 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <=0.980
@@ -75,7 +75,7 @@ Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALO
     Segmento 4: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 15.000 y <= 31.818
     Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 31.818
 
-Regla 6
+Regla 7
 
 Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 4.969 y <= 6.441 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
@@ -87,7 +87,7 @@ Segmento Moda 3: Clientes que en la columna formula o razon de division de (VALO
     Segmento 4: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 15.000 y <= 31.818
     Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 31.818
 
-Regla 7
+Regla 8
 
 Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 6.441 y <= 8.777 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
@@ -99,7 +99,7 @@ Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALO
     Segmento 4: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 15.000 y <=31.818
     Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 31.818
 
-Regla 8
+Regla 9
 
 Segmento Moda 2: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 8.777 y <= 13.333 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 2: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <=0
@@ -110,7 +110,7 @@ Segmento Moda 2: Clientes que en la columna formula o razon de division de (VALO
     Segmento 4: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 15.000 y <= 31.818
     Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 31.818
 
-Regla 9
+Regla 10
 
 Segmento 13: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 13.333 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 13: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
