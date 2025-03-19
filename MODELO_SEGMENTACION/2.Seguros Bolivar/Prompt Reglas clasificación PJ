@@ -1,5 +1,7 @@
 Reglas a parametrizar
 
+Regla 1
+
 Segmento Moda 11: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
     Segmento 1: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) <= 0.013 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
     Segmento 11: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 0.013 y <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
@@ -9,6 +11,9 @@ Segmento Moda 11: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla 
         Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) > 4.023
     Segmento 11: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 1.545 y <= 2.000 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
     Segmento 9: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 2.000 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
+
+Regla 2
+
 Segmento Moda 10: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) <= 0.013 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
     Segmento Moda 10: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 0.013 y <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
@@ -33,6 +38,9 @@ Segmento Moda 10: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla 
     Segmento Moda 8: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 2.000 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos)
         Segmento 2: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 12 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
         Segmento 8: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 12 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+Regla 3
+
 Segmento Moda 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
     Segmento 3: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) <= 0
     Segmento Moda 12: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos) > 0 y <= 1.682
