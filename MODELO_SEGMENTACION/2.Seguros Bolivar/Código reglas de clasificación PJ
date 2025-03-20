@@ -15,7 +15,6 @@ transacciones_valor AS (
             CODIGO_COMPANIA, 
             FECHA_RECAUDO AS FECHA_TRANSACCION
         FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
         GROUP BY 
             CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
             CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING),
@@ -29,7 +28,6 @@ transacciones_valor AS (
             CODIGO_COMPANIA, 
             FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
         FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
-        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
         GROUP BY 
             CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
             CAST(KEY_ID_TOMADOR AS STRING),
@@ -59,7 +57,6 @@ transacciones_cantidad AS (
             CODIGO_COMPANIA, 
             FECHA_RECAUDO AS FECHA_TRANSACCION
         FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
         UNION ALL
         SELECT DISTINCT
             CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
@@ -68,12 +65,10 @@ transacciones_cantidad AS (
             CODIGO_COMPANIA, 
             FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
         FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
-        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
     ) AS f
     ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
     AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
     WHERE f.CODIGO_COMPANIA = 2
-      AND TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
       AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
     GROUP BY 
         f.TIPO_DOCUMENTO_TOMADOR, 
@@ -108,5 +103,108 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-WHERE c.TIPO_DOCUMENTO IN ('NT','NE')
-),-------------- Resultado calcula sobre 272 Algo esta quedando mal
+),-------------- Resultado calcula sobre 18.664.818 de datos
+
+regla_2 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
+                CASE
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0.013 THEN '5'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0.013 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN
+                        CASE
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.059 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.059 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6'
+                            ELSE NULL
+                        END
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.070 THEN
+                        CASE
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
+                            ELSE '6'
+                        END
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.070 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.325 THEN
+                        CASE
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.943 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.943 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '6'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '7'
+                            ELSE NULL
+                        END
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.325 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.545 THEN
+                        CASE
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.469 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.469 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6'
+                            ELSE NULL
+                        END
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.545 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2 THEN
+                        CASE
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '2'
+                            ELSE '7'
+                        END
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2 THEN
+                        CASE
+                            WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 12 THEN '2'
+                            ELSE '8'
+                        END
+                    ELSE NULL
+                END
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+),-------------------Resultado calcula sobre 18.664.818 de datos
+
+regla_3 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
+                CASE
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '3'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.682 THEN
+                        CASE
+                            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN '12'
+                            ELSE '12'
+                        END
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.682 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '12'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.88 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '12'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '4'
+                    ELSE NULL
+                END
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+)-------------------Resultado calcula sobre 18.664.818 de datos
+
+SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID, segmento
+FROM (
+SELECT * FROM regla_1
+UNION ALL
+SELECT * FROM regla_2
+UNION ALL
+SELECT * FROM regla_3
+)AS reglas 
+WHERE TIPO_DOCUMENTO NOT IN ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
+
+-----------------------------------Hasta aca va el código--------------------------------------
+
+SELECT segmento, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ`
+GROUP BY segmento
+ORDER BY total_clientes DESC;
