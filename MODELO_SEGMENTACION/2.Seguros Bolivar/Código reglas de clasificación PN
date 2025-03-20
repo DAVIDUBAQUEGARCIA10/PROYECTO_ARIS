@@ -369,7 +369,8 @@ LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
 )-------------- Resultado calcula sobre el siguiente número de valores 18.662.492 (Evaluar resultado una vez se apliquen todas las reglas.
 
-
+SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID, segmento
+FROM (
 SELECT * FROM regla_1
 UNION ALL
 SELECT * FROM regla_2
@@ -389,4 +390,12 @@ UNION ALL
 SELECT * FROM regla_9
 UNION ALL
 SELECT * FROM regla_10
-)
+)AS reglas 
+WHERE TIPO_DOCUMENTO in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
+
+---------------------------------------- Hasta aca va el código------------------------------------
+
+SELECT segmento, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPN`
+GROUP BY segmento
+ORDER BY total_clientes DESC;
