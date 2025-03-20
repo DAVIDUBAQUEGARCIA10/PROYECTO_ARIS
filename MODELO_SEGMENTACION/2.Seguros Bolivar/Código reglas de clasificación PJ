@@ -1,0 +1,112 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ` AS 
+
+(WITH 
+transacciones_valor AS (
+    SELECT  DISTINCT
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR, 
+        SUM(f.VALOR_TRANSACCION) AS total_transacciones
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` as t
+    JOIN (
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+            SUM(VALOR_RECAUDO_TOTAL_MES) AS VALOR_TRANSACCION, 
+            CODIGO_COMPANIA, 
+            FECHA_RECAUDO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
+        GROUP BY 
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING),
+            CODIGO_COMPANIA,
+            FECHA_RECAUDO
+        UNION ALL
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR, 
+            SUM(CAST(LIQUIDADO_BOLIVAR AS int64)) AS VALOR_TRANSACCION,
+            CODIGO_COMPANIA, 
+            FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
+        GROUP BY 
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+            CAST(KEY_ID_TOMADOR AS STRING),
+            CODIGO_COMPANIA,
+            FECHA_ORDEN_PAGO
+    ) AS f
+    ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+    AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+    WHERE f.CODIGO_COMPANIA = 2
+      AND TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')      
+      AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
+    GROUP BY 
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR
+),
+transacciones_cantidad AS (
+    SELECT DISTINCT
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR, 
+        COUNT(f.VALOR_TRANSACCION) AS cantidad_transacciones
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` as t
+    JOIN (
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+            VALOR_RECAUDO_TOTAL_MES AS VALOR_TRANSACCION, 
+            CODIGO_COMPANIA, 
+            FECHA_RECAUDO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
+        UNION ALL
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR, 
+            CAST(LIQUIDADO_BOLIVAR AS int64) AS VALOR_TRANSACCION,
+            CODIGO_COMPANIA, 
+            FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+        WHERE TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
+    ) AS f
+    ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+    AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+    WHERE f.CODIGO_COMPANIA = 2
+      AND TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')
+      AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
+    GROUP BY 
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR
+), 
+
+regla_1 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
+                CASE
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0.013 THEN '1'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0.013 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN '11'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.070 THEN '11'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.070 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.545 THEN
+                      CASE
+                        WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '11'
+                        ELSE '7'
+                      END       
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.545 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2 THEN '11'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2 THEN '9'
+                    ELSE NULL
+                END
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+WHERE c.TIPO_DOCUMENTO IN ('NT','NE')
+),-------------- Resultado calcula sobre 272 Algo esta quedando mal
