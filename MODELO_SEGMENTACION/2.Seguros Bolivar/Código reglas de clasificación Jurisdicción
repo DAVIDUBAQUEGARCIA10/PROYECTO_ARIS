@@ -76,6 +76,12 @@ transacciones_cantidad AS (
         f.NUMERO_DOCUMENTO_TOMADOR
 ), 
 
+clientes_union AS (
+    SELECT TIPO_DOCUMENTO, KEY_ID, CODIGO_CODAZZI_DIRECCION_1 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    UNION ALL
+    SELECT TIPO_DOCUMENTO, KEY_ID, CODIGO_CODAZZI_DIRECCION_1 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+),
+
 regla_1 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
@@ -85,7 +91,7 @@ regla_1 AS(
             WHEN COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') = 'Alto' THEN '4'
             ELSE 'No Segmentado'
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM clientes_union c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -130,7 +136,7 @@ regla_2 AS(
                 ELSE 'No Segmentado'
               END
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM clientes_union c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -153,7 +159,7 @@ regla_3 AS(
                 ELSE '5'
               END
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM clientes_union c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
