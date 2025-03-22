@@ -175,3 +175,7 @@ SELECT * FROM regla_3
 
 ------------------------- Creación de la tabla con asignación de los segmentos --------------------------
 
+SELECT segmento, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion`
+GROUP BY segmento
+ORDER BY total_clientes DESC;
