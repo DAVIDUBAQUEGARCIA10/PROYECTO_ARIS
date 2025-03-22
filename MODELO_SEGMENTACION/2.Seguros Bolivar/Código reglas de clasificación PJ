@@ -37,7 +37,7 @@ transacciones_valor AS (
     ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
     AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
     WHERE f.CODIGO_COMPANIA = 2
-      AND TIPO_DOCUMENTO_TOMADOR IN ('NT','NE')      
+      AND TIPO_DOCUMENTO_TOMADOR IN ('NT','NE','CR')      
       AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
     GROUP BY 
         f.TIPO_DOCUMENTO_TOMADOR, 
@@ -96,7 +96,7 @@ regla_1 AS(
                 END
             ELSE 'No Segmentado'
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -154,7 +154,7 @@ regla_2 AS(
                 END
             ELSE 'No Segmentado'
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -183,7 +183,7 @@ regla_3 AS(
                 END
             ELSE 'No Segmentado'
         END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -200,7 +200,7 @@ SELECT * FROM regla_2
 UNION ALL
 SELECT * FROM regla_3
 )AS reglas 
-WHERE TIPO_DOCUMENTO NOT IN ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
+WHERE TIPO_DOCUMENTO IN ('NT','NE','CR'))
 
 -----------------------------------Hasta aca va el código--------------------------------------
 
