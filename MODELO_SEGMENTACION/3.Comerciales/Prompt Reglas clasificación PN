@@ -1,5 +1,7 @@
 Reglas para cada segmento
 
+Regla 1
+
 Segmento Moda 10: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) <= 0 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento Moda 5: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
         Segmento Moda 5: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a Ama de casa, asalariado, estudiante, pensionado
@@ -12,7 +14,10 @@ Segmento Moda 10: Clientes que en la columna formula o razon de division de (VAL
             Segmento Moda 10: Clientes de compañía 3 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 1223654 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
                 Segmento 10: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
                 Segmento 10: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
-Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 0 y <=1429 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+
+Regla 2
+
+Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 0 y <=1.429 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 4: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a Ama de casa, estudiante, pensionado
     Segmento Moda 7: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a asalariado
         Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
@@ -21,7 +26,10 @@ Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALO
     Segmento Moda 2: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a No aplica
         Segmento 3: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio y Riesgo Alto
         Segmento 2: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
-Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 1429 y <= 1833 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+
+Regla 3
+
+Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 1.429 y <= 1.833 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento Moda 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
         Segmento 7: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ASALARIADO" "ESTUDIANTE" "PENSIONADO
         Segmento 2: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "NO APLICA"
@@ -32,4 +40,32 @@ Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALO
         Segmento 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
         Segmento 7: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
     Segmento 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+Regla 4
+
+Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 1.833 y <= 2.25 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+    Segmento Moda 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+        Segmento 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
+        Segmento 7: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+    Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1 y <= 2 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 2 y <= 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento Moda 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+        Segmento 5: Clientes de compañía 3 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= 314368 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+        Segmento 5: Clientes de compañía 3 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 314368 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+Regla 5
+
+Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 2.25 y <= 3 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+    Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1 y <= 2 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 2 y <= 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento Moda 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 y <= 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+        Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 1,333
+        Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 1,333
+    Segmento 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+Regla 6
+
+
+
 
