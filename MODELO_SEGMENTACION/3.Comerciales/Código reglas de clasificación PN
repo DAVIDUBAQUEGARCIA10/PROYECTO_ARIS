@@ -1,0 +1,191 @@
+Agrupación de bases cantidades y transaccional
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SCB_ClientesPN` AS 
+
+(WITH 
+transacciones_valor AS (
+    SELECT  DISTINCT
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR, 
+        SUM(f.VALOR_TRANSACCION) AS total_transacciones
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` as t
+    JOIN (
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+            SUM(VALOR_RECAUDO_TOTAL_MES) AS VALOR_TRANSACCION, 
+            CODIGO_COMPANIA, 
+            FECHA_RECAUDO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        GROUP BY 
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING),
+            CODIGO_COMPANIA,
+            FECHA_RECAUDO
+        UNION ALL
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR, 
+            SUM(CAST(LIQUIDADO_BOLIVAR AS int64)) AS VALOR_TRANSACCION,
+            CODIGO_COMPANIA, 
+            FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+        GROUP BY 
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING), 
+            CAST(KEY_ID_TOMADOR AS STRING),
+            CODIGO_COMPANIA,
+            FECHA_ORDEN_PAGO
+    ) AS f
+    ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+    AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+    WHERE f.CODIGO_COMPANIA = 3
+      AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
+    GROUP BY 
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR
+),
+transacciones_cantidad AS (
+    SELECT DISTINCT
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR, 
+        COUNT(f.VALOR_TRANSACCION) AS cantidad_transacciones
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` as t
+    JOIN (
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(NUMERO_DOCUMENTO_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+            VALOR_RECAUDO_TOTAL_MES AS VALOR_TRANSACCION, 
+            CODIGO_COMPANIA, 
+            FECHA_RECAUDO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        UNION ALL
+        SELECT DISTINCT
+            CAST(TIPO_DOCUMENTO_TOMADOR AS STRING) AS TIPO_DOCUMENTO_TOMADOR, 
+            CAST(KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR, 
+            CAST(LIQUIDADO_BOLIVAR AS int64) AS VALOR_TRANSACCION,
+            CODIGO_COMPANIA, 
+            FECHA_ORDEN_PAGO AS FECHA_TRANSACCION
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    ) AS f
+    ON f.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO
+    AND f.NUMERO_DOCUMENTO_TOMADOR = t.KEY_ID
+    WHERE f.CODIGO_COMPANIA = 3
+      AND EXTRACT(YEAR FROM f.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
+    GROUP BY 
+        f.TIPO_DOCUMENTO_TOMADOR, 
+        f.NUMERO_DOCUMENTO_TOMADOR
+), 
+
+regla_1 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0 THEN
+              CASE
+                WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN
+                  CASE
+                    WHEN c.COD_OCUPACION IS NULL or c.COD_OCUPACION IN (4,1,2,3) THEN      
+                      CASE
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 8 THEN '7'
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 8 THEN '5'
+                      END 
+                    WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN '2'
+                  END
+                WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN
+                  CASE
+                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 120132 THEN '10'
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 120132 AND COALESCE(t_valor.total_transacciones, 0) <= 1223654 THEN '10'
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 1223654 THEN
+                      CASE
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1 THEN '10'
+                        WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1 THEN '10'
+                      END
+                    ELSE NULL
+                  END
+                ELSE NULL
+              END
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+),---------------- Resultado calcula sobre el siguiente número de valores 18.135.107-----
+
+regla_2 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.429 THEN
+              CASE
+                WHEN c.COD_OCUPACION IS NULL or c.COD_OCUPACION IN (4,2,3) THEN '4'
+                WHEN c.COD_OCUPACION IS NULL or c.COD_OCUPACION IN (1) THEN
+                  CASE
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1 THEN '7'
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 8 THEN '7'
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 8 THEN '5'
+                  END
+                WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN
+                  CASE
+                    WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '3'  
+                    WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '2'
+                  END      
+                ELSE NULL
+              END       
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+),
+
+regla_3 AS(
+    SELECT 
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID,
+        CASE
+            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.429 THEN
+              CASE
+                WHEN c.COD_OCUPACION IS NULL or c.COD_OCUPACION IN (4,2,3) THEN '4'
+                WHEN c.COD_OCUPACION IS NULL or c.COD_OCUPACION IN (1) THEN
+                  CASE
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1 THEN '7'
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 8 THEN '7'
+                    WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 8 THEN '5'
+                  END
+                WHEN c.COD_OCUPACION IS NULL OR c.COD_OCUPACION NOT IN (4,1,2,3) THEN
+                  CASE
+                    WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '3'  
+                    WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '2'
+                  END      
+                ELSE NULL
+              END       
+            ELSE 'No Segmentado'
+        END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+    ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN transacciones_valor t_valor
+    ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN transacciones_cantidad t_cantidad
+    ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
+)
+
+SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID, segmento
+FROM (
+SELECT * FROM regla_1
+UNION ALL
+SELECT * FROM regla_2
+UNION ALL
+
+)AS reglas 
+WHERE TIPO_DOCUMENTO in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
