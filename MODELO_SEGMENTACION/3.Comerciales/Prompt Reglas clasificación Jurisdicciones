@@ -1,0 +1,33 @@
+Reglas a parametrizar
+
+Regla 1
+
+Segmento 2: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto 
+
+Regla 2
+
+Segmento Moda 10: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+  Segmento Moda 10: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 90 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 10: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 10: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 1 y <= 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 11: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+  Segmento Moda 10: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 90 y <= 150 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 10: Clientes de compañía 3 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= 26151699 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 13: Clientes de compañía 3 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 26151699 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento Moda 13: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 150 y <= 364 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 13: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) <= 0 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 13: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 0 y <= 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 11: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+  Segmento Moda 15: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 364 y <= 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 13: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) <= 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 15: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 4 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+  Segmento Moda 9: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 9: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) <= 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+    Segmento 1: Clientes de compañía 3 que tengan sumatoria de pagos (Variable = PagosSiniestro) > 11 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+
+Regla 3
+
+Segmento Moda 3: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+  Segmento 3: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento 3: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
