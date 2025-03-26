@@ -29,5 +29,5 @@ Regla 3
 
 Segmento Moda 3: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
   Segmento 3: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
-  Segmento 3: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento 3: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1670 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
 
