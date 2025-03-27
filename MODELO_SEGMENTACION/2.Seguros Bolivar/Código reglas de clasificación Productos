@@ -57,7 +57,8 @@ polizas_riesgo AS (
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
     LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo` r
         ON p.CODIGO_PRODUCTO = r.C__digo_de_Producto
-    WHERE DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    WHERE p.CODIGO_COMPANIA = 2    
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
 ),
 
 producto_riesgo_max AS (
