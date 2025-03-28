@@ -208,7 +208,7 @@ ON
 WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date() 
 AND TIPO_DOCUMENTO IN ('NT','NE','CR'))
 
------------------------------------Hasta aca va el código--------------------------------------
+-----------------------------------Código para asignar segmentos por reglas
 
 SELECT segmento, COUNT(*) AS total_clientes
 FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ`
@@ -241,7 +241,7 @@ SELECT *
 FROM ordenado
 WHERE fila = 1;
 
----------------------------
+--------------------------- Código para asignar segmento definitivo con base en arbol de decisión
 
 SELECT SEGMENTO_1, COUNT(*) AS total_clientes
 FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ_full`
