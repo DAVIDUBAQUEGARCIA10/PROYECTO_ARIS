@@ -88,7 +88,7 @@ regla_1 AS(
         c.KEY_ID,
         COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
         CASE
-            WHEN COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') = 'Alto' THEN '4'
+            WHEN COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') = 'Alto' THEN '4 - 1.1'
             ELSE 'No Segmentado'
         END AS segmento
 FROM clientes_union c
@@ -112,27 +112,27 @@ regla_2 AS(
               CASE
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 110 THEN
                   CASE
-                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 4530530 THEN '11'
-                    ELSE '11' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 4530530 THEN '11 - 2.1'
+                    ELSE '11 - 2.2' 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 110 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 187 THEN
                   CASE
-                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 7387106 THEN '11'
-                    WHEN COALESCE(t_valor.total_transacciones, 0) > 7387106 THEN '11'
-                    WHEN COALESCE(t_valor.total_transacciones, 0) > 14700383 THEN '8'
+                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 7387106 THEN '11 - 2.3'
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 7387106 THEN '11 - 2.4'
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 14700383 THEN '8 - 2.5'
                     ELSE NULL 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 187 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 426 THEN
                   CASE
-                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8'
-                    ELSE '8' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8 - 2.6'
+                    ELSE '8 - 2.7' 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 426 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1859 THEN
                   CASE
-                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8'
-                    ELSE '15' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8 - 2.8'
+                    ELSE '15 - 2.9' 
                   END
-                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1859 THEN '13'
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1859 THEN '13 - 2.10'
                 ELSE 'No Segmentado'
               END
         END AS segmento
@@ -155,8 +155,8 @@ regla_3 AS(
         CASE
             WHEN COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') = 'Medio' THEN 
               CASE
-                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 0 THEN '5'
-                ELSE '5'
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 0 THEN '5 - 3.1'
+                ELSE '5 - 3.2'
               END
         END AS segmento
 FROM clientes_union c
@@ -177,11 +177,51 @@ UNION ALL
 SELECT * FROM regla_2
 UNION ALL
 SELECT * FROM regla_3
-)AS reglas) 
+)AS reglas
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` pol
+ON 
+    reglas.TIPO_DOCUMENTO = pol.TIPO_DOCUMENTO_TOMADOR
+    AND reglas.KEY_ID = pol.KEY_ID_TOMADOR
+WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date()) 
 
-------------------------- Creación de la tabla con asignación de los segmentos --------------------------
+------------------------- Código para asignar segmentos por reglas
 
 SELECT segmento, COUNT(*) AS total_clientes
 FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion`
 GROUP BY segmento
 ORDER BY total_clientes DESC;
+
+-----------------------------------------
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion_full` AS 
+
+WITH datos AS (
+    SELECT 
+        *,  
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 'No Segmentado'
+            ELSE SPLIT(segmento, ' - ')[SAFE_OFFSET(0)]
+        END AS SEGMENTO_1,
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 100
+            ELSE CAST(SPLIT(segmento, ' - ')[SAFE_OFFSET(1)] AS FLOAT64)
+        END AS NIVEL_DE_PRIORIDAD
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion`
+),
+ordenado AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY NIVEL_DE_PRIORIDAD ASC) AS fila
+    FROM datos
+)
+SELECT *
+FROM ordenado
+WHERE fila = 1;
+
+-------------------------------- Código para asignar segmento definitivo con base en arbol de decisión
+
+SELECT SEGMENTO_1, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion_full`
+GROUP BY SEGMENTO_1
+ORDER BY total_clientes DESC;
+
