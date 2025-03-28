@@ -87,11 +87,11 @@ regla_1 AS(
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.070 THEN '11'
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.070 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.545 THEN
                       CASE
-                        WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '11'
-                        ELSE '7'
+                        WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '11 - 1.1'
+                        ELSE '7 - 1.2'
                       END       
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.545 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2 THEN '11'
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2 THEN '9'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.545 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2 THEN '11 - 1.3'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2 THEN '9 - 1.4'
                     ELSE NULL
                 END
             ELSE 'No Segmentado'
@@ -103,7 +103,7 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-),-------------- Resultado calcula sobre 18.664.818 de datos
+),
 
 regla_2 AS(
     SELECT 
@@ -112,43 +112,43 @@ regla_2 AS(
         CASE
             WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
                 CASE
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0.013 THEN '5'
+                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0.013 THEN '5 - 2.1'
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0.013 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN
                         CASE
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.059 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.059 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.059 THEN '10 - 2.2'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.059 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10 - 2.3'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6 - 2.4'
                             ELSE NULL
                         END
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.070 THEN
                         CASE
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10 - 2.5'
                             ELSE '6'
                         END
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.070 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.325 THEN
                         CASE
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.943 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.943 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '6'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '7'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.943 THEN '10 - 2.6'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.943 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10 - 2.7'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '6 - 2.8'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '7 - 2.9'
                             ELSE NULL
                         END
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.325 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.545 THEN
                         CASE
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.469 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.469 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10'
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.469 THEN '10 - 2.10'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.469 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.3 THEN '10 - 2.11'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.3 THEN '6 - 2.12'
                             ELSE NULL
                         END
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.545 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2 THEN
                         CASE
-                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '2'
-                            ELSE '7'
+                            WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '2 - 2.13'
+                            ELSE '7 - 2.14'
                         END
                     WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2 THEN
                         CASE
-                            WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 12 THEN '2'
-                            ELSE '8'
+                            WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 12 THEN '2 - 2.15'
+                            ELSE '8 - 2.16'
                         END
                     ELSE NULL
                 END
@@ -161,7 +161,7 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-),-------------------Resultado calcula sobre 18.664.818 de datos
+),
 
 regla_3 AS(
     SELECT 
@@ -170,15 +170,15 @@ regla_3 AS(
         CASE
             WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 2 THEN
                 CASE
-                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '3'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '3 - 3.1'
                     WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.682 THEN
                         CASE
-                            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN '12'
-                            ELSE '12'
+                            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1 THEN '12 - 3.2'
+                            ELSE '12 - 3.3'
                         END
-                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.682 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '12'
-                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.88 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '12'
-                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '4'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.682 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.88 THEN '12 - 3.4'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.88 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 4.023 THEN '12 - 3.5'
+                    WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 4.023 THEN '4 - 3.6'
                     ELSE NULL
                 END
             ELSE 'No Segmentado'
@@ -190,7 +190,7 @@ LEFT JOIN transacciones_valor t_valor
     ON c.TIPO_DOCUMENTO = t_valor.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_valor.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN transacciones_cantidad t_cantidad
     ON c.TIPO_DOCUMENTO = t_cantidad.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = t_cantidad.NUMERO_DOCUMENTO_TOMADOR
-)-------------------Resultado calcula sobre 18.664.818 de datos
+)
 
 SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID, segmento
 FROM (
@@ -200,11 +200,50 @@ SELECT * FROM regla_2
 UNION ALL
 SELECT * FROM regla_3
 )AS reglas 
-WHERE TIPO_DOCUMENTO IN ('NT','NE','CR'))
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` pol
+ON 
+    reglas.TIPO_DOCUMENTO = pol.TIPO_DOCUMENTO_TOMADOR
+    AND reglas.KEY_ID = pol.KEY_ID_TOMADOR
+WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date() 
+AND TIPO_DOCUMENTO IN ('NT','NE','CR'))
 
 -----------------------------------Hasta aca va el código--------------------------------------
 
 SELECT segmento, COUNT(*) AS total_clientes
 FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ`
 GROUP BY segmento
+ORDER BY total_clientes DESC;
+
+-------------------------------
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ_full` AS 
+
+WITH datos AS (
+    SELECT 
+        *,  
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 'No Segmentado'
+            ELSE SPLIT(segmento, ' - ')[SAFE_OFFSET(0)]
+        END AS SEGMENTO_1,
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 100
+            ELSE CAST(SPLIT(segmento, ' - ')[SAFE_OFFSET(1)] AS FLOAT64)
+        END AS NIVEL_DE_PRIORIDAD
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ`
+),
+ordenado AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY NIVEL_DE_PRIORIDAD ASC) AS fila
+    FROM datos
+)
+SELECT *
+FROM ordenado
+WHERE fila = 1;
+
+---------------------------
+
+SELECT SEGMENTO_1, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPJ_full`
+GROUP BY SEGMENTO_1
 ORDER BY total_clientes DESC;
