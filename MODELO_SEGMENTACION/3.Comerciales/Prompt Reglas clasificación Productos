@@ -16,7 +16,7 @@ Segmento Moda 2: Clientes con producto "COD__Producto" de compañía 2 que este 
   Segmento Moda 2: Clientes que este catalogado en el campo SEGURO_OBLIGATORIO_VOLUNTARIO como "Voluntario" haciendo cruce por "COD__Producto" de compañía 3 
     Segmento Moda 2: Clientes que este catalogado en el campo DOMINIO como "Generales" "Otros" haciendo cruce por "COD__Producto" de compañía 3 
       Segmento Moda 2: Clientes que el campo CLASIFICACION_DE_PRODUCTO_EN_MICROSEGURO_MASIVO sea igual a "Otros","Otros Masivos No Microseguro" haciendo cruce por "COD__Producto" de compañía 3
-        Segmento Moda 2: Clientes que el nivel de riesgo del producto sea igual a "Alto","Medio" haciendo cruce por "COD__Producto" de la base sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo
+        Segmento Moda 2: Clientes que el nivel de riesgo del producto sea igual a "Alto","ALTO","Medio" haciendo cruce por "COD__Producto" de la base sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo
           Segmento 2: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 29.356 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
           Segmento 1: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 29.356 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
         Segmento 11: Clientes que el nivel de riesgo del producto sea igual a "Bajo" haciendo cruce por "COD__Producto" de la base sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo
