@@ -1,7 +1,30 @@
-Reglas para cada segmento
+Lógica para tener presente y crear las reglas de clasificación
+
+Base: sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+De esta tabla se tendran en cuenta todos los movimientos, se clasifican de la siguiente forma
+
+Retiros: Corresponde a "pago" Todos aquellos en los que se indique que el campo de CODIGO_TIPO_MOVIMIENTO 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35
+Aportes: Corresponde a "recaudo" Todos aquellos en los que se indique que el campo de CODIGO_TIPO_MOVIMIENTO 144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13
+Sorteos: Corresponde a un "pago sorteo" Todos aquellos en los que se indique que el campo de CODIGO_TIPO_MOVIMIENTO 36
 
 Regla 1
 
-Aportes sb-ecosistemaanalitico-lago.capitalizadora.t_transacciones_enriquecida
-Sorteos sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
-Preguntar a Camilo por cuales son los retiros para poder evaluar en base de datos donde encontrarlo
+Segmento Moda 8: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ESTUDIANTE"
+  Segmento 8: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea <= 1.321 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+  Segmento Moda 8: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea > 1.321 y <= a 1.9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+    Segmento 8: Clientes de compañía 1 que tengan cantidad de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) <= 12 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+    Segmento 4: Clientes de compañía 1 que tengan cantidad de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > 12 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+  Segmento Moda 11: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea > 1.9 y <= a 2.975 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+-------------------------------------------------
+    Segmento Moda 3: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ASALARIADO" "ESTUDIANTE" "PENSIONADO"
+        Segmento 10: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+        Segmento Moda 3: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 9 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+            Segmento 3: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= a 223543 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+            Segmento 3: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > a 223543 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento Moda 12: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a No aplica
+        Segmento 11: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
+        Segmento Moda 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+            Segmento 12: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 10 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+            Segmento 12: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 10 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+
