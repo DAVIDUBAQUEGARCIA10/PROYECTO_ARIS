@@ -232,3 +232,42 @@ ON
 WHERE date(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) 
 AND til.tipo_documento in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
 
+------------------------ Código para asignar segmentos por reglas
+
+SELECT segmento, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN`
+GROUP BY segmento
+ORDER BY total_clientes DESC;
+
+------------------------------
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN_full` AS 
+
+WITH datos AS (
+    SELECT 
+        *,  
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 'No Segmentado'
+            ELSE SPLIT(segmento, ' - ')[SAFE_OFFSET(0)]
+        END AS SEGMENTO_1,
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 100
+            ELSE CAST(SPLIT(segmento, ' - ')[SAFE_OFFSET(1)] AS FLOAT64)
+        END AS NIVEL_DE_PRIORIDAD
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN`
+),
+ordenado AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY NIVEL_DE_PRIORIDAD ASC) AS fila
+    FROM datos
+)
+SELECT *
+FROM ordenado
+WHERE fila = 1;
+
+-------------------------------- Código para asignar segmento definitivo con base en arbol de decisión
+
+SELECT SEGMENTO_1, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN_full`
+GROUP BY SEGMENTO_1
+ORDER BY total_clientes DESC;
