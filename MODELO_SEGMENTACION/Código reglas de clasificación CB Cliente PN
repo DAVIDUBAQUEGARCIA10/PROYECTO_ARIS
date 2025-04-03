@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Jurisdiccion` AS 
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN` AS 
 
 (WITH 
 movimientos AS (
@@ -165,14 +165,63 @@ LEFT JOIN movimientos m
   ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
   ON c.CODIGO_CIIU = ar.C__digo
+),
+
+regla_4 AS(
+  SELECT 
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    COALESCE(ar.Nivel_de_riesgo, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
+      CASE
+        WHEN c.COD_OCUPACION NOT IN (3) THEN
+          CASE
+            WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
+              CASE
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN 
+                  CASE 
+                    WHEN COALESCE(m.cantidad_retiros, 0) <= 30 THEN '4 - 4.1'
+                    WHEN COALESCE(m.cantidad_retiros, 0) > 30 THEN '4 - 4.2'
+                  END
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 13.333 THEN 
+                    CASE
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN '6 - 4.3'
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO','BAJO') THEN
+                            CASE
+                                WHEN COALESCE(m.total_aportes, 0) <= 3567369 THEN '4 - 4.4'
+                                WHEN COALESCE(m.total_aportes, 0) > 3567369 AND COALESCE(m.total_aportes, 0) <= 7211964 THEN '4 - 4.5'
+                                WHEN COALESCE(m.total_aportes, 0) > 7211964 THEN '4 - 4.6'
+                            END      
+                    END
+                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 13.333 THEN '2 - 4.7'
+              END
+            WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 4.8'
+          END
+        ELSE 'No Segmentado'
+      END AS segmento
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+  ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN movimientos m
+  ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
+  ON c.CODIGO_CIIU = ar.C__digo
 )
 
-SELECT DISTINCT TIPO_DOCUMENTO, KEY_ID, segmento
+SELECT DISTINCT reglas.TIPO_DOCUMENTO, reglas.KEY_ID, reglas.segmento
 FROM (
-SELECT * FROM regla_1
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_1
 UNION ALL
-SELECT * FROM regla_2
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_2
 UNION ALL
-SELECT * FROM regla_3
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_3
 UNION ALL
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_4
+) AS reglas
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` til
+ON 
+    LOWER(reglas.TIPO_DOCUMENTO) = LOWER(til.tipo_documento)
+    AND reglas.KEY_ID = til.key_id
+WHERE date(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) 
+AND til.tipo_documento in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
 
