@@ -20,6 +20,13 @@ movimientos AS (
     GROUP BY 1, 2, 3, 4
 ),
 
+Ingresos_Activos AS (
+    SELECT *,
+        NULLIF(VALOR_INGRESOS, 0) / NULLIF(VALOR_EGRESOS, 0) AS ratio_ingresos_egresos,
+        NULLIF(VALOR_ACTIVO, 0) / NULLIF(VALOR_PASIVO, 0) AS ratio_activo_pasivo
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+),
+
 regla_1 AS(
   SELECT 
     c.TIPO_DOCUMENTO,
@@ -28,22 +35,22 @@ regla_1 AS(
       CASE
         WHEN c.COD_OCUPACION IN (4,2) THEN
           CASE
-            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.321 THEN '8 - 1.1'
-            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.321 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.9 THEN
+            WHEN c.ratio_ingresos_egresos <= 1.321 THEN '8 - 1.1'
+            WHEN c.ratio_ingresos_egresos > 1.321 AND c.ratio_ingresos_egresos <= 1.9 THEN
               CASE
                 WHEN COALESCE(m.cantidad_retiros, 0) <= 12 THEN '8 - 1.2'
                 WHEN COALESCE(m.cantidad_retiros, 0) > 12 THEN '4 - 1.3'
               END
-            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.9 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.975 THEN
+            WHEN c.ratio_ingresos_egresos > 1.9 AND c.ratio_ingresos_egresos <= 2.975 THEN
               CASE
                 WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO','BAJO') THEN '6 - 1.4'
                 WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '11 - 1.5'
               END
-            WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.975 THEN '1 - 1.6'
+            WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 1.6'
           END
         ELSE 'No Segmentado'
       END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM Ingresos_Activos c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
   ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN movimientos m
@@ -62,9 +69,9 @@ regla_2 AS(
           CASE
             WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
               CASE
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN 
+                WHEN ratio_activo_pasivo <= 0 THEN 
                   CASE 
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.975 THEN
+                    WHEN c.ratio_ingresos_egresos <= 2.975 THEN
                       CASE
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN '6 - 2.1'
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','MEDIO') THEN
@@ -73,11 +80,11 @@ regla_2 AS(
                             WHEN COALESCE(m.total_aportes, 0) > 7211964 THEN '7 - 2.3'
                           END  
                       END
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.975 THEN '1 - 2.4'
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 2.4'
                   END
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 7.5 THEN
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 7.5 THEN
                   CASE
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.389 THEN
+                    WHEN c.ratio_ingresos_egresos <= 2.389 THEN
                       CASE
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN
                           CASE
@@ -91,21 +98,21 @@ regla_2 AS(
                             WHEN COALESCE(m.total_aportes, 0) > 3567369 THEN '8 - 2.9'
                           END
                       END
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.389 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.975 THEN '8 - 2.10'
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.975 THEN '1 - 2.11'
+                    WHEN c.ratio_ingresos_egresos > 2.389 AND c.ratio_ingresos_egresos <= 2.975 THEN '8 - 2.10'
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 2.11'
                   END
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 7.5 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 13.333 THEN
+                WHEN ratio_activo_pasivo > 7.5 AND ratio_activo_pasivo <= 13.333 THEN
                   CASE
                     WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','ALTO') THEN '6 - 2.12'
                     WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '8 - 2.13'
                   END                          
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 13.333 THEN '2 - 2.14'
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 2.14'
               END
             WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 2.15'          
           END
         ELSE 'No Segmentado'
       END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM Ingresos_Activos c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
   ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN movimientos m
@@ -124,27 +131,27 @@ regla_3 AS(
           CASE
             WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
               CASE
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN 
+                WHEN ratio_activo_pasivo <= 0 THEN 
                   CASE 
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.975 THEN
+                    WHEN c.ratio_ingresos_egresos <= 2.975 THEN
                       CASE
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO','BAJO') THEN '11 - 3.1'
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '11 - 3.2'
                       END
-                    WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.975 THEN '1 - 3.3'
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 3.3'
                   END  
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 13.333 THEN
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 13.333 THEN
                     CASE
                         WHEN COALESCE(m.cantidad_retiros, 0) <= 8 THEN '11 - 3.4'
                         WHEN COALESCE(m.cantidad_retiros, 0) > 8 AND COALESCE(m.cantidad_retiros, 0) <= 23 THEN
                             CASE
                                 WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN
                                     CASE
-                                        WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 3.273 THEN '11 - 3.5'
-                                        WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 3.273 THEN
+                                        WHEN ratio_activo_pasivo <= 3.273 THEN '11 - 3.5'
+                                        WHEN ratio_activo_pasivo > 3.273 THEN
                                             CASE
-                                                WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.68 THEN '6 - 3.6'
-                                                WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.68 THEN '11 - 3.7'
+                                                WHEN c.ratio_ingresos_egresos <= 1.68 THEN '6 - 3.6'
+                                                WHEN c.ratio_ingresos_egresos > 1.68 THEN '11 - 3.7'
                                             END
                                     END
                                 WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','MEDIO') THEN '11 - 3.8'
@@ -152,13 +159,13 @@ regla_3 AS(
                         WHEN COALESCE(m.cantidad_retiros, 0) > 23 AND COALESCE(m.cantidad_retiros, 0) <= 30 THEN '6 - 3.9'
                         WHEN COALESCE(m.cantidad_retiros, 0) > 30 THEN '7 - 3.10'
                     END                           
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 13.333 THEN '2 - 3.11'
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 3.11'
               END
             WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 3.12'
           END
         ELSE 'No Segmentado'
       END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM Ingresos_Activos c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
   ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN movimientos m
@@ -177,12 +184,12 @@ regla_4 AS(
           CASE
             WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
               CASE
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN 
+                WHEN ratio_activo_pasivo <= 0 THEN 
                   CASE 
                     WHEN COALESCE(m.cantidad_retiros, 0) <= 30 THEN '4 - 4.1'
                     WHEN COALESCE(m.cantidad_retiros, 0) > 30 THEN '4 - 4.2'
                   END
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 13.333 THEN 
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 13.333 THEN 
                     CASE
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN '6 - 4.3'
                         WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO','BAJO') THEN
@@ -192,13 +199,13 @@ regla_4 AS(
                                 WHEN COALESCE(m.total_aportes, 0) > 7211964 THEN '4 - 4.6'
                             END      
                     END
-                WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 13.333 THEN '2 - 4.7'
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 4.7'
               END
             WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 4.8'
           END
         ELSE 'No Segmentado'
       END AS segmento
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+FROM Ingresos_Activos c
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
   ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN movimientos m
