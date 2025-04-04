@@ -1,0 +1,44 @@
+Reglas de clasificación
+
+Regla 1
+
+Segmento Moda 8: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) <= -122629145 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+  Segmento 3: Clientes de compañía 1 que tengan sumatoria de aportes (Variable CODIGO_TIPO_MOVIMIENTO = 144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) <= 849172 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+  Segmento Moda 8: Clientes de compañía 1 que tengan sumatoria de aportes (Variable CODIGO_TIPO_MOVIMIENTO = 144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) > 849172 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+    Segmento 13: Clientes de compañía 1 que tengan cantidad de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) <= 378 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+    Segmento 8: Clientes de compañía 1 que tengan cantidad de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > 378 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+
+Regla 2
+
+Segmento Moda 6: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -122629145 y <= -31499431 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+  Segmento 6: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+  Segmento 14: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+  Segmento 2: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+
+Regla 3
+
+Segmento Moda 12: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -31499431 y <= -9000000 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+  Segmento 9: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+  Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+  Segmento Moda 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+    Segmento 1: Clientes de compañía 1 que tengan sumatoria de sorteos (Variable CODIGO_TIPO_MOVIMIENTO = 36) <= 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+    Segmento 4: Clientes de compañía 1 que tengan sumatoria de sorteos (Variable CODIGO_TIPO_MOVIMIENTO = 36) > 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+
+Regla 4
+
+Segmento Moda 11: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -9000000 y <= -4940675 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+  Segmento Moda 11: Clientes de compañía 1 que tengan sumatoria de aportes (Variable CODIGO_TIPO_MOVIMIENTO = 144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) <= 8394628 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+    Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+    Segmento 11: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+  Segmento 1: Clientes de compañía 1 que tengan sumatoria de aportes (Variable CODIGO_TIPO_MOVIMIENTO = 144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) > 8394628 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+
+Regla 5
+
+Segmento Moda 12: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -4940675 y <= 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+  Segmento 9: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+  Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo
+  Segmento 14: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+
+Regla 6
+
+Segmento 10: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
