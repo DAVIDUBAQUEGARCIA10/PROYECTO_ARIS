@@ -225,7 +225,7 @@ UNION ALL
 SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_4
 ) AS reglas
 INNER JOIN 
-    `sb-ecosistemaanalitico-lago.capitalizadora_full.t_clientes_capitalizadora` til
+    `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` til
 ON 
     LOWER(reglas.TIPO_DOCUMENTO) = LOWER(til.tipo_documento)
     AND reglas.KEY_ID = til.key_id
