@@ -234,7 +234,7 @@ ORDER BY total_clientes DESC;
 
 -----------------------------------------
 
-CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Productos` AS 
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Productos_full` AS 
 
 WITH datos AS (
     SELECT 
@@ -261,7 +261,7 @@ WHERE fila = 1;
 -------------------------------- Código para asignar segmento definitivo con base en arbol de decisión
 
 SELECT SEGMENTO_1, COUNT(*) AS total_clientes
-FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_ClientesPN_full`
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_SB_Productos_full`
 GROUP BY SEGMENTO_1
 ORDER BY total_clientes DESC;
 
