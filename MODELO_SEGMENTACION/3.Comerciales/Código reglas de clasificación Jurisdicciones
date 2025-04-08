@@ -204,7 +204,8 @@ INNER JOIN
 ON 
     reglas.TIPO_DOCUMENTO = pol.TIPO_DOCUMENTO_TOMADOR
     AND reglas.KEY_ID = pol.KEY_ID_TOMADOR
-WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date()) 
+WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date()
+AND CODIGO_COMPANIA = 3) 
 
 ----------------------------- Código para asignar segmentos por reglas
 
