@@ -209,7 +209,8 @@ ON
     reglas.TIPO_DOCUMENTO = pol.TIPO_DOCUMENTO_TOMADOR
     AND reglas.KEY_ID = pol.KEY_ID_TOMADOR
 WHERE date(pol.FECHA_FIN_POLIZA) >= current_Date() 
-AND TIPO_DOCUMENTO NOT in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
+AND TIPO_DOCUMENTO NOT in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD')
+AND CODIGO_COMPANIA = 3)
 
 ---------------------------------------- Código para asignar segmentos por reglas
 
