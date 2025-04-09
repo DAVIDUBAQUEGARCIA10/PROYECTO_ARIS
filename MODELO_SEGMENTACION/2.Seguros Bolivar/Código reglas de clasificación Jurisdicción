@@ -113,7 +113,7 @@ regla_2 AS(
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 110 THEN
                   CASE
                     WHEN COALESCE(t_valor.total_transacciones, 0) <= 4530530 THEN '11 - 2.1'
-                    ELSE '11 - 2.2' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 4530530 THEN '11 - 2.2' 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 110 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 187 THEN
                   CASE
@@ -125,12 +125,12 @@ regla_2 AS(
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 187 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 426 THEN
                   CASE
                     WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8 - 2.6'
-                    ELSE '8 - 2.7' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 30438032 THEN '8 - 2.7' 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 426 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1859 THEN
                   CASE
                     WHEN COALESCE(t_valor.total_transacciones, 0) <= 30438032 THEN '8 - 2.8'
-                    ELSE '15 - 2.9' 
+                    WHEN COALESCE(t_valor.total_transacciones, 0) > 30438032 THEN '15 - 2.9' 
                   END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1859 THEN '13 - 2.10'
                 ELSE 'No Segmentado'
@@ -156,7 +156,7 @@ regla_3 AS(
             WHEN COALESCE(jr.NIVEL_DE_RIESGO_ASIGNADO, 'Bajo') = 'Medio' THEN 
               CASE
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 0 THEN '5 - 3.1'
-                ELSE '5 - 3.2'
+                WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 0 THEN '5 - 3.2'
               END
         END AS segmento
 FROM clientes_union c
