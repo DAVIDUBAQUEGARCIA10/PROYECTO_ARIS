@@ -1,0 +1,32 @@
+Reglas por segmento
+
+Regla 1
+
+Segmento Moda 0: Clientes de compañía 2 que tengan sumatoria de pagos (Variable = TransaccionesSiniestro) > 0 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+   Segmento 14: Clientes que de acuerdo con (VARIABLE: NIVEL_DE_RIESGO_ASIGNADO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo cruzando el campo 	C__DIGO_DANE_DEL_MUNICIPIO) sea igual a "Bajo" cruzando el campo CODIGO_CODAZZI_DIRECCION_1 de las tablas sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales y sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+ 
+---- Se mantiene como regla 1 lo indicado en el arbol de clasificación como la primer parte del módelo, el resto de registros que no cumplan estos criterios, serán evaluados en las reglas de la siguiente etapa del modelo.
+
+Regla 2
+
+Segmento 4: Clientes que de acuerdo con (VARIABLE: NIVEL_DE_RIESGO_ASIGNADO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo cruzando el campo 	C__DIGO_DANE_DEL_MUNICIPIO) sea igual a "Alto" cruzando el campo CODIGO_CODAZZI_DIRECCION_1 de las tablas sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales y sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+
+Regla 3
+
+Segmento Moda 11: Clientes que de acuerdo con (VARIABLE: NIVEL_DE_RIESGO_ASIGNADO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo cruzando el campo 	C__DIGO_DANE_DEL_MUNICIPIO) sea igual a "Bajo" cruzando el campo CODIGO_CODAZZI_DIRECCION_1 de las tablas sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales y sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+  Segmento 11: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 107 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento Moda 11: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 107 y <= 177 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 11: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= 7005790 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 11: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 7005790 y <= 14169399 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 8: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 14169399 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento 8: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 177 y <= 401 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento Moda 15: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 401 y <= 1802 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 8: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) <= 27706004 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    Segmento 15: Clientes de compañía 2 que tengan sumatoria de transaccicones (Variable = TransaccionesSiniestro) > 27706004 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+  Segmento 13: Clientes de compañía 2 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1802 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+
+Regla 4
+
+Segmento 5: Clientes que de acuerdo con (VARIABLE: NIVEL_DE_RIESGO_ASIGNADO de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo cruzando el campo 	C__DIGO_DANE_DEL_MUNICIPIO) sea igual a "Medio" cruzando el campo CODIGO_CODAZZI_DIRECCION_1 de las tablas sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales y sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+
+
