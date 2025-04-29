@@ -80,6 +80,7 @@ regla_1 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 0 THEN
               CASE
@@ -108,6 +109,8 @@ regla_1 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -120,6 +123,7 @@ regla_2 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 0 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.429 THEN
               CASE
@@ -140,6 +144,8 @@ regla_2 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -152,6 +158,7 @@ regla_3 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.429 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 1.833 THEN
               CASE  
@@ -167,14 +174,16 @@ regla_3 AS(
                     END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 2 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 8 THEN 
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '1 - 3.5'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '7 - 3.6'
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO', 'BAJO') THEN '1 - 3.5'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO') THEN '7 - 3.6'
                     END  
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 8 THEN '5 - 3.7'
               END       
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -187,13 +196,14 @@ regla_4 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 1.833 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 2.25 THEN
               CASE  
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) <= 1 THEN   
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto', 'Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '1 - 4.1'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '7 - 4.2'
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO', 'BAJO') THEN '1 - 4.1'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO') THEN '7 - 4.2'
                     END
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 1 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 2 THEN '7 - 4.3'
                 WHEN COALESCE(t_cantidad.cantidad_transacciones, 0) > 2 AND COALESCE(t_cantidad.cantidad_transacciones, 0) <= 8 THEN '7 - 4.4'
@@ -206,6 +216,8 @@ regla_4 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -218,6 +230,7 @@ regla_5 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 2.25 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 3 THEN
               CASE  
@@ -234,6 +247,8 @@ regla_5 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -246,6 +261,7 @@ regla_6 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 3 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 4 THEN
               CASE  
@@ -256,6 +272,8 @@ regla_6 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -268,6 +286,7 @@ regla_7 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 4 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 5.521 THEN
               CASE  
@@ -275,8 +294,8 @@ regla_7 AS(
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.333 THEN '5 - 7.2'      
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.333 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 6 THEN      
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '12 - 7.3'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '5 - 7.4'
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '12 - 7.3'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO','BAJO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '5 - 7.4'
                     END
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 6 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 25 THEN '5 - 7.5'     
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 25 THEN '6 - 7.6'     
@@ -284,6 +303,8 @@ regla_7 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -296,6 +317,7 @@ regla_8 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 5.521 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 8 THEN
               CASE  
@@ -303,8 +325,8 @@ regla_8 AS(
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.333 THEN '5 - 8.1'      
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.333 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 12 THEN      
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '12 - 8.2'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '12 - 8.2'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO','BAJO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN
                             CASE
                                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 3.667 THEN '5 - 8.3'        
                                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 3.667 THEN '5 - 8.4'  
@@ -316,6 +338,8 @@ regla_8 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -328,6 +352,7 @@ regla_9 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 8 AND c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) <= 12.5 THEN
               CASE  
@@ -335,8 +360,8 @@ regla_9 AS(
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 1.333 THEN '13 - 9.2'      
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 1.333 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 6 THEN      
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '13 - 9.3'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '5 - 9.4'
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO','BAJO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '13 - 9.3'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '5 - 9.4'
                     END
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 6 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 12 THEN '5 - 9.5'     
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 12 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 25 THEN '13 - 9.6'                     
@@ -345,6 +370,8 @@ regla_9 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
@@ -357,14 +384,15 @@ regla_10 AS(
     SELECT 
         c.TIPO_DOCUMENTO,
         c.KEY_ID,
+        COALESCE(ac.Nivel_de_riesgo, 'Bajo') AS Nivel_de_riesgo,
         CASE
             WHEN c.VALOR_INGRESOS / NULLIF(c.VALOR_EGRESOS, 0) > 12.5 THEN
               CASE  
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 0 THEN '8 - 10.1'    
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 0 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 2.286 THEN      
                     CASE
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Alto','Riesgo Bajo') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '13 - 10.2'  
-                        WHEN sc.NIVEL_DE_RIESGO IN ('Riesgo Medio') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '8 - 10.2'
+                        WHEN ac.Nivel_de_riesgo IN ('ALTO','BAJO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '13 - 10.2'  
+                        WHEN ac.Nivel_de_riesgo IN ('MEDIO') AND sc.CODIGO_ENTIDAD_COMPANIA = 3 THEN '8 - 10.2'
                     END
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 2.286 AND NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) <= 25 THEN '8 - 10.3'     
                 WHEN NULLIF(c.VALOR_ACTIVO, 0) / NULLIF(c.VALOR_PASIVO, 0) > 25 THEN '6 - 10.4'     
@@ -372,6 +400,8 @@ regla_10 AS(
             ELSE 'No Segmentado'
         END AS segmento
 FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ac
+    ON c.CODIGO_CIIU = ac.C__digo
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
     ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
 LEFT JOIN transacciones_valor t_valor
