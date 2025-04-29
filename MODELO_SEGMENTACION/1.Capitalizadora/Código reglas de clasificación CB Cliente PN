@@ -1,0 +1,273 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN` AS 
+
+(WITH 
+movimientos AS (
+    SELECT
+        CAST(o.TIPO_DOCUMENTO AS STRING) AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(o.KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
+        m.CODIGO_COMPANIA,
+        m.FECHA_TRANSACCION,
+        SUM(CASE WHEN m.CODIGO_TIPO_MOVIMIENTO IN (26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) THEN m.VALOR_TRANSACCION ELSE 0 END) AS total_retiros,
+        COUNT(CASE WHEN m.CODIGO_TIPO_MOVIMIENTO IN (26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) THEN 1 ELSE NULL END) AS cantidad_retiros,
+        SUM(CASE WHEN m.CODIGO_TIPO_MOVIMIENTO IN (144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) THEN m.VALOR_TRANSACCION ELSE 0 END) AS total_aportes,
+        COUNT(CASE WHEN m.CODIGO_TIPO_MOVIMIENTO IN (144,20,18,2,17,143,1,4,165,3,24,7,175,118,23,189,22,174,157,172,159,171,13) THEN 1 ELSE NULL END) AS cantidad_aportes,
+        SUM(CASE WHEN m.CODIGO_TIPO_MOVIMIENTO = 36 THEN m.VALOR_TRANSACCION ELSE 0 END) AS total_sorteos
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` AS m
+    JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_operaciones_titulos` AS o
+        ON m.NUMERO_TITULO = o.NUMERO_TITULO
+    WHERE m.CODIGO_COMPANIA = 1
+        AND EXTRACT(YEAR FROM m.FECHA_TRANSACCION) = EXTRACT(YEAR FROM DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 12 MONTH))
+    GROUP BY 1, 2, 3, 4
+),
+
+Ingresos_Activos AS (
+    SELECT *,
+        NULLIF(VALOR_INGRESOS, 0) / NULLIF(VALOR_EGRESOS, 0) AS ratio_ingresos_egresos,
+        NULLIF(VALOR_ACTIVO, 0) / NULLIF(VALOR_PASIVO, 0) AS ratio_activo_pasivo
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+),
+
+regla_1 AS(
+  SELECT 
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    COALESCE(ar.Nivel_de_riesgo, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
+      CASE
+        WHEN c.COD_OCUPACION IN (4,2) THEN
+          CASE
+            WHEN c.ratio_ingresos_egresos <= 1.321 THEN '8 - 1.1'
+            WHEN c.ratio_ingresos_egresos > 1.321 AND c.ratio_ingresos_egresos <= 1.9 THEN
+              CASE
+                WHEN COALESCE(m.cantidad_retiros, 0) <= 12 THEN '8 - 1.2'
+                WHEN COALESCE(m.cantidad_retiros, 0) > 12 THEN '4 - 1.3'
+              END
+            WHEN c.ratio_ingresos_egresos > 1.9 AND c.ratio_ingresos_egresos <= 2.975 THEN
+              CASE
+                WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO','BAJO') THEN '6 - 1.4'
+                WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '11 - 1.5'
+              END
+            WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 1.6'
+          END
+        ELSE 'No Segmentado'
+      END AS segmento
+FROM Ingresos_Activos c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+  ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN movimientos m
+  ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
+  ON c.CODIGO_CIIU = ar.C__digo
+),
+
+regla_2 AS(
+  SELECT 
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    COALESCE(ar.Nivel_de_riesgo, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
+      CASE
+        WHEN c.COD_OCUPACION IN (1) THEN
+          CASE
+            WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
+              CASE
+                WHEN ratio_activo_pasivo <= 0 THEN 
+                  CASE 
+                    WHEN c.ratio_ingresos_egresos <= 2.975 THEN
+                      CASE
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN '6 - 2.1'
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','MEDIO') THEN
+                          CASE
+                            WHEN COALESCE(m.total_aportes, 0) <= 7211964 THEN '8 - 2.2'
+                            WHEN COALESCE(m.total_aportes, 0) > 7211964 THEN '7 - 2.3'
+                          END  
+                      END
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 2.4'
+                  END
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 7.5 THEN
+                  CASE
+                    WHEN c.ratio_ingresos_egresos <= 2.389 THEN
+                      CASE
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN
+                          CASE
+                            WHEN COALESCE(m.total_retiros, 0) <= -3014258 THEN '6 - 2.5'
+                            WHEN COALESCE(m.total_retiros, 0) > -3014258 THEN '6 - 2.6'
+                          END                              
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO') THEN '8 - 2.7'
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN
+                          CASE
+                            WHEN COALESCE(m.total_aportes, 0) <= 3567369 THEN '8 - 2.8'
+                            WHEN COALESCE(m.total_aportes, 0) > 3567369 THEN '8 - 2.9'
+                          END
+                      END
+                    WHEN c.ratio_ingresos_egresos > 2.389 AND c.ratio_ingresos_egresos <= 2.975 THEN '8 - 2.10'
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 2.11'
+                  END
+                WHEN ratio_activo_pasivo > 7.5 AND ratio_activo_pasivo <= 13.333 THEN
+                  CASE
+                    WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','ALTO') THEN '6 - 2.12'
+                    WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '8 - 2.13'
+                  END                          
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 2.14'
+              END
+            WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 2.15'          
+          END
+        ELSE 'No Segmentado'
+      END AS segmento
+FROM Ingresos_Activos c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+  ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN movimientos m
+  ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
+  ON c.CODIGO_CIIU = ar.C__digo
+),
+
+regla_3 AS(
+  SELECT 
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    COALESCE(ar.Nivel_de_riesgo, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
+      CASE
+        WHEN c.COD_OCUPACION NOT IN (1,2,3,4) THEN
+          CASE
+            WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
+              CASE
+                WHEN ratio_activo_pasivo <= 0 THEN 
+                  CASE 
+                    WHEN c.ratio_ingresos_egresos <= 2.975 THEN
+                      CASE
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO','BAJO') THEN '11 - 3.1'
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO') THEN '11 - 3.2'
+                      END
+                    WHEN c.ratio_ingresos_egresos > 2.975 THEN '1 - 3.3'
+                  END  
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 13.333 THEN
+                    CASE
+                        WHEN COALESCE(m.cantidad_retiros, 0) <= 8 THEN '11 - 3.4'
+                        WHEN COALESCE(m.cantidad_retiros, 0) > 8 AND COALESCE(m.cantidad_retiros, 0) <= 23 THEN
+                            CASE
+                                WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN
+                                    CASE
+                                        WHEN ratio_activo_pasivo <= 3.273 THEN '11 - 3.5'
+                                        WHEN ratio_activo_pasivo > 3.273 THEN
+                                            CASE
+                                                WHEN c.ratio_ingresos_egresos <= 1.68 THEN '6 - 3.6'
+                                                WHEN c.ratio_ingresos_egresos > 1.68 THEN '11 - 3.7'
+                                            END
+                                    END
+                                WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('BAJO','MEDIO') THEN '11 - 3.8'
+                            END
+                        WHEN COALESCE(m.cantidad_retiros, 0) > 23 AND COALESCE(m.cantidad_retiros, 0) <= 30 THEN '6 - 3.9'
+                        WHEN COALESCE(m.cantidad_retiros, 0) > 30 THEN '7 - 3.10'
+                    END                           
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 3.11'
+              END
+            WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 3.12'
+          END
+        ELSE 'No Segmentado'
+      END AS segmento
+FROM Ingresos_Activos c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+  ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN movimientos m
+  ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
+  ON c.CODIGO_CIIU = ar.C__digo
+),
+
+regla_4 AS(
+  SELECT 
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    COALESCE(ar.Nivel_de_riesgo, 'Bajo') AS NIVEL_DE_RIESGO_ASIGNADO,
+      CASE
+        WHEN c.COD_OCUPACION NOT IN (3) THEN
+          CASE
+            WHEN COALESCE(m.total_sorteos, 0) <= 0 THEN
+              CASE
+                WHEN ratio_activo_pasivo <= 0 THEN 
+                  CASE 
+                    WHEN COALESCE(m.cantidad_retiros, 0) <= 30 THEN '4 - 4.1'
+                    WHEN COALESCE(m.cantidad_retiros, 0) > 30 THEN '4 - 4.2'
+                  END
+                WHEN ratio_activo_pasivo > 0 AND ratio_activo_pasivo <= 13.333 THEN 
+                    CASE
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('ALTO') THEN '6 - 4.3'
+                        WHEN COALESCE(ar.Nivel_de_riesgo, 'Bajo') IN ('MEDIO','BAJO') THEN
+                            CASE
+                                WHEN COALESCE(m.total_aportes, 0) <= 3567369 THEN '4 - 4.4'
+                                WHEN COALESCE(m.total_aportes, 0) > 3567369 AND COALESCE(m.total_aportes, 0) <= 7211964 THEN '4 - 4.5'
+                                WHEN COALESCE(m.total_aportes, 0) > 7211964 THEN '4 - 4.6'
+                            END      
+                    END
+                WHEN ratio_activo_pasivo > 13.333 THEN '2 - 4.7'
+              END
+            WHEN COALESCE(m.total_sorteos, 0) > 0 THEN '3 - 4.8'
+          END
+        ELSE 'No Segmentado'
+      END AS segmento
+FROM Ingresos_Activos c
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes` sc
+  ON c.TIPO_DOCUMENTO = sc.TIPO_DOCUMENTO AND c.KEY_ID = sc.KEY_ID
+LEFT JOIN movimientos m
+  ON c.TIPO_DOCUMENTO = m.TIPO_DOCUMENTO_TOMADOR AND c.KEY_ID = m.NUMERO_DOCUMENTO_TOMADOR
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo` ar
+  ON c.CODIGO_CIIU = ar.C__digo
+)
+
+SELECT DISTINCT reglas.TIPO_DOCUMENTO, reglas.KEY_ID, reglas.segmento
+FROM (
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_1
+UNION ALL
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_2
+UNION ALL
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_3
+UNION ALL
+SELECT TIPO_DOCUMENTO, KEY_ID, segmento FROM regla_4
+) AS reglas
+INNER JOIN 
+    `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` til
+ON 
+    LOWER(reglas.TIPO_DOCUMENTO) = LOWER(til.tipo_documento)
+    AND reglas.KEY_ID = til.key_id
+WHERE date(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) 
+AND til.tipo_documento in ('CC', 'PP', 'RC', 'CE', 'TI', 'PE', 'PT', 'CF', 'CD', 'RE', 'CI', 'SD'))
+
+------------------------ Código para asignar segmentos por reglas
+
+SELECT segmento, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN`
+GROUP BY segmento
+ORDER BY total_clientes DESC;
+
+------------------------------
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN_full` AS 
+
+WITH datos AS (
+    SELECT 
+        *,  
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 'No Segmentado'
+            ELSE SPLIT(segmento, ' - ')[SAFE_OFFSET(0)]
+        END AS SEGMENTO_1,
+        CASE 
+            WHEN segmento IS NULL OR segmento = 'No Segmentado' THEN 100
+            ELSE CAST(SPLIT(segmento, ' - ')[SAFE_OFFSET(1)] AS FLOAT64)
+        END AS NIVEL_DE_PRIORIDAD
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN`
+),
+ordenado AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY KEY_ID ORDER BY NIVEL_DE_PRIORIDAD ASC) AS fila
+    FROM datos
+)
+SELECT *
+FROM ordenado
+WHERE fila = 1;
+
+-------------------------------- Código para asignar segmento definitivo con base en arbol de decisión
+
+SELECT SEGMENTO_1, COUNT(*) AS total_clientes
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_prueba_CB_ClientesPN_full`
+GROUP BY SEGMENTO_1
+ORDER BY total_clientes DESC;
