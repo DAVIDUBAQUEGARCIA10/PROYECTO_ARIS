@@ -1,0 +1,19 @@
+Reglas de clasificación
+
+Regla 1
+
+Segmento Moda 10: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 6,322
+  Segmento Moda 10: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea <= 3.333 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+    Segmento Moda 10: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto
+      Segmento 2: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) <= -46988725 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+      Segmento 10: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -46988725 y <= -3402615 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+      Segmento 3: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -3402615 y <= -1750000 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+      Segmento 10: Clientes de compañía 1 que tengan sumatoria de retiros (Variable CODIGO_TIPO_MOVIMIENTO = 26,115,139,29,25,31,34,30,32,36,33,183,180,191,27,35) > -1750000 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora             
+    Segmento Moda 9: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio, Riesgo Bajo
+      Segmento 9: Clientes de compañía 1 que tengan sumatoria de sorteos (Variable CODIGO_TIPO_MOVIMIENTO = 36) <= 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+      Segmento 3: Clientes de compañía 1 que tengan sumatoria de sorteos (Variable CODIGO_TIPO_MOVIMIENTO = 36) > 0 de la tabla sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
+  Segmento 8: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) sea > 3.333 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
+
+Regla 2
+
+Segmento 7: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 6,322
