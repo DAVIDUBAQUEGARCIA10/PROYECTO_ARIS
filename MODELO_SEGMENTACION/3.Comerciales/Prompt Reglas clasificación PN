@@ -37,16 +37,20 @@ Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALO
         Segmento 7: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "AMA DE CASA" "ASALARIADO" "ESTUDIANTE" "PENSIONADO"
         Segmento 2: Clientes que en la columna (VARIABLE: Ocupacion de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) sea igual a "NO APLICA"
     Segmento Moda 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 2 y <= 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
-        Segmento 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
-        Segmento 7: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+        Segmento 1: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO, BAJO
+        Segmento 7: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a MEDIO
     Segmento 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
 
 Regla 4
 
 Segmento Moda 7: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 1.833 y <= 2.25 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento Moda 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) <= 1 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
-        Segmento 1: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto, Riesgo Bajo
-        Segmento 7: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+        Segmento 1: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO, BAJO        
+        Segmento 7: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a MEDIO
     Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 1 y <= 2 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
     Segmento 7: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 2 y <= 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
     Segmento Moda 5: Clientes de compañía 3 que tengan cantidad de transaccicones (Variable = TransaccionesSiniestro) > 8 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros más la tabla sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
@@ -77,8 +81,10 @@ Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALO
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 0 y <= 1.333
     Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 1.333 y <= 6
-        Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto 
-        Segmento 5: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Medio
+        Segmento 12: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a MEDIO, BAJO 
+        Segmento 5: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 6 y <= 25
     Segmento 6: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 25
 
@@ -88,8 +94,10 @@ Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALO
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 0 y <= 1.333
     Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 1.333 y <= 12
-        Segmento 12: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Alto 
-        Segmento Moda 5: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Medio
+        Segmento 12: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO 
+        Segmento Moda 5: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a BAJO, MEDIO
             Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 3.667
             Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 3.667        
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 12 y <= 25
@@ -101,8 +109,10 @@ Segmento Moda 5: Clientes que en la columna formula o razon de division de (VALO
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
     Segmento 13: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 0 y <= 1.333
     Segmento Moda 13: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 1.333 y <= 6
-        Segmento 13: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Alto 
-        Segmento 5: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+        Segmento 13: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO, BAJO  
+        Segmento 5: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a MEDIO 
     Segmento 5: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 6 y <= 12
     Segmento 13: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 12 y <= 25
     Segmento 6: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 25
@@ -112,8 +122,10 @@ Regla 10
 Segmento Moda 8: Clientes que en la columna formula o razon de division de (VALOR_INGRESOS/VALOR_EGRESOS) > 12.5 de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales)
     Segmento 8: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) <= 0
     Segmento Moda 8: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 0 y <= 2.286
-        Segmento 13: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Bajo, Riesgo Alto 
-        Segmento 8: Clientes que en la columna (VARIABLE: Riesgo_LAFT de la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_score_clientes) sea igual a Riesgo Medio
+        Segmento 13: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a ALTO, BAJO  
+        Segmento 8: Clientes que en la columna (VARIABLE: CODIGO_CIIU de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales, al cruzar el campo C__digo con la tabla sb-sandbox-usuarios.sandbox_cumplimiento.t_actividad_economica_nivel_riesgo el Nivel_de_riesgo
+) sea igual a MEDIO
     Segmento 8: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 2.286 y <= 25
     Segmento 6: Clientes que en la columna formula o razon de division de (VALOR_ACTIVO/VALOR_PASIVO) de la tabla sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales) > 25
 
