@@ -1,43 +1,64 @@
+-- Crea o reemplaza la tabla CAP_0304_VISOR_REPO con la información más reciente de clientes con restricción 23
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO AS
+
+-- Se define una CTE (Common Table Expression) llamada RankedData para preparar los datos
 WITH RankedData AS (
   SELECT 
-      a.FECHA_CORTE, 
-      a.TITULO, 
-      a.KEY_ID_BENEFICIARIO,
-      a.TIPO_DOCUMENTO,
-      a.SALDO_PESOS,
-      a.FECHA_EMISION,
-      a.FECHA_REHABILITACION,
-      a.FECHA_ULT_CUOTA,
-      b.CODIGO_RESTRICCION,
-      b.DESCRIPCION,
-      b.FECHA_BAJA,
-      b.FECHA_CREACION,
-      b.FECHA_MODIFICACION,
-      b.VALOR_RIESGO,
-      b.NIVEL_ALERTA,
-      b.MARCA_ACTIVO,
-      c.PUBLICAMENTE_EXPUESTA,
-      ROW_NUMBER() OVER (PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO ORDER BY b.FECHA_MODIFICACION DESC) AS rn
-    FROM 
-        sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
-    LEFT JOIN 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` b
-        ON a.KEY_ID_BENEFICIARIO = b.KEY_ID
-        AND a.TIPO_DOCUMENTO = b.TIPO_DOCUMENTO_TERCERO
-    LEFT JOIN (
-                  select KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
-                    from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
-                union all
-                    select KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
-                    from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
-    ) c
-        ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
-        AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-    WHERE  FECHA_CORTE >= "2024-10-31" AND
-        b.CODIGO_RESTRICCION = 23
-        AND c.PUBLICAMENTE_EXPUESTA != 'S'
+      a.FECHA_CORTE,  -- Fecha de corte de la información del título
+      a.TITULO,  -- Identificador del título
+      a.KEY_ID_BENEFICIARIO,  -- Identificador único del beneficiario del título
+      a.TIPO_DOCUMENTO,  -- Tipo de documento del beneficiario
+      a.SALDO_PESOS,  -- Saldo actual en pesos del título
+      a.FECHA_EMISION,  -- Fecha de emisión del título
+      a.FECHA_REHABILITACION,  -- Fecha en que fue rehabilitado el título (si aplica)
+      a.FECHA_ULT_CUOTA,  -- Fecha de la última cuota asociada al título
+
+      -- Información de la tabla de restricciones
+      b.CODIGO_RESTRICCION,  -- Código de restricción asociado al tercero
+      b.DESCRIPCION,  -- Descripción de la restricción
+      b.FECHA_BAJA,  -- Fecha en la que la restricción fue dada de baja
+      b.FECHA_CREACION,  -- Fecha en la que fue creada la restricción
+      b.FECHA_MODIFICACION,  -- Fecha en que fue modificada por última vez
+      b.VALOR_RIESGO,  -- Valor de riesgo asociado a la restricción
+      b.NIVEL_ALERTA,  -- Nivel de alerta que representa esta restricción
+      b.MARCA_ACTIVO,  -- Indicador si la restricción está activa o no
+
+      -- Información de exposición pública del beneficiario
+      c.PUBLICAMENTE_EXPUESTA,  -- Indica si la persona es políticamente expuesta
+
+      -- Se asigna un número de fila por combinación de título, beneficiario y tipo de documento
+      -- Se ordena por la fecha de modificación más reciente para quedarnos con la versión más actual
+      ROW_NUMBER() OVER (
+        PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO 
+        ORDER BY b.FECHA_MODIFICACION DESC
+      ) AS rn
+
+  FROM 
+      sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a -- Fuente principal: títulos de capitalización
+
+  LEFT JOIN 
+      sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b -- Restricciones asociadas a los beneficiarios
+      ON a.KEY_ID_BENEFICIARIO = b.KEY_ID
+      AND a.TIPO_DOCUMENTO = b.TIPO_DOCUMENTO_TERCERO
+
+  LEFT JOIN (
+      -- Unión de clientes naturales y jurídicos para obtener la información de exposición pública
+      SELECT KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
+      FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
+      UNION ALL
+      SELECT KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
+      FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+  ) c
+      ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
+      AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+  WHERE  
+      FECHA_CORTE >= "2025-01-01" -- Solo se consideran datos a partir de esta fecha
+      AND b.CODIGO_RESTRICCION = 23 -- Solo se incluyen restricciones específicas (código 23)
+      AND c.PUBLICAMENTE_EXPUESTA != 'S' -- Se excluyen personas políticamente expuestas
 )
+
+-- Se seleccionan los registros procesados en la CTE para crear la tabla final
 SELECT
     FECHA_CORTE,
     TITULO,
@@ -56,16 +77,20 @@ SELECT
     NIVEL_ALERTA,
     MARCA_ACTIVO,
     PUBLICAMENTE_EXPUESTA,
-    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA  -- Se agrega la fecha actual aquí
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, -- Se genera el año-mes actual como marcador del período
+    CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha exacta de la alerta
+
 FROM RankedData
-WHERE rn = 1
-ORDER BY FECHA_MODIFICACION DESC;
+WHERE rn = 1 -- Se mantiene solo el registro más reciente por combinación de título, beneficiario y documento
+ORDER BY FECHA_MODIFICACION DESC; -- Ordena los resultados finales por fecha de modificación más reciente
 
 
 
 INSERT ------
+-- Inserta registros en la tabla de reportes CAP_0304_VISOR_REPO desde una consulta con condiciones específicas
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO
+
+-- Se define una CTE (Common Table Expression) llamada RankedData para preparar los datos con las condiciones y transformaciones necesarias
 WITH RankedData AS (
     SELECT 
         a.FECHA_CORTE, 
@@ -85,28 +110,34 @@ WITH RankedData AS (
         b.NIVEL_ALERTA,
         b.MARCA_ACTIVO,
         c.PUBLICAMENTE_EXPUESTA,
-        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,    
-        ROW_NUMBER() OVER (PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO ORDER BY b.FECHA_MODIFICACION DESC) AS rn
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, -- Genera la fecha de alerta en formato año-mes
+        ROW_NUMBER() OVER (
+            PARTITION BY a.TITULO, a.KEY_ID_BENEFICIARIO, a.TIPO_DOCUMENTO 
+            ORDER BY b.FECHA_MODIFICACION DESC
+        ) AS rn -- Asigna un número de fila para identificar la más reciente por combinación de título, beneficiario y tipo de documento
     FROM 
         sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora a
     LEFT JOIN 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` b
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b
         ON a.KEY_ID_BENEFICIARIO = b.KEY_ID
         AND a.TIPO_DOCUMENTO = b.TIPO_DOCUMENTO_TERCERO
-    LEFT JOIN 
-        (
-                  select KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
-                    from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
-                union all
-                    select KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
-                    from sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
-        ) c
-        ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
-        AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-    WHERE  FECHA_CORTE >= "2024-10-31" 
-      AND b.CODIGO_RESTRICCION = 23
-      AND c.PUBLICAMENTE_EXPUESTA != 'S'
+    LEFT JOIN (
+        -- Unión de clientes naturales y jurídicos para obtener la marca de exposición pública
+        SELECT KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
+        FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales 
+        UNION ALL
+        SELECT KEY_ID, TIPO_DOCUMENTO , PUBLICAMENTE_EXPUESTA
+        FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+    ) c
+    ON a.KEY_ID_BENEFICIARIO = c.KEY_ID
+    AND a.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    WHERE  
+        FECHA_CORTE >= "2025-01-01" -- Solo se consideran registros con fecha de corte igual o posterior
+        AND b.CODIGO_RESTRICCION = 23 -- Se filtran únicamente las restricciones con código 23
+        AND c.PUBLICAMENTE_EXPUESTA != 'S' -- Se excluyen los clientes que son personas expuestas públicamente
 )
+
+-- Se seleccionan los registros filtrados y preparados en RankedData
 SELECT
     FECHA_CORTE,
     TITULO,
@@ -126,15 +157,17 @@ SELECT
     MARCA_ACTIVO,
     PUBLICAMENTE_EXPUESTA,
     FECHA_ALERTA_MES,    
-    CURRENT_DATE() AS FECHA_ALERTA -- Inserta la fecha actual
+    CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha actual como marca de alerta
 FROM RankedData rd
-WHERE rd.rn = 1
+WHERE rd.rn = 1 -- Se queda con el registro más reciente por combinación de título, beneficiario y documento
   AND NOT EXISTS (
+        -- Se asegura de no insertar duplicados ya existentes para el mismo mes, título, beneficiario y documento
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO t
         WHERE t.TITULO = rd.TITULO
           AND t.KEY_ID_BENEFICIARIO = rd.KEY_ID_BENEFICIARIO
           AND t.TIPO_DOCUMENTO = rd.TIPO_DOCUMENTO
-           AND t.FECHA_ALERTA_MES = rd.FECHA_ALERTA_MES
+          AND t.FECHA_ALERTA_MES = rd.FECHA_ALERTA_MES
 )
-ORDER BY rd.FECHA_MODIFICACION DESC;
+ORDER BY rd.FECHA_MODIFICACION DESC; -- Ordena los resultados por la fecha más reciente de modificación
+
