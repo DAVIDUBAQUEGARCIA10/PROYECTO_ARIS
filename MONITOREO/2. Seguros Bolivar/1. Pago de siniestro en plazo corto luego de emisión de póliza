@@ -1,9 +1,14 @@
 CREATE -----------------
-
+-- Crear o reemplazar la tabla SEG_0007_VISOR_REPO
+-- Esta tabla captura siniestros que fueron liquidados dentro de los 90 días posteriores a la suscripción,
+-- para posibles alertas por comportamiento inusual o sospechoso
 
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO AS
+
+-- CTE que filtra y organiza los siniestros con condiciones de riesgo
 WITH SiniestrosConFila AS (
     SELECT
+        -- Datos generales del siniestro y del producto contratado
         CODIGO_COMPANIA, 
         CODIGO_RAMO_CONTABLE, 
         NOMBRE_RAMO_CONTABLE,
@@ -13,26 +18,57 @@ WITH SiniestrosConFila AS (
         NUMERO_POLIZA,
         TIPO_DOCUMENTO_TOMADOR,
         KEY_ID_TOMADOR,
+
+        -- Fechas clave del siniestro
         FECHA_SINIESTRO,
         FECHA_SUSCRIPCION,
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
+
+        -- Monto pagado en pesos
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,TIPO_DOCUMENTO_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
+
+        -- Enumerador para quedarnos con la primera fila por cliente y valor liquidado
+        ROW_NUMBER() OVER (
+            PARTITION BY KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR, LIQUIDADO_BOLIVAR
+            ORDER BY FECHA_SUSCRIPCION
+        ) AS fila
+
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+
+    -- Filtros clave para identificar siniestros relevantes
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= >= '2024-01-01' 
-        AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
-        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'
-        AND CODIGO_COMPANIA = 2
-        AND DATE(FECHA_SINIESTRO) >=  '2024-01-01'
-        AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')
-        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
-        AND LIQUIDADO_BOLIVAR > 0
-        AND FECHA_ORDEN_PAGO IS NOT NULL
-        AND CODIGO_RAMO_CONTABLE NOT IN (70,26,118,27,888,13,310,1,68)
+        -- Siniestros de pólizas suscritas desde 2024
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01' AND
+
+        -- La orden de pago ocurrió dentro de los 90 días posteriores a la suscripción
+        DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 AND
+
+        -- Solo pólizas madre (las terminadas en '01')
+        RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01' AND
+
+        -- Solo registros de la compañía 2
+        CODIGO_COMPANIA = 2 AND
+
+        -- Siniestros con fecha desde 2024
+        DATE(FECHA_SINIESTRO) >= '2024-01-01' AND
+
+        -- Se excluyen clientes internos o específicos por su identificador
+        KEY_ID_TOMADOR NOT IN ('860034313', '830053700') AND
+
+        -- Se excluyen ciertos ramos contables no aplicables
+        CODIGO_RAMO_CONTABLE NOT IN (45, 34) AND
+
+        -- Solo siniestros con valor positivo y orden de pago existente
+        LIQUIDADO_BOLIVAR > 0 AND
+        FECHA_ORDEN_PAGO IS NOT NULL AND
+
+        -- Se excluyen ramos sensibles, corporativos o no asegurables (listado específico)
+        CODIGO_RAMO_CONTABLE NOT IN (70, 26, 118, 27, 888, 13, 310, 1, 68)
 )
+
+-- Selección final de las filas prioritarias
 SELECT 
     CODIGO_COMPANIA, 
     CODIGO_RAMO_CONTABLE, 
@@ -48,16 +84,27 @@ SELECT
     ESTADO_SINIESTRO,
     FECHA_ORDEN_PAGO,
     LIQUIDADO_BOLIVAR,
-         FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Se agregan campos de control: fecha de generación de la alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA
+
 FROM 
     SiniestrosConFila
+
+-- Nos quedamos con la primera fila por tomador y valor liquidado
 WHERE 
     fila = 1;
 
 
+
+
+
+
 INSERT INTO -------------------------------------
--- Insertar solo nuevos registros que no estén ya en la tabla
+-- Inserta nuevos registros en la tabla SEG_0007_VISOR_REPO
+-- Evita duplicados al comparar con registros existentes usando NOT EXISTS
+
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO (
     CODIGO_COMPANIA, 
     CODIGO_RAMO_CONTABLE, 
@@ -76,8 +123,11 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO (
     FECHA_ALERTA_MES,
     FECHA_ALERTA
 )
+
+-- Subconsulta CTE que organiza y filtra los siniestros relevantes
 WITH SiniestrosConFila AS (
     SELECT
+        -- Información del siniestro y datos de la póliza
         CODIGO_COMPANIA, 
         CODIGO_RAMO_CONTABLE, 
         NOMBRE_RAMO_CONTABLE,
@@ -92,21 +142,41 @@ WITH SiniestrosConFila AS (
         ESTADO_SINIESTRO,
         FECHA_ORDEN_PAGO,
         LIQUIDADO_BOLIVAR,
-        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR,TIPO_DOCUMENTO_TOMADOR,LIQUIDADO_BOLIVAR ORDER BY FECHA_SUSCRIPCION) AS fila
-    FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+
+        -- Se asigna un número de fila por combinación de cliente y monto liquidado
+        ROW_NUMBER() OVER (
+            PARTITION BY KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR, LIQUIDADO_BOLIVAR
+            ORDER BY FECHA_SUSCRIPCION
+        ) AS fila
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'  -- Definir las fechas directamente
-        AND DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90
-        AND RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01'
-        AND CODIGO_COMPANIA = 2
-        AND DATE(FECHA_SINIESTRO) >=  '2024-01-01'
-        AND KEY_ID_TOMADOR NOT IN ('860034313', '830053700')
-        AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)
-        AND LIQUIDADO_BOLIVAR > 0
-        AND FECHA_ORDEN_PAGO IS NOT NULL
-        AND CODIGO_RAMO_CONTABLE NOT IN (70,26,118,27,888,13,310,1,68)
+        -- Fechas recientes desde 2024
+        DATE(FECHA_SUSCRIPCION) >= '2024-01-01' AND
+        DATE(FECHA_SINIESTRO) >= '2024-01-01' AND
+
+        -- Orden de pago en los 90 días posteriores a la suscripción
+        DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 AND
+
+        -- Solo pólizas madre (terminadas en '01')
+        RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01' AND
+
+        -- Compañía específica (Seguros Bolívar)
+        CODIGO_COMPANIA = 2 AND
+
+        -- Valor liquidado positivo y pago registrado
+        LIQUIDADO_BOLIVAR > 0 AND
+        FECHA_ORDEN_PAGO IS NOT NULL AND
+
+        -- Exclusión de clientes internos o no sujetos a control
+        KEY_ID_TOMADOR NOT IN ('860034313', '830053700') AND
+
+        -- Excluir ciertos ramos contables no aplicables al análisis de riesgo
+        CODIGO_RAMO_CONTABLE NOT IN (45, 34, 70, 26, 118, 27, 888, 13, 310, 1, 68)
 )
+
+-- Selección final de registros únicos
 SELECT 
     S.CODIGO_COMPANIA, 
     S.CODIGO_RAMO_CONTABLE, 
@@ -122,13 +192,19 @@ SELECT
     S.ESTADO_SINIESTRO,
     S.FECHA_ORDEN_PAGO,
     S.LIQUIDADO_BOLIVAR,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Agrega la fecha actual como marca de generación de la alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
     CURRENT_DATE() AS FECHA_ALERTA
-FROM 
-    SiniestrosConFila S
+
+FROM SiniestrosConFila S
+
+-- Se queda solo con la fila más representativa por grupo (fila = 1)
 WHERE 
     S.fila = 1
-    AND NOT EXISTS (  -- Excluir registros que ya existen en la tabla
+
+    -- Evita insertar duplicados ya existentes en la tabla destino
+    AND NOT EXISTS (
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO T
         WHERE 
