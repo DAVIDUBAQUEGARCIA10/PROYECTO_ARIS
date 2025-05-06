@@ -7,9 +7,14 @@ SELECT DISTINCT
     m.VALOR_TRANSACCION,                    -- Valor de la transacción
     m.DESCRIPCION_TIPO_MOVIMIENTO,          -- Tipo de movimiento (filtrado)
     m.CODIGO_AGENCIA,                       -- Agencia que realizó el movimiento
-    c.KEY_ID_BENEFICIARIO AS KEY_ID,                  -- ID del cliente
+    c.KEY_ID_BENEFICIARIO AS KEY_ID,           -- ID del cliente
     c.TIPO_DOCUMENTO,                       -- Tipo de documento del cliente
-    t2.PUBLICAMENTE_EXPUESTA                -- Indica si el cliente es públicamente expuesto
+    t2.PUBLICAMENTE_EXPUESTA,                -- Indica si el cliente es públicamente expuesto
+        -- Marca del mes de alerta (formato Año-Mes)
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Fecha en la que se genera la alerta
+    CURRENT_DATE() AS FECHA_ALERTA
 FROM 
     sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora m
 JOIN 
@@ -101,46 +106,49 @@ WHERE  m.DESCRIPCION_TIPO_MOVIMIENTO IN (
 
 
 
-INSERT --------
 
--- Insertamos en la tabla CAP_0069_VISOR_TRANS todos los movimientos relevantes de clientes
--- públicamente expuestos, que aún no estén en dicha tabla, según filtros específicos.
+
+
+
+INSERT --------
 
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS
 
--- Seleccionamos los campos relevantes de los movimientos y del cliente
 SELECT DISTINCT
-    m.FECHA_TRANSACCION,                    -- Fecha en que se realizó el movimiento
-    m.NUMERO_TITULO,                        -- Número del título involucrado en el movimiento
-    m.VALOR_TRANSACCION,                    -- Valor monetario de la transacción
-    m.DESCRIPCION_TIPO_MOVIMIENTO,          -- Tipo de movimiento (con filtro aplicado)
-    m.CODIGO_AGENCIA,                       -- Código de la agencia que procesó la operación
-    c.KEY_ID_BENEFICIARIO AS KEY_ID,        -- Identificador del cliente (natural o jurídico)
+    m.FECHA_TRANSACCION,                    -- Fecha del movimiento
+    m.NUMERO_TITULO,                        -- Título del movimiento
+    m.VALOR_TRANSACCION,                    -- Valor de la transacción
+    m.DESCRIPCION_TIPO_MOVIMIENTO,          -- Tipo de movimiento (filtrado)
+    m.CODIGO_AGENCIA,                       -- Agencia que realizó el movimiento
+    c.KEY_ID_BENEFICIARIO as KEY_ID,                  -- ID del cliente
     c.TIPO_DOCUMENTO,                       -- Tipo de documento del cliente
-    t2.PUBLICAMENTE_EXPUESTA                -- Indicador si el cliente es públicamente expuesto ("S" o "N")
+    t2.PUBLICAMENTE_EXPUESTA,                -- Indica si el cliente es públicamente expuesto
+        -- Marca del mes de alerta (formato Año-Mes)
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
 
-FROM sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora m
-
--- Relacionamos cada movimiento con el cliente titular del título
-JOIN sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
+    -- Fecha en la que se genera la alerta
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora m
+JOIN 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
     ON m.NUMERO_TITULO = c.TITULO
 
--- Hacemos una unión externa para traer la marca de "Públicamente Expuesta"
--- desde clientes naturales y jurídicos (pueden estar en cualquiera de las dos tablas)
+-- Unión externa para traer información de exposición pública desde dos tablas
 LEFT JOIN (
     SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
     FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+
     UNION ALL
+
     SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
     FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
 ) AS t2
     ON c.KEY_ID_BENEFICIARIO = t2.KEY_ID
     AND c.TIPO_DOCUMENTO = t2.TIPO_DOCUMENTO
 
--- Aplicamos filtros para seleccionar solo movimientos de interés
-WHERE 
-    m.DESCRIPCION_TIPO_MOVIMIENTO IN (
-        -- Listado exhaustivo de descripciones consideradas como movimientos relevantes
+-- Filtro por número de título específico y movimientos relevantes
+WHERE  m.DESCRIPCION_TIPO_MOVIMIENTO IN (
         'N.D. REVERSION SALDO A FAVOR',
         'REC.REINTE.UNID CJAS.BOLIVAR',
         'SALDO FAVOR CLIENTE ANULACION SORTEO',
@@ -206,13 +214,8 @@ WHERE
         'ANULACION VENCIMIENTOS',
         'SALDO FAVOR POR ANUL RETIRO',
         'TRASL REVERS INIC APLIC CONVEN'
-    )
-    AND m.FECHA_TRANSACCION >= '2025-01-01'         -- Solo transacciones recientes
-    AND m.VALOR_TRANSACCION > 1000000               -- Valor de transacción significativo
-    AND t2.PUBLICAMENTE_EXPUESTA = 'S'              -- Clientes marcados como públicamente expuestos
-
--- Validamos que el movimiento aún no exista en la tabla destino, para evitar duplicados
-AND NOT EXISTS (
+    ) AND m.FECHA_TRANSACCION >= '2025-01-01'  AND m.VALOR_TRANSACCION > 1000000 AND t2.PUBLICAMENTE_EXPUESTA = "S"
+  AND NOT EXISTS (
     SELECT 1
     FROM sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS t
     WHERE t.NUMERO_TITULO = m.NUMERO_TITULO
@@ -221,6 +224,4 @@ AND NOT EXISTS (
       AND t.FECHA_TRANSACCION = m.FECHA_TRANSACCION
       AND t.VALOR_TRANSACCION = m.VALOR_TRANSACCION
 )
-
--- Ordenamos para revisión o depuración visual (aunque no afecta el INSERT)
 ORDER BY m.FECHA_TRANSACCION DESC;
