@@ -1,124 +1,41 @@
-WITH ranked_data AS (
-    SELECT  
-        NUMERO_POLIZA,
-        CODIGO_COMPANIA,
-        CODIGO_RAMO_EMISION,
-        NOMBRE_RAMO_EMISION,
-        CODIGO_PRODUCTO,
-        NOMBRE_PRODUCTO,
-        FECHA_EMISION_POLIZA,
-        FECHA_VIGENCIA_POLIZA,
-        FECHA_VENCIMIENTO_POLIZA,
-        FECHA_CANCELACION_POLIZA,
-        FECHA_VIGENCIA_ENDOSO,
-        FECHA_VENCIMIENTO_ENDOSO,
-        ESTADO_NEGOCIO,
-        FORMA_COBRO,
-        CANAL_DESCUENTO,
-        TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
-        NOMBRE_TOMADOR,
-        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        COUNT(*) AS CANTIDAD_REGISTROS,
-        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn
-    FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-    WHERE 
-        VALOR_RECAUDO_MES > 500000
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0        
-        AND FECHA_VIGENCIA_POLIZA >= "2024-01-01"
-        AND FECHA_RECAUDO >= "2024-01-01"        
-        AND CODIGO_RAMO_EMISION IN (46,47,48,49)
-        AND FORMA_COBRO != "CONVENIO"
-    GROUP BY 
-        NUMERO_POLIZA,
-        CODIGO_COMPANIA,
-        CODIGO_RAMO_EMISION,
-        NOMBRE_RAMO_EMISION,
-        CODIGO_PRODUCTO,
-        NOMBRE_PRODUCTO,
-        FECHA_EMISION_POLIZA,
-        FECHA_VIGENCIA_POLIZA,
-        FECHA_VENCIMIENTO_POLIZA,
-        FECHA_CANCELACION_POLIZA,
-        FECHA_VIGENCIA_ENDOSO,
-        FECHA_VENCIMIENTO_ENDOSO,
-        ESTADO_NEGOCIO,
-        FORMA_COBRO,
-        CANAL_DESCUENTO,
-        TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
-        NOMBRE_TOMADOR,
-        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR
-    HAVING 
-        COUNT(*) > 3
-)
-SELECT  
-    NUMERO_POLIZA,
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    ESTADO_NEGOCIO,
-    FORMA_COBRO,
-    CANAL_DESCUENTO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-    CANTIDAD_REGISTROS
-FROM
-    ranked_data
-WHERE
-    rn = 1
-ORDER BY 
-    CANTIDAD_REGISTROS DESC;
-
 
 CREATE ----
 -- Crear o reemplazar la tabla SEG_0061_VISOR_REPO con la fecha de alerta
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO AS
-WITH ranked_data AS (
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO AS  # Crea o reemplaza la tabla destino donde se almacenarán las alertas generadas
+
+WITH ranked_data AS (  # Se define una CTE (Common Table Expression) llamada ranked_data para organizar los datos relevantes
     SELECT  
-        NUMERO_POLIZA,
-        CODIGO_COMPANIA,
-        CODIGO_RAMO_EMISION,
-        NOMBRE_RAMO_EMISION,
-        CODIGO_PRODUCTO,
-        NOMBRE_PRODUCTO,
-        FECHA_EMISION_POLIZA,
-        FECHA_VIGENCIA_POLIZA,
-        FECHA_VENCIMIENTO_POLIZA,
-        FECHA_CANCELACION_POLIZA,
-        FECHA_VIGENCIA_ENDOSO,
-        FECHA_VENCIMIENTO_ENDOSO,
-        ESTADO_NEGOCIO,
-        FORMA_COBRO,
-        CANAL_DESCUENTO,
-        TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
-        NOMBRE_TOMADOR,
-        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,
-        SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,
-        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn
+        NUMERO_POLIZA,  # Número único de la póliza
+        CODIGO_COMPANIA,  # Código que identifica la compañía aseguradora
+        CODIGO_RAMO_EMISION,  # Código del ramo bajo el cual se emite la póliza
+        NOMBRE_RAMO_EMISION,  # Nombre descriptivo del ramo de emisión
+        CODIGO_PRODUCTO,  # Código del producto asociado a la póliza
+        NOMBRE_PRODUCTO,  # Nombre del producto asegurador
+        FECHA_EMISION_POLIZA,  # Fecha en que se emitió la póliza
+        FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de la vigencia de la póliza
+        FECHA_VENCIMIENTO_POLIZA,  # Fecha de finalización de la vigencia de la póliza
+        FECHA_CANCELACION_POLIZA,  # Fecha en la que se canceló la póliza (si aplica)
+        FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio de vigencia del endoso
+        FECHA_VENCIMIENTO_ENDOSO,  # Fecha de vencimiento del endoso
+        ESTADO_NEGOCIO,  # Estado del negocio (activo, cancelado, etc.)
+        FORMA_COBRO,  # Forma en la que se realiza el cobro (ej: mensual, anual, etc.)
+        CANAL_DESCUENTO,  # Canal por el cual se aplicó un descuento, si aplica
+        TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        NUMERO_DOCUMENTO_TOMADOR,  # Número de identificación del tomador
+        NOMBRE_TOMADOR,  # Nombre completo del tomador
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
+        COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,  # Conteo de los registros de ahorro extra
+        SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,  # Suma total del valor absoluto de los ahorros extra
+        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Número de fila para seleccionar al tomador más representativo
     FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`  # Tabla de origen que contiene los registros de recaudos
     WHERE 
-        ABS(VALOR_AHORRO_EXTRA) > 500000
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0        
-        AND FECHA_VIGENCIA_POLIZA >= "2024-01-01"
-        AND FECHA_RECAUDO >= "2024-01-01"        
-        AND CODIGO_RAMO_EMISION IN (46,47,48,49)
+        ABS(VALOR_AHORRO_EXTRA) > 500000  # Se filtran aportes extraordinarios con un valor superior a $500.000
+        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90  # El recaudo ocurrió dentro de los primeros 90 días del endoso
+        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0  # El recaudo no ocurrió antes de la vigencia del endoso
+        AND FECHA_VIGENCIA_POLIZA >= "2024-01-01"  # Solo se incluyen pólizas vigentes a partir del 1 de enero de 2024
+        AND FECHA_RECAUDO >= "2024-01-01"  # Solo se consideran recaudos a partir del 1 de enero de 2024
+        AND CODIGO_RAMO_EMISION IN (46,47,48,49)  # Solo se consideran ciertos ramos específicos (46 a 49)
     GROUP BY 
         NUMERO_POLIZA,
         CODIGO_COMPANIA,
@@ -139,79 +56,84 @@ WITH ranked_data AS (
         NUMERO_DOCUMENTO_TOMADOR,
         NOMBRE_TOMADOR,
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        VALOR_AHORRO_EXTRA
+        VALOR_AHORRO_EXTRA  # Se agrupan los datos por todos estos campos para poder aplicar funciones de agregación
     HAVING 
-        COUNT(*) >= 3
+        COUNT(*) >= 3  # Se filtran aquellos tomadores con 3 o más aportes extraordinarios
 )
+
 SELECT  
-    NUMERO_POLIZA,
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    ESTADO_NEGOCIO,
-    FORMA_COBRO,
-    CANAL_DESCUENTO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-    CANTIDAD_REGISTROS,
-    SUM_VALOR_AHORRO_EXTRA,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA  -- Agregar la fecha de alerta
+    NUMERO_POLIZA,  # Se retorna el número de póliza del resultado de la CTE
+    CODIGO_COMPANIA,  # Código de la compañía aseguradora
+    CODIGO_RAMO_EMISION,  # Código del ramo
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    FECHA_EMISION_POLIZA,  # Fecha en que se emitió la póliza
+    FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fecha de fin de vigencia
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación si aplica
+    FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+    ESTADO_NEGOCIO,  # Estado del negocio
+    FORMA_COBRO,  # Modalidad de cobro
+    CANAL_DESCUENTO,  # Canal de descuento
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
+    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+    NOMBRE_TOMADOR,  # Nombre del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    CANTIDAD_REGISTROS,  # Cantidad de aportes extraordinarios registrados
+    SUM_VALOR_AHORRO_EXTRA,  # Valor total de los aportes extraordinarios
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes de generación de la alerta en formato YYYY-MM
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha actual como fecha de alerta
 FROM
-    ranked_data
+    ranked_data  # Se seleccionan los datos procesados desde la CTE
 WHERE
-    rn = 1
+    rn = 1  # Solo se toma el primer registro por cada tomador (más representativo)
 ORDER BY 
-    CANTIDAD_REGISTROS DESC;
+    CANTIDAD_REGISTROS DESC;  # Se ordena la salida desde el tomador con más registros
+
+
+
 
 
 
 INSERT ----------
 -- Insertar solo los registros nuevos en la tabla SEG_0061_VISOR_REPO
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO
-WITH ranked_data AS (
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO  # Inserta nuevos registros en la tabla SEG_0061_VISOR_REPO, evitando duplicados
+
+WITH ranked_data AS (  # Se define una CTE llamada ranked_data que agrupa y clasifica la información necesaria
     SELECT  
-        NUMERO_POLIZA,
-        CODIGO_COMPANIA,
-        CODIGO_RAMO_EMISION,
-        NOMBRE_RAMO_EMISION,
-        CODIGO_PRODUCTO,
-        NOMBRE_PRODUCTO,
-        FECHA_EMISION_POLIZA,
-        FECHA_VIGENCIA_POLIZA,
-        FECHA_VENCIMIENTO_POLIZA,
-        FECHA_CANCELACION_POLIZA,
-        FECHA_VIGENCIA_ENDOSO,
-        FECHA_VENCIMIENTO_ENDOSO,
-        ESTADO_NEGOCIO,
-        FORMA_COBRO,
-        CANAL_DESCUENTO,
-        TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
-        NOMBRE_TOMADOR,
-        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,
-        SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,
-        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn
+        NUMERO_POLIZA,  # Número único que identifica la póliza
+        CODIGO_COMPANIA,  # Código interno de la compañía aseguradora
+        CODIGO_RAMO_EMISION,  # Código del ramo asociado a la emisión de la póliza
+        NOMBRE_RAMO_EMISION,  # Nombre descriptivo del ramo
+        CODIGO_PRODUCTO,  # Código interno del producto asegurado
+        NOMBRE_PRODUCTO,  # Nombre del producto asociado a la póliza
+        FECHA_EMISION_POLIZA,  # Fecha de emisión de la póliza
+        FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de la vigencia de la póliza
+        FECHA_VENCIMIENTO_POLIZA,  # Fecha de vencimiento de la póliza
+        FECHA_CANCELACION_POLIZA,  # Fecha en la que fue cancelada la póliza (si aplica)
+        FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio del endoso
+        FECHA_VENCIMIENTO_ENDOSO,  # Fecha de finalización del endoso
+        ESTADO_NEGOCIO,  # Estado actual del negocio (ej: vigente, cancelado)
+        FORMA_COBRO,  # Modalidad de cobro (mensual, anual, etc.)
+        CANAL_DESCUENTO,  # Canal de comercialización con descuento, si aplica
+        TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        NOMBRE_TOMADOR,  # Nombre completo del tomador de la póliza
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
+        COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,  # Cantidad de registros con aportes extraordinarios
+        SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,  # Suma total del valor absoluto de los aportes extraordinarios
+        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Se asigna un número de fila por tomador, priorizando quienes tienen más registros
     FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`  # Tabla de origen con los registros de recaudo diario
     WHERE 
-        ABS(VALOR_AHORRO_EXTRA) > 500000
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90
-        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0        
-        AND FECHA_VIGENCIA_POLIZA >= "2024-01-01"
-        AND FECHA_RECAUDO >= "2024-01-01"        
-        AND CODIGO_RAMO_EMISION IN (46,47,48,49)
+        ABS(VALOR_AHORRO_EXTRA) > 500000  # Se filtran solo los aportes extraordinarios superiores a $500.000
+        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90  # Que hayan ocurrido dentro de los primeros 90 días de vigencia del endoso
+        AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0  # Y que no sean previos a dicha vigencia
+        AND FECHA_VIGENCIA_POLIZA >= "2025-01-01"  # Solo se incluyen pólizas con vigencia desde 2025
+        AND FECHA_RECAUDO >= "2025-01-01"  # Y recaudos ocurridos desde 2025
+        AND CODIGO_RAMO_EMISION IN (46,47,48,49)  # Se filtran los ramos específicos que aplican al producto (ej: ahorro o vida)
     GROUP BY 
         NUMERO_POLIZA,
         CODIGO_COMPANIA,
@@ -232,43 +154,45 @@ WITH ranked_data AS (
         NUMERO_DOCUMENTO_TOMADOR,
         NOMBRE_TOMADOR,
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        VALOR_AHORRO_EXTRA
+        VALOR_AHORRO_EXTRA  # Se agrupan los datos por todos los campos requeridos para aplicar agregaciones
     HAVING 
-        COUNT(*) > 3
+        COUNT(*) > 2  # Solo se consideran casos donde hubo más de dos aportes extraordinarios
 )
+
 -- Insertar solo registros nuevos
 SELECT  
-    NUMERO_POLIZA,
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    ESTADO_NEGOCIO,
-    FORMA_COBRO,
-    CANAL_DESCUENTO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-    CANTIDAD_REGISTROS,
-    SUM_VALOR_AHORRO_EXTRA,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA
+    NUMERO_POLIZA,  # Número de la póliza
+    CODIGO_COMPANIA,  # Código de la compañía
+    CODIGO_RAMO_EMISION,  # Código del ramo
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    FECHA_EMISION_POLIZA,  # Fecha de emisión
+    FECHA_VIGENCIA_POLIZA,  # Inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fin de vigencia
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación (si aplica)
+    FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+    ESTADO_NEGOCIO,  # Estado del negocio
+    FORMA_COBRO,  # Modalidad de cobro
+    CANAL_DESCUENTO,  # Canal con descuento aplicado
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
+    NUMERO_DOCUMENTO_TOMADOR,  # Documento del tomador
+    NOMBRE_TOMADOR,  # Nombre completo del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    CANTIDAD_REGISTROS,  # Cantidad de aportes registrados
+    SUM_VALOR_AHORRO_EXTRA,  # Suma total de aportes extraordinarios
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes de generación de la alerta en formato YYYY-MM
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha actual como fecha de generación de la alerta
 FROM
-    ranked_data
+    ranked_data  # Fuente: los datos procesados y clasificados previamente en la CTE
 WHERE
-    rn = 1
-    AND NOT EXISTS (
+    rn = 1  # Solo se selecciona el primer registro más representativo por tomador
+    AND NOT EXISTS (  # Se asegura que el registro no haya sido insertado previamente
         SELECT 1
-        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO t
-        WHERE t.NUMERO_POLIZA = ranked_data.NUMERO_POLIZA
-        AND t.NUMERO_DOCUMENTO_TOMADOR = ranked_data.NUMERO_DOCUMENTO_TOMADOR
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO t  # Tabla destino ya existente
+        WHERE t.NUMERO_POLIZA = ranked_data.NUMERO_POLIZA  # Verifica que no exista una coincidencia por número de póliza
+        AND t.NUMERO_DOCUMENTO_TOMADOR = ranked_data.NUMERO_DOCUMENTO_TOMADOR  # Y por número de documento del tomador
     );
+
 
