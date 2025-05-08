@@ -1,172 +1,184 @@
-
 -- Crear o reemplazar la tabla SEG_0070_VISOR_REPO con la fecha de alerta
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO AS
-WITH CTE AS (
-    SELECT distinct
-        a.CODIGO_COMPANIA,
-        a.CODIGO_RAMO_EMISION,
-        a.NOMBRE_RAMO_EMISION,
-        a.CODIGO_PRODUCTO,
-        a.NOMBRE_PRODUCTO,
-        a.CODIGO_LOCALIDAD,
-        a.CLAVE_AGENTE,
-        a.NUMERO_POLIZA,
-        a.NUMERO_POLIZA_ANTERIOR,
-        a.FECHA_EMISION_POLIZA,
-        a.FECHA_VIGENCIA_POLIZA,
-        a.FECHA_VENCIMIENTO_POLIZA,
-        a.FECHA_CANCELACION_POLIZA,
-        a.FECHA_VIGENCIA_ENDOSO,
-        a.FECHA_VENCIMIENTO_ENDOSO,
-        a.ESTADO_NEGOCIO,
-        a.FORMA_COBRO,
-        a.CANAL_DESCUENTO,
-        a.TIPO_DOCUMENTO_TOMADOR,
-        a.NUMERO_DOCUMENTO_TOMADOR,
-        a.NOMBRE_TOMADOR,
-        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        c.PUBLICAMENTE_EXPUESTA,
-        a.VALOR_AHORRO_EXTRA,
-        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR,a.TIPO_DOCUMENTO_TOMADOR,a.VALOR_RECAUDO_MES ORDER BY a.FECHA_RECAUDO DESC) AS rn
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO AS  # Crea o reemplaza la tabla que almacenará alertas por aportes extraordinarios de personas expuestas públicamente (PEP)
+
+WITH CTE AS (  # Se define una CTE (Common Table Expression) que selecciona y filtra los datos relevantes
+    SELECT distinct  # Elimina duplicados exactos del conjunto de datos
+        a.CODIGO_COMPANIA,  # Código de la compañía aseguradora
+        a.CODIGO_RAMO_EMISION,  # Código del ramo de emisión de la póliza
+        a.NOMBRE_RAMO_EMISION,  # Nombre del ramo de emisión
+        a.CODIGO_PRODUCTO,  # Código del producto asegurado
+        a.NOMBRE_PRODUCTO,  # Nombre del producto asegurado
+        a.CODIGO_LOCALIDAD,  # Código de la localidad asociada
+        a.CLAVE_AGENTE,  # Identificador del agente que gestionó la póliza
+        a.NUMERO_POLIZA,  # Número único de la póliza actual
+        a.NUMERO_POLIZA_ANTERIOR,  # Número de la póliza anterior (si aplica, en caso de renovación)
+        a.FECHA_EMISION_POLIZA,  # Fecha en que se emitió la póliza
+        a.FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de vigencia de la póliza
+        a.FECHA_VENCIMIENTO_POLIZA,  # Fecha de vencimiento de la póliza
+        a.FECHA_CANCELACION_POLIZA,  # Fecha de cancelación de la póliza, si aplica
+        a.FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso (si existe)
+        a.FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+        a.ESTADO_NEGOCIO,  # Estado actual del negocio (ej: activo, cancelado)
+        a.FORMA_COBRO,  # Modalidad de cobro (ej: mensual, recaudo directo)
+        a.CANAL_DESCUENTO,  # Canal por el cual se aplicó descuento comercial
+        a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.NOMBRE_TOMADOR,  # Nombre completo del tomador
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
+        c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es Persona Expuesta Públicamente (PEP)
+        a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
+        ROW_NUMBER() OVER (
+            PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
+            ORDER BY a.FECHA_RECAUDO DESC
+        ) AS rn  # Número de fila para seleccionar el recaudo más reciente por tomador
     FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla con los datos de producción y recaudos
     LEFT JOIN 
-        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con información de terceros (clientes)
     ON 
-        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO  # Unión por número de documento
     LEFT JOIN
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  # Tabla con información adicional del cliente natural
     ON 
-        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-        AND b.KEY_ID = c.KEY_ID
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO  # Unión por tipo de documento
+        AND b.KEY_ID = c.KEY_ID  # Unión por identificador único interno
     WHERE 
-        ABS(a.VALOR_AHORRO_EXTRA) > 653223       
-        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
-        AND a.FECHA_RECAUDO >= "2024-01-01"        
-        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
-        AND a.TIPO_REGISTRO = 'RECAUDO'
-        AND c.PUBLICAMENTE_EXPUESTA = 'S'
+        ABS(a.VALOR_AHORRO_EXTRA) > 653223  # Se filtran solo aportes extraordinarios superiores a $653.223
+        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"  # Se seleccionan pólizas vigentes a partir del 2024
+        AND a.FECHA_RECAUDO >= "2024-01-01"  # Recaudos realizados desde 2024 en adelante
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Solo se consideran ciertos ramos específicos (vida, ahorro, etc.)
+        AND a.TIPO_REGISTRO = 'RECAUDO'  # Solo se procesan registros que sean de tipo recaudo
+        AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Solo se incluyen personas expuestas públicamente (PEP)
 )
-SELECT distinct
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    CODIGO_LOCALIDAD,
-    CLAVE_AGENTE,
-    NUMERO_POLIZA,
-    NUMERO_POLIZA_ANTERIOR,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    ESTADO_NEGOCIO,
-    FORMA_COBRO,
-    CANAL_DESCUENTO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-    PUBLICAMENTE_EXPUESTA,
-    VALOR_AHORRO_EXTRA,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA  -- Agregar la fecha de alerta
+
+SELECT distinct  # Se seleccionan registros únicos del conjunto filtrado
+    CODIGO_COMPANIA,  # Código de la compañía aseguradora
+    CODIGO_RAMO_EMISION,  # Código del ramo de emisión
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    CODIGO_LOCALIDAD,  # Localidad donde aplica la póliza
+    CLAVE_AGENTE,  # Clave o identificador del agente
+    NUMERO_POLIZA,  # Número de la póliza actual
+    NUMERO_POLIZA_ANTERIOR,  # Póliza anterior (renovación)
+    FECHA_EMISION_POLIZA,  # Fecha de emisión
+    FECHA_VIGENCIA_POLIZA,  # Inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fin de vigencia
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación
+    FECHA_VIGENCIA_ENDOSO,  # Inicio del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin del endoso
+    ESTADO_NEGOCIO,  # Estado del negocio
+    FORMA_COBRO,  # Forma de cobro
+    CANAL_DESCUENTO,  # Canal de descuento
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
+    NUMERO_DOCUMENTO_TOMADOR,  # Número de documento
+    NOMBRE_TOMADOR,  # Nombre del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    PUBLICAMENTE_EXPUESTA,  # Indicador si el tomador es PEP
+    VALOR_AHORRO_EXTRA,  # Valor del ahorro extra que genera la alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Fecha de alerta en formato año-mes
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha actual como fecha de generación de alerta
 FROM 
-    CTE
+    CTE  # Se extraen los registros generados en la CTE
 WHERE 
-    rn = 1;
+    rn = 1;  # Se selecciona solo el recaudo más reciente por cliente y tipo de documento
+
+
+
+
 
 
 
 INSERT ---
 -- Insertar solo registros nuevos en la tabla SEG_0070_VISOR_REPO
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO
-WITH CTE AS (
-    SELECT distinct
-        a.CODIGO_COMPANIA,
-        a.CODIGO_RAMO_EMISION,
-        a.NOMBRE_RAMO_EMISION,
-        a.CODIGO_PRODUCTO,
-        a.NOMBRE_PRODUCTO,
-        a.CODIGO_LOCALIDAD,
-        a.CLAVE_AGENTE,
-        a.NUMERO_POLIZA,
-        a.NUMERO_POLIZA_ANTERIOR,
-        a.FECHA_EMISION_POLIZA,
-        a.FECHA_VIGENCIA_POLIZA,
-        a.FECHA_VENCIMIENTO_POLIZA,
-        a.FECHA_CANCELACION_POLIZA,
-        a.FECHA_VIGENCIA_ENDOSO,
-        a.FECHA_VENCIMIENTO_ENDOSO,
-        a.ESTADO_NEGOCIO,
-        a.FORMA_COBRO,
-        a.CANAL_DESCUENTO,
-        a.TIPO_DOCUMENTO_TOMADOR,
-        a.NUMERO_DOCUMENTO_TOMADOR,
-        a.NOMBRE_TOMADOR,
-        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-        c.PUBLICAMENTE_EXPUESTA,
-        a.VALOR_AHORRO_EXTRA,
-        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR,a.TIPO_DOCUMENTO_TOMADOR,a.VALOR_RECAUDO_MES ORDER BY a.FECHA_RECAUDO DESC) AS rn
-    FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
-    LEFT JOIN 
-        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b
-    ON 
-        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
-    LEFT JOIN
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
-    ON 
-        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-        AND b.KEY_ID = c.KEY_ID
-    WHERE 
-        ABS(a.VALOR_AHORRO_EXTRA) > 653223     
-        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"
-        AND a.FECHA_RECAUDO >= "2024-01-01"        
-        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
-        AND a.TIPO_REGISTRO = 'RECAUDO'
-        AND c.PUBLICAMENTE_EXPUESTA = 'S'
-)
-SELECT distinct
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    CODIGO_LOCALIDAD,
-    CLAVE_AGENTE,
-    NUMERO_POLIZA,
-    NUMERO_POLIZA_ANTERIOR,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    ESTADO_NEGOCIO,
-    FORMA_COBRO,
-    CANAL_DESCUENTO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
-    PUBLICAMENTE_EXPUESTA,
-    VALOR_AHORRO_EXTRA,
-    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA  -- Agregar la fecha de alerta
-FROM 
-    CTE
-WHERE 
-    rn = 1
-    AND NOT EXISTS (
-        SELECT 1
-        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO existing
-        WHERE existing.NUMERO_DOCUMENTO_TOMADOR = CTE.NUMERO_DOCUMENTO_TOMADOR
-          AND existing.NUMERO_POLIZA = CTE.NUMERO_POLIZA
-    );
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO  # Inserta nuevos registros con criterios de alerta relacionados con clientes expuestos públicamente
 
+WITH CTE AS (  # Se define una CTE (Common Table Expression) que consolida y filtra los datos base
+    SELECT distinct  # Elimina duplicados exactos
+        a.CODIGO_COMPANIA,  # Código de la compañía aseguradora
+        a.CODIGO_RAMO_EMISION,  # Código del ramo de emisión
+        a.NOMBRE_RAMO_EMISION,  # Nombre del ramo de emisión
+        a.CODIGO_PRODUCTO,  # Código del producto asociado
+        a.NOMBRE_PRODUCTO,  # Nombre del producto asegurado
+        a.CODIGO_LOCALIDAD,  # Código de la localidad donde se emitió la póliza
+        a.CLAVE_AGENTE,  # Identificador del agente asociado a la póliza
+        a.NUMERO_POLIZA,  # Número único de la póliza
+        a.NUMERO_POLIZA_ANTERIOR,  # Número de póliza anterior (si aplica, renovación)
+        a.FECHA_EMISION_POLIZA,  # Fecha en que fue emitida la póliza
+        a.FECHA_VIGENCIA_POLIZA,  # Inicio de la vigencia de la póliza
+        a.FECHA_VENCIMIENTO_POLIZA,  # Fin de la vigencia de la póliza
+        a.FECHA_CANCELACION_POLIZA,  # Fecha de cancelación (si aplica)
+        a.FECHA_VIGENCIA_ENDOSO,  # Inicio de la vigencia del endoso
+        a.FECHA_VENCIMIENTO_ENDOSO,  # Fin de la vigencia del endoso
+        a.ESTADO_NEGOCIO,  # Estado actual del negocio (activo, cancelado, etc.)
+        a.FORMA_COBRO,  # Modalidad de cobro (ej: débito, convenio, etc.)
+        a.CANAL_DESCUENTO,  # Canal de comercialización con descuento, si aplica
+        a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.NOMBRE_TOMADOR,  # Nombre completo del tomador
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de actividad económica del tomador
+        c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es persona expuesta públicamente (PEP)
+        a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario realizado
+        ROW_NUMBER() OVER (
+            PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
+            ORDER BY a.FECHA_RECAUDO DESC
+        ) AS rn  # Se asigna un número de fila para seleccionar el recaudo más reciente por cliente
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla base con registros de producción y recaudos
+    LEFT JOIN 
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con información de terceros (clientes)
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
+        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO  # Unión por número de documento
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  # Tabla con detalles adicionales del cliente natural
+    ON 
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO  # Unión adicional por tipo de documento
+        AND b.KEY_ID = c.KEY_ID  # Y por KEY_ID (identificador único interno)
+    WHERE 
+        ABS(a.VALOR_AHORRO_EXTRA) > 653223  # Se filtran aportes extraordinarios que superen $653.223
+        AND a.FECHA_VIGENCIA_POLIZA >= "2025-01-01"  # Solo pólizas vigentes desde el 1 de enero de 2025
+        AND a.FECHA_RECAUDO >= "2025-01-01"  # Recaudos registrados desde esa misma fecha
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Se limita a ciertos ramos (posiblemente vida o ahorro)
+        AND a.TIPO_REGISTRO = 'RECAUDO'  # Solo se consideran registros de tipo RECAUDO
+        AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Se filtran solo clientes marcados como públicamente expuestos (PEP)
+)
+
+SELECT distinct  # Se seleccionan registros únicos
+    CODIGO_COMPANIA,  # Código de la compañía
+    CODIGO_RAMO_EMISION,  # Código del ramo
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    CODIGO_LOCALIDAD,  # Localidad asociada a la póliza
+    CLAVE_AGENTE,  # Clave del agente
+    NUMERO_POLIZA,  # Número de póliza
+    NUMERO_POLIZA_ANTERIOR,  # Número anterior si es renovación
+    FECHA_EMISION_POLIZA,  # Fecha de emisión
+    FECHA_VIGENCIA_POLIZA,  # Inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fin de vigencia
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación
+    FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+    ESTADO_NEGOCIO,  # Estado del negocio
+    FORMA_COBRO,  # Forma de cobro
+    CANAL_DESCUENTO,  # Canal de descuento
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento
+    NUMERO_DOCUMENTO_TOMADOR,  # Número de documento
+    NOMBRE_TOMADOR,  # Nombre completo del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    PUBLICAMENTE_EXPUESTA,  # Indicador de persona expuesta públicamente
+    VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes actual en formato YYYY-MM como marca de alerta
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha de ejecución del análisis como fecha de alerta
+FROM 
+    CTE  # Se extrae la información procesada desde la CTE
+WHERE 
+    rn = 1  # Solo se selecciona el recaudo más reciente por cliente
+    AND NOT EXISTS (  # Se evita la inserción de duplicados
+        SELECT 1
+        FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO existing  # Tabla ya existente con registros previos
+        WHERE existing.NUMERO_DOCUMENTO_TOMADOR = CTE.NUMERO_DOCUMENTO_TOMADOR  # Coincidencia por documento
+          AND existing.NUMERO_POLIZA = CTE.NUMERO_POLIZA  # Coincidencia por número de póliza
+    );
