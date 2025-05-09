@@ -1,270 +1,131 @@
-WITH PolizasConFila AS (
-    SELECT 
-        p.CODIGO_COMPANIA,                 
-        p.CODIGO_RAMO_EMISION,             
-        p.NOMBRE_RAMO_EMISION,             
-        p.CODIGO_PRODUCTO,                 
-        p.NOMBRE_PRODUCTO,                 
-        p.CLAVE_AGENTE,                    
-        p.CODIGO_LOCALIDAD,                
-        p.NOMBRE_LOCALIDAD,                
-        p.CODIGO_CANAL,                    
-        p.NOMBRE_CANAL,                    
-        p.NUMERO_SECUENCIA_POLIZA,        
-        p.NUMERO_POLIZA_ANTERIOR,          
-        p.NUMERO_POLIZA,                   
-        p.NUMERO_POLIZA_SIGUIENTE,         
-        p.NUMERO_POLIZA_MADRE,             
-        p.TIPO_DOCUMENTO_TOMADOR,          
-        p.KEY_ID_TOMADOR,                  
-        p.FECHA_INICIO_POLIZA,             
-        p.FECHA_FIN_POLIZA,               
-        p.MARCA_REFERIDO,                  
-        p.FECHA_CORTE,                     
-        p.NOMBRE_PROCESO,                  
-        p.FECHA_PROCESO,                   
-        p.CODIGO_SUBPRODUCTO,              
-        p.NOMBRE_SUBPRODUCTO,              
-        p.FECHA_EMISION_ENDOSO,            
-        p.FECHA_EMISION_ORIGINAL,         
-        l.TIPO_DOCUMENTO,                  
-        l.KEY_ID,                          
-        l.NOMBRES,                         
-        l.OBSERVACIONES,                   
-        l.CODIGO_LISTA,                    
-        l.NOMBRE_LISTA,                    
-        l.FECHA_INICIO,                    
-        l.FECHA_FIN,                       
-        ROW_NUMBER() OVER (
-            PARTITION BY CAST(p.KEY_ID_TOMADOR AS STRING), CAST(p.TIPO_DOCUMENTO_TOMADOR AS STRING)
-            ORDER BY p.FECHA_EMISION_ENDOSO DESC
-        ) AS fila
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
-    INNER JOIN 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-    ON 
-        p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
-        AND p.KEY_ID_TOMADOR = l.KEY_ID
-        AND l.CODIGO_LISTA IN ('23')
-)
-SELECT 
-    p.CODIGO_COMPANIA,                 
-    p.CODIGO_RAMO_EMISION,             
-    p.NOMBRE_RAMO_EMISION,             
-    p.CODIGO_PRODUCTO,                 
-    p.NOMBRE_PRODUCTO,                 
-    p.CLAVE_AGENTE,                    
-    p.CODIGO_LOCALIDAD,                
-    p.NOMBRE_LOCALIDAD,                
-    p.CODIGO_CANAL,                    
-    p.NOMBRE_CANAL,                              
-    p.NUMERO_POLIZA,                           
-    p.NUMERO_POLIZA_MADRE,             
-    p.TIPO_DOCUMENTO_TOMADOR,          
-    p.KEY_ID_TOMADOR,                  
-    p.FECHA_INICIO_POLIZA,             
-    p.FECHA_FIN_POLIZA,                                
-    p.FECHA_CORTE,                                                   
-    p.FECHA_EMISION_ENDOSO,            
-    p.FECHA_EMISION_ORIGINAL,                               
-    l.NOMBRES,                         
-    l.OBSERVACIONES,                   
-    l.CODIGO_LISTA,                    
-    l.NOMBRE_LISTA,
-    tcn.PUBLICAMENTE_EXPUESTA,                                 
-    tcn.SEXO,                          
-    tcn.FEC_NACIMIENTO,               
-    tcn.NACIONALIDAD,                                         
-    tcn.ESTRATO_SOCIAL,               
-    tcn.EMPRESA_TRABAJA,              
-    tcn.CARGO,                         
-    tcn.CONTACTAR_EN,                 
-    tcn.FECHA_ACTUALIZACION,         
-    tcn.VALOR_EGRESOS,                
-    tcn.VALOR_INGRESOS,               
-    tcn.VALOR_ACTIVO,                 
-    tcn.VALOR_PASIVO,                 
-    tcn.VALOR_PATRIMONIO,             
-    tcn.CODIGO_CIIU,                  
-    tcn.ACTIVIDAD_ECONOMICA,         
-    tcn.FUENTE_EMPRESA_TRABAJA,      
-    tcn.FUENTE_INGRESO,               
-    tcn.FECHA_ULTIMO_SALARIO,        
-    tcn.FECHA_INGRESO_EMPRESA,
-    tcn.FECHA_INICIO
-FROM 
-    PolizasConFila p
-INNER JOIN 
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = tcn.KEY_ID
-INNER JOIN 
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = l.KEY_ID
-WHERE 
-    p.fila = 1
-    AND l.CODIGO_LISTA = '23'
-    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'
-    AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
-     AND p.CODIGO_COMPANIA = 3
-     AND tcn.FECHA_INICIO >="2024-10-01"
-ORDER BY 
-    p.FECHA_CORTE DESC;
-
-
 CREATE -----
 
+-- Crear o reemplazar la tabla COM_0312_VISOR_REPO con datos de tomadores en listas restrictivas
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO AS
+
+-- CTE que selecciona la póliza más reciente por tomador en lista restrictiva
 WITH PolizasConFila AS (
     SELECT 
-        p.CODIGO_COMPANIA,                 
-        p.CODIGO_RAMO_EMISION,             
-        p.NOMBRE_RAMO_EMISION,             
-        p.CODIGO_PRODUCTO,                 
-        p.NOMBRE_PRODUCTO,                 
-        p.CLAVE_AGENTE,                    
-        p.CODIGO_LOCALIDAD,                
-        p.NOMBRE_LOCALIDAD,                
-        p.CODIGO_CANAL,                    
-        p.NOMBRE_CANAL,                              
-        p.NUMERO_POLIZA,                           
-        p.NUMERO_POLIZA_MADRE,             
-        p.TIPO_DOCUMENTO_TOMADOR,          
-        p.KEY_ID_TOMADOR,                  
-        p.FECHA_INICIO_POLIZA,             
-        p.FECHA_FIN_POLIZA,                                
-        p.FECHA_CORTE,                                                   
-        p.FECHA_EMISION_ENDOSO,            
-        p.FECHA_EMISION_ORIGINAL,                               
-        l.NOMBRES,                         
-        l.OBSERVACIONES,                   
-        l.CODIGO_LISTA,                    
-        l.NOMBRE_LISTA,
-        tcn.PUBLICAMENTE_EXPUESTA,                                 
-        tcn.SEXO,                          
-        tcn.FEC_NACIMIENTO,               
-        tcn.NACIONALIDAD,                                         
-        tcn.ESTRATO_SOCIAL,               
-        tcn.EMPRESA_TRABAJA,              
-        tcn.CARGO,                         
-        tcn.CONTACTAR_EN,                 
-        tcn.FECHA_ACTUALIZACION,         
-        tcn.VALOR_EGRESOS,                
-        tcn.VALOR_INGRESOS,               
-        tcn.VALOR_ACTIVO,                 
-        tcn.VALOR_PASIVO,                 
-        tcn.VALOR_PATRIMONIO,             
-        tcn.CODIGO_CIIU,                  
-        tcn.ACTIVIDAD_ECONOMICA,         
-        tcn.FUENTE_EMPRESA_TRABAJA,      
-        tcn.FUENTE_INGRESO,               
-        tcn.FECHA_ULTIMO_SALARIO,        
-        tcn.FECHA_INGRESO_EMPRESA,
-        tcn.FECHA_INICIO,
+        -- Información de la póliza
+        p.CODIGO_COMPANIA,                 -- Compañía aseguradora
+        p.CODIGO_RAMO_EMISION,             -- Código del ramo de emisión
+        p.NOMBRE_RAMO_EMISION,             -- Nombre del ramo de emisión
+        p.CODIGO_PRODUCTO,                 -- Código del producto
+        p.NOMBRE_PRODUCTO,                 -- Nombre del producto
+        p.CLAVE_AGENTE,                    -- Clave del agente
+        p.CODIGO_LOCALIDAD,                -- Código de la localidad
+        p.NOMBRE_LOCALIDAD,                -- Nombre de la localidad
+        p.CODIGO_CANAL,                    -- Código del canal comercial
+        p.NOMBRE_CANAL,                    -- Nombre del canal comercial
+        p.NUMERO_POLIZA,                   -- Número de póliza
+        p.NUMERO_POLIZA_MADRE,             -- Número de póliza madre
+        p.TIPO_DOCUMENTO_TOMADOR,          -- Tipo de documento del tomador
+        p.KEY_ID_TOMADOR,                  -- Identificador del tomador
+        p.FECHA_INICIO_POLIZA,             -- Fecha de inicio de la póliza
+        p.FECHA_FIN_POLIZA,                -- Fecha de finalización de la póliza
+        p.FECHA_CORTE,                     -- Fecha de corte
+        p.FECHA_EMISION_ENDOSO,            -- Fecha de emisión del endoso
+        p.FECHA_EMISION_ORIGINAL,          -- Fecha de emisión original de la póliza
+
+        -- Información de la lista restrictiva
+        l.NOMBRES,                         -- Nombres registrados en la lista
+        l.OBSERVACIONES,                   -- Observaciones de la lista
+        l.CODIGO_LISTA,                    -- Código de la lista restrictiva
+        l.NOMBRE_LISTA,                    -- Nombre de la lista restrictiva
+
+        -- Información del cliente natural
+        tcn.PUBLICAMENTE_EXPUESTA,         -- Indicador si es Persona Expuesta Políticamente
+        tcn.SEXO,                          -- Sexo
+        tcn.FEC_NACIMIENTO,                -- Fecha de nacimiento
+        tcn.NACIONALIDAD,                  -- Nacionalidad
+        tcn.ESTRATO_SOCIAL,                -- Estrato social
+        tcn.EMPRESA_TRABAJA,               -- Empresa donde trabaja
+        tcn.CARGO,                         -- Cargo laboral
+        tcn.CONTACTAR_EN,                  -- Medio para contactar
+        tcn.FECHA_ACTUALIZACION,           -- Fecha de última actualización del cliente
+        tcn.VALOR_EGRESOS,                 -- Valor mensual de egresos
+        tcn.VALOR_INGRESOS,                -- Valor mensual de ingresos
+        tcn.VALOR_ACTIVO,                  -- Valor de activos
+        tcn.VALOR_PASIVO,                  -- Valor de pasivos
+        tcn.VALOR_PATRIMONIO,              -- Valor del patrimonio
+        tcn.CODIGO_CIIU,                   -- Código CIIU de actividad económica
+        tcn.ACTIVIDAD_ECONOMICA,           -- Descripción de actividad económica
+        tcn.FUENTE_EMPRESA_TRABAJA,        -- Fuente de verificación de empresa
+        tcn.FUENTE_INGRESO,                -- Fuente de ingresos
+        tcn.FECHA_ULTIMO_SALARIO,          -- Fecha de último salario recibido
+        tcn.FECHA_INGRESO_EMPRESA,         -- Fecha de ingreso a la empresa
+        tcn.FECHA_INICIO,                  -- Fecha de inicio de relación con la empresa
+
+        -- Metadata para alertas
         ROW_NUMBER() OVER (
             PARTITION BY CAST(p.KEY_ID_TOMADOR AS STRING), CAST(p.TIPO_DOCUMENTO_TOMADOR AS STRING)
             ORDER BY p.FECHA_EMISION_ENDOSO DESC
-        ) AS fila, -- Aquí se genera la columna 'fila'
-        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
-        CURRENT_DATE() AS FECHA_ALERTA
+        ) AS fila,                         -- Se asigna un número de fila para obtener la póliza más reciente
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, -- Mes de la alerta
+        CURRENT_DATE() AS FECHA_ALERTA      -- Fecha de ejecución de la alerta
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-    ON 
-        p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
+        ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
         AND p.KEY_ID_TOMADOR = l.KEY_ID
-        AND l.CODIGO_LISTA IN ('23')
+        AND l.CODIGO_LISTA IN ('23')       -- Filtra solo la lista 23 (por ejemplo, listas restrictivas internacionales)
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-    ON 
-        p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
+        ON p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
         AND p.KEY_ID_TOMADOR = tcn.KEY_ID
     WHERE 
-        p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
-        AND p.CODIGO_COMPANIA = 3
-        AND tcn.FECHA_INICIO >= "2024-10-01"
+        p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza debe estar vigente
+        AND p.CODIGO_COMPANIA = 3                 -- Compañía específica (por ejemplo, Capitalizadora)
+        AND tcn.FECHA_INICIO >= "2024-10-01"      -- Clientes vinculados a partir de octubre de 2024
 )
+
+-- Selección final de los registros para crear la tabla
 SELECT 
-    p.CODIGO_COMPANIA,                 
-    p.CODIGO_RAMO_EMISION,             
-    p.NOMBRE_RAMO_EMISION,             
-    p.CODIGO_PRODUCTO,                 
-    p.NOMBRE_PRODUCTO,                 
-    p.CLAVE_AGENTE,                    
-    p.CODIGO_LOCALIDAD,                
-    p.NOMBRE_LOCALIDAD,                
-    p.CODIGO_CANAL,                    
-    p.NOMBRE_CANAL,                              
-    p.NUMERO_POLIZA,                           
-    p.NUMERO_POLIZA_MADRE,             
-    p.TIPO_DOCUMENTO_TOMADOR,          
-    p.KEY_ID_TOMADOR,                  
-    p.FECHA_INICIO_POLIZA,             
-    p.FECHA_FIN_POLIZA,                                
-    p.FECHA_CORTE,                                                   
-    p.FECHA_EMISION_ENDOSO,            
-    p.FECHA_EMISION_ORIGINAL,                               
-    l.NOMBRES,                         
-    l.OBSERVACIONES,                   
-    l.CODIGO_LISTA,                    
-    l.NOMBRE_LISTA,
-    tcn.PUBLICAMENTE_EXPUESTA,                                 
-    tcn.SEXO,                          
-    tcn.FEC_NACIMIENTO,               
-    tcn.NACIONALIDAD,                                         
-    tcn.ESTRATO_SOCIAL,               
-    tcn.EMPRESA_TRABAJA,              
-    tcn.CARGO,                         
-    tcn.CONTACTAR_EN,                 
-    tcn.FECHA_ACTUALIZACION,         
-    tcn.VALOR_EGRESOS,                
-    tcn.VALOR_INGRESOS,               
-    tcn.VALOR_ACTIVO,                 
-    tcn.VALOR_PASIVO,                 
-    tcn.VALOR_PATRIMONIO,             
-    tcn.CODIGO_CIIU,                  
-    tcn.ACTIVIDAD_ECONOMICA,         
-    tcn.FUENTE_EMPRESA_TRABAJA,      
-    tcn.FUENTE_INGRESO,               
-    tcn.FECHA_ULTIMO_SALARIO,        
-    tcn.FECHA_INGRESO_EMPRESA,
-    tcn.FECHA_INICIO,
-    FECHA_ALERTA_MES,
-    p.FECHA_ALERTA
+    -- Selecciona todos los campos requeridos para alertas de cumplimiento
+    p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
+    p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE,
+    p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL, l.NOMBRES, l.OBSERVACIONES,
+    l.CODIGO_LISTA, l.NOMBRE_LISTA, tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO,
+    tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL, tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN,
+    tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS, tcn.VALOR_INGRESOS, tcn.VALOR_ACTIVO,
+    tcn.VALOR_PASIVO, tcn.VALOR_PATRIMONIO, tcn.CODIGO_CIIU, tcn.ACTIVIDAD_ECONOMICA,
+    tcn.FUENTE_EMPRESA_TRABAJA, tcn.FUENTE_INGRESO, tcn.FECHA_ULTIMO_SALARIO,
+    tcn.FECHA_INGRESO_EMPRESA, tcn.FECHA_INICIO, FECHA_ALERTA_MES, p.FECHA_ALERTA
 FROM 
     PolizasConFila p
 INNER JOIN 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = tcn.KEY_ID
+    ON p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = tcn.KEY_ID
 INNER JOIN 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = l.KEY_ID
+    ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = l.KEY_ID
 WHERE 
-    p.fila = 1
+    p.fila = 1  -- Solo se toma el registro más reciente por tomador
     AND l.CODIGO_LISTA = '23'
-    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'
+    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'  -- Solo si no es persona expuesta públicamente
     AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
     AND p.CODIGO_COMPANIA = 3
     AND tcn.FECHA_INICIO >= "2024-10-01"
-    AND p.NOMBRE_PRODUCTO != "SOAT"
+    AND p.NOMBRE_PRODUCTO != "SOAT"  -- Se excluye el producto SOAT
 ORDER BY 
-    p.FECHA_CORTE DESC;
+    p.FECHA_CORTE DESC;  -- Ordena para priorizar los registros con corte más reciente
+
+
+
+
+
+
 
 
 
 INSERT ----
-
+-- Insertar registros nuevos en la tabla COM_0312_VISOR_REPO
 INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO` 
-    (CODIGO_COMPANIA, CODIGO_RAMO_EMISION, NOMBRE_RAMO_EMISION, CODIGO_PRODUCTO, 
+(
+    CODIGO_COMPANIA, CODIGO_RAMO_EMISION, NOMBRE_RAMO_EMISION, CODIGO_PRODUCTO, 
     NOMBRE_PRODUCTO, CLAVE_AGENTE, CODIGO_LOCALIDAD, NOMBRE_LOCALIDAD, CODIGO_CANAL, 
     NOMBRE_CANAL, NUMERO_POLIZA, NUMERO_POLIZA_MADRE, TIPO_DOCUMENTO_TOMADOR, 
     KEY_ID_TOMADOR, FECHA_INICIO_POLIZA, FECHA_FIN_POLIZA, FECHA_CORTE, FECHA_EMISION_ENDOSO, 
@@ -272,145 +133,75 @@ INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
     SEXO, FEC_NACIMIENTO, NACIONALIDAD, ESTRATO_SOCIAL, EMPRESA_TRABAJA, CARGO, CONTACTAR_EN, 
     FECHA_ACTUALIZACION, VALOR_EGRESOS, VALOR_INGRESOS, VALOR_ACTIVO, VALOR_PASIVO, VALOR_PATRIMONIO, 
     CODIGO_CIIU, ACTIVIDAD_ECONOMICA, FUENTE_EMPRESA_TRABAJA, FUENTE_INGRESO, FECHA_ULTIMO_SALARIO, 
-    FECHA_INGRESO_EMPRESA, FECHA_INICIO, FECHA_ALERTA_MES,FECHA_ALERTA)
+    FECHA_INGRESO_EMPRESA, FECHA_INICIO, FECHA_ALERTA_MES, FECHA_ALERTA
+)
+
+-- CTE que prepara las pólizas que están asociadas a personas en listas restrictivas (código 23)
 WITH PolizasConFila AS (
     SELECT 
-        p.CODIGO_COMPANIA,                 
-        p.CODIGO_RAMO_EMISION,             
-        p.NOMBRE_RAMO_EMISION,             
-        p.CODIGO_PRODUCTO,                 
-        p.NOMBRE_PRODUCTO,                 
-        p.CLAVE_AGENTE,                    
-        p.CODIGO_LOCALIDAD,                
-        p.NOMBRE_LOCALIDAD,                
-        p.CODIGO_CANAL,                    
-        p.NOMBRE_CANAL,                              
-        p.NUMERO_POLIZA,                            
-        p.NUMERO_POLIZA_MADRE,             
-        p.TIPO_DOCUMENTO_TOMADOR,          
-        p.KEY_ID_TOMADOR,                   
-        p.FECHA_INICIO_POLIZA,             
-        p.FECHA_FIN_POLIZA,                                
-        p.FECHA_CORTE,                                                    
-        p.FECHA_EMISION_ENDOSO,            
-        p.FECHA_EMISION_ORIGINAL,                               
-        l.NOMBRES,                         
-        l.OBSERVACIONES,                   
-        l.CODIGO_LISTA,                    
-        l.NOMBRE_LISTA,
-        tcn.PUBLICAMENTE_EXPUESTA,                                 
-        tcn.SEXO,                          
-        tcn.FEC_NACIMIENTO,               
-        tcn.NACIONALIDAD,                                         
-        tcn.ESTRATO_SOCIAL,               
-        tcn.EMPRESA_TRABAJA,              
-        tcn.CARGO,                         
-        tcn.CONTACTAR_EN,                 
-        tcn.FECHA_ACTUALIZACION,         
-        tcn.VALOR_EGRESOS,                
-        tcn.VALOR_INGRESOS,               
-        tcn.VALOR_ACTIVO,                 
-        tcn.VALOR_PASIVO,                 
-        tcn.VALOR_PATRIMONIO,             
-        tcn.CODIGO_CIIU,                  
-        tcn.ACTIVIDAD_ECONOMICA,          
-        tcn.FUENTE_EMPRESA_TRABAJA,      
-        tcn.FUENTE_INGRESO,               
-        tcn.FECHA_ULTIMO_SALARIO,        
-        tcn.FECHA_INGRESO_EMPRESA,
-        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-        tcn.FECHA_INICIO,
+        p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
+        p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE, 
+        p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+        l.NOMBRES, l.OBSERVACIONES, l.CODIGO_LISTA, l.NOMBRE_LISTA,
+        tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO, tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL,
+        tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN, tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS,
+        tcn.VALOR_INGRESOS, tcn.VALOR_ACTIVO, tcn.VALOR_PASIVO, tcn.VALOR_PATRIMONIO, tcn.CODIGO_CIIU,
+        tcn.ACTIVIDAD_ECONOMICA, tcn.FUENTE_EMPRESA_TRABAJA, tcn.FUENTE_INGRESO,
+        tcn.FECHA_ULTIMO_SALARIO, tcn.FECHA_INGRESO_EMPRESA, tcn.FECHA_INICIO,
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  -- Mes de generación de alerta
         ROW_NUMBER() OVER (
             PARTITION BY CAST(p.KEY_ID_TOMADOR AS STRING), CAST(p.TIPO_DOCUMENTO_TOMADOR AS STRING)
             ORDER BY p.FECHA_EMISION_ENDOSO DESC
-        ) AS fila, -- Aquí se genera la columna 'fila'
-        CURRENT_DATE() AS FECHA_ALERTA
+        ) AS fila,  -- Identifica la fila más reciente por tomador
+        CURRENT_DATE() AS FECHA_ALERTA  -- Fecha exacta de generación de la alerta
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-    ON 
-        p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
-        AND p.KEY_ID_TOMADOR = l.KEY_ID
-        AND l.CODIGO_LISTA IN ('23')
+        ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = l.KEY_ID
+        AND l.CODIGO_LISTA IN ('23')  -- Lista restrictiva específica (por ejemplo: sanciones internacionales)
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-    ON 
-        p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
-        AND p.KEY_ID_TOMADOR = tcn.KEY_ID
+        ON p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = tcn.KEY_ID
     WHERE 
-        p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
-        AND p.CODIGO_COMPANIA = 3
-        AND tcn.FECHA_INICIO >= "2024-10-01"
-        AND p.NOMBRE_PRODUCTO != "SOAT"
+        p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza aún está vigente
+        AND p.CODIGO_COMPANIA = 3  -- Compañía específica
+        AND tcn.FECHA_INICIO >= "2024-10-01"  -- Fecha de inicio de cliente reciente
+        AND p.NOMBRE_PRODUCTO != "SOAT"  -- Se excluyen productos SOAT
 )
+
+-- Selección de los datos depurados para insertar
 SELECT 
-    p.CODIGO_COMPANIA,                 
-    p.CODIGO_RAMO_EMISION,             
-    p.NOMBRE_RAMO_EMISION,             
-    p.CODIGO_PRODUCTO,                 
-    p.NOMBRE_PRODUCTO,                 
-    p.CLAVE_AGENTE,                    
-    p.CODIGO_LOCALIDAD,                
-    p.NOMBRE_LOCALIDAD,                
-    p.CODIGO_CANAL,                    
-    p.NOMBRE_CANAL,                              
-    p.NUMERO_POLIZA,                            
-    p.NUMERO_POLIZA_MADRE,             
-    p.TIPO_DOCUMENTO_TOMADOR,          
-    p.KEY_ID_TOMADOR,                   
-    p.FECHA_INICIO_POLIZA,             
-    p.FECHA_FIN_POLIZA,                                
-    p.FECHA_CORTE,                                                    
-    p.FECHA_EMISION_ENDOSO,            
-    p.FECHA_EMISION_ORIGINAL,                               
-    l.NOMBRES,                         
-    l.OBSERVACIONES,                   
-    l.CODIGO_LISTA,                    
-    l.NOMBRE_LISTA,
-    tcn.PUBLICAMENTE_EXPUESTA,                                 
-    tcn.SEXO,                          
-    tcn.FEC_NACIMIENTO,               
-    tcn.NACIONALIDAD,                                         
-    tcn.ESTRATO_SOCIAL,               
-    tcn.EMPRESA_TRABAJA,              
-    tcn.CARGO,                         
-    tcn.CONTACTAR_EN,                 
-    tcn.FECHA_ACTUALIZACION,         
-    tcn.VALOR_EGRESOS,                
-    tcn.VALOR_INGRESOS,               
-    tcn.VALOR_ACTIVO,                 
-    tcn.VALOR_PASIVO,                 
-    tcn.VALOR_PATRIMONIO,             
-    tcn.CODIGO_CIIU,                  
-    tcn.ACTIVIDAD_ECONOMICA,          
-    tcn.FUENTE_EMPRESA_TRABAJA,      
-    tcn.FUENTE_INGRESO,               
-    tcn.FECHA_ULTIMO_SALARIO,        
-    tcn.FECHA_INGRESO_EMPRESA,
-    tcn.FECHA_INICIO,
-    FECHA_ALERTA_MES,
-    p.FECHA_ALERTA
+    p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
+    p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE,
+    p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL, l.NOMBRES, l.OBSERVACIONES,
+    l.CODIGO_LISTA, l.NOMBRE_LISTA, tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO,
+    tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL, tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN,
+    tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS, tcn.VALOR_INGRESOS, tcn.VALOR_ACTIVO,
+    tcn.VALOR_PASIVO, tcn.VALOR_PATRIMONIO, tcn.CODIGO_CIIU, tcn.ACTIVIDAD_ECONOMICA,
+    tcn.FUENTE_EMPRESA_TRABAJA, tcn.FUENTE_INGRESO, tcn.FECHA_ULTIMO_SALARIO,
+    tcn.FECHA_INGRESO_EMPRESA, tcn.FECHA_INICIO, p.FECHA_ALERTA_MES, p.FECHA_ALERTA
 FROM 
     PolizasConFila p
 INNER JOIN 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = tcn.KEY_ID
+    ON p.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = tcn.KEY_ID
 INNER JOIN 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
-ON 
-    p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = l.KEY_ID
+    ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = l.KEY_ID
 WHERE 
-    p.fila = 1
-    AND l.CODIGO_LISTA = '23'
-    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'
-    AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
-    AND p.CODIGO_COMPANIA = 3
-    AND tcn.FECHA_INICIO >= "2024-10-01"
+    p.fila = 1  -- Solo se toma el registro más reciente por tomador
+    AND l.CODIGO_LISTA = '23'  -- Verificación lista 23 (ej. OFAC, ONU, etc.)
+    AND tcn.PUBLICAMENTE_EXPUESTA != 'S'  -- El cliente no debe estar marcado como PEP
+    AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza debe seguir vigente
+    AND p.CODIGO_COMPANIA = 3  -- Compañía específica
+    AND tcn.FECHA_INICIO >= "2024-10-01"  -- Clientes activos recientes
     AND NOT EXISTS (
+        -- Se evita duplicar registros ya existentes para misma póliza y tomador en el mismo mes de alerta
         SELECT 1
         FROM `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO` repo
         WHERE repo.NUMERO_POLIZA = p.NUMERO_POLIZA
@@ -419,4 +210,4 @@ WHERE
           AND repo.FECHA_ALERTA_MES = p.FECHA_ALERTA_MES
     )
 ORDER BY 
-    p.FECHA_CORTE DESC;
+    p.FECHA_CORTE DESC;  -- Se priorizan los registros con corte más reciente
