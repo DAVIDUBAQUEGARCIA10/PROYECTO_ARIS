@@ -1,0 +1,11 @@
+SELECT 
+    n.TIPDOC_CODIGO,                -- Tipo de documento del tercero
+    n.NUMERO_DOCUMENTO,            -- Número de documento del tercero
+    pt.PRF_CODIGO,                 -- Código de la profesión (FK hacia tabla profesiones)
+    p.DESCRIPCION                  -- Descripción de la profesión
+FROM NATURALES n
+LEFT JOIN profesiones_tercero pt 
+    ON n.SECUENCIA = pt.nat_secuencia         -- Relación entre persona natural y profesión
+LEFT JOIN profesiones p 
+    ON pt.PRF_CODIGO = p.secuencia            -- Relación entre código de profesión y su descripción
+WHERE n.SECUENCIA = 10008062;                 -- Filtro de ejemplo
