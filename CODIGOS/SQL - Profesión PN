@@ -9,3 +9,19 @@ LEFT JOIN profesiones_tercero pt
 LEFT JOIN profesiones p 
     ON pt.PRF_CODIGO = p.secuencia            -- Relación entre código de profesión y su descripción
 WHERE n.SECUENCIA = 10008062;                 -- Filtro de ejemplo
+
+
+explicacion:
+
+SELECT TIPDOC_CODIGO, NUMERO_DOCUMENTO,SECUENCIA
+FROM NATURALES
+WHERE SECUENCIA = 10008062
+
+select PRF_CODIGO,NAT_SECUENCIA
+from profesiones_tercero
+where  nat_secuencia = 10008062 AND PRF_CODIGO = 306
+
+
+select SECUENCIA,DESCRIPCION
+from profesiones
+where  secuencia = 306 
