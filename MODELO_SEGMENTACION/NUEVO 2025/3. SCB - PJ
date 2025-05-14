@@ -31,7 +31,7 @@ SELECT DISTINCT
     IFNULL(rec.SUMATORIA_RECAUDO, 0) AS SUMA_RECAUDO_ULT_12_MESES
 
 FROM 
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
 
 LEFT JOIN  
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
@@ -95,3 +95,4 @@ WHERE
     DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
     AND p.CODIGO_COMPANIA = 3
     AND p.TIPO_DOCUMENTO_TOMADOR IN ('NE', 'NT')
+    AND p.MARCA_ANULACION != 'S'
