@@ -1,10 +1,13 @@
--- Agrupación final por compañía y canal
+-- Agrupación final por compañía, canal, localidad y agente con niveles de riesgo
 SELECT
     p.CODIGO_COMPANIA,
     p.CODIGO_CANAL,
     p.NOMBRE_CANAL,
     p.codigo_localidad,
     p.clave_agente,
+
+    -- Nivel de riesgo del canal desde tabla externa
+    IFNULL(cnr.Nivel_de_riesgo, 'Sin Nivel') AS Nivel_riesgo_canal,
 
     -- Sumatorias y conteos agregados
     SUM(IFNULL(r.CANTIDAD_REGISTROS, 0)) AS TOTAL_RECAUDOS,
@@ -56,16 +59,27 @@ LEFT JOIN (
 ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
 AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
 
--- Filtro de pólizas activas y válidas
+-- LEFT JOIN con nivel de riesgo del canal
+LEFT JOIN (
+    SELECT
+        Codigo_Canal_de_vinculaci__n AS COD_CANAL,
+        Nivel_de_riesgo
+    FROM
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_canal_nivel_riesgo`
+) cnr
+ON p.CODIGO_CANAL = cnr.COD_CANAL
+
+-- Filtro de pólizas activas y no anuladas
 WHERE 
     DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
     AND p.CODIGO_COMPANIA = 3
     AND p.MARCA_ANULACION != 'S'
 
--- Agrupar por canal y compañía
+-- Agrupar por variables relevantes
 GROUP BY
     p.CODIGO_COMPANIA,
     p.CODIGO_CANAL,
     p.NOMBRE_CANAL,
     p.codigo_localidad,
-    p.clave_agente
+    p.clave_agente,
+    cnr.Nivel_de_riesgo
