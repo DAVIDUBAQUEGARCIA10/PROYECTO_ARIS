@@ -52,12 +52,19 @@ SELECT
     p.NOMBRE_PRODUCTO,
     p.NUMERO_PRODUCTO, 
     p.CODIGO_LOCALIDAD, 
-    p.NOMBRE_LOCALIDAD, 
+    p.NOMBRE_LOCALIDAD,
+    d.NOMBRE_LOCALIDAD as NOMBRE_LOCALIDAD_BASE_DIRECTORES,
+    d.DATO_PARA_CORREO_PPAL,
+    d.DATO_PARA_CORREO__CCOPIA,
     p.FECHA_EMISION, 
     p.CLAVE_AGENTE,
     p.NOMBRE_AGENTE,
     p.TIPO_DOCUMENTO_TOMADOR,
     p.KEY_ID_TOMADOR,
+    r.NOMBRE_COMPLETO,
+    r.TITULO,
+    r.CARGO,
+    r.ENTIDAD,
     m.NUMERO_DOCUMENTO,
     c.NOMBRE,
     c.NOMBRE_COMERCIAL,
@@ -81,7 +88,7 @@ LEFT JOIN (
         "" AS TIP_DOC_REPRESENTANTE_LEGAL, 
         "" AS KEY_ID_REPRESENTANTE_LEGAL,
         VINCULO_PERSONA_RECONOCIDA
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales  ---CLIENTES VIGENTES NATURALES
      
     UNION ALL
 
@@ -94,25 +101,32 @@ LEFT JOIN (
         TIP_DOC_REPRESENTANTE_LEGAL, 
         KEY_ID_REPRESENTANTE_LEGAL,
         VINCULO_PERSONA_RECONOCIDA
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos ---CLIENTES VIGENTES JURIDICOS
 ) c
 ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
 AND p.KEY_ID_TOMADOR = c.KEY_ID
 
-LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b
+LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b -- RESTRINGIDOS
 ON p.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TERCERO
 AND p.KEY_ID_TOMADOR = b.KEY_ID
 
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes m
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes m ---BASE DEENCRIPTAR DE GCP
 ON p.TIPO_DOCUMENTO_TOMADOR = m.TIPO_DOCUMENTO
 AND p.KEY_ID_TOMADOR = m.KEY_ID
 
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato f
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato f --- BODEGA, EL REGISTRO 
 ON m.TIPO_DOCUMENTO = f.TIPO_ID
 AND m.NUMERO_DOCUMENTO = f.NO__ID
 
-LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones as l
+LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones as l --QUITAR PORLIZAS ANULADAS Y CANCELADAS
 ON p.NUMERO_PRODUCTO = l.NUMERO_POLIZA
+
+LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_pep_acumulado_proveedor r -- base de pep's acumulados enviada por el proveedor
+ON m.NUMERO_DOCUMENTO = r.IDENTIFICACION_ORIGINAL
+
+LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_localidad_directorio_directores d -- base de pep's acumulados enviada por el proveedor
+ON CAST(p.CODIGO_LOCALIDAD AS STRING) = CAST(d.LOCALIDAD AS STRING)
+
 
 
 WHERE rn = 1  
