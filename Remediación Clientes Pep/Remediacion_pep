@@ -1,23 +1,27 @@
+-- Unifica información de productos vigentes (seguros y títulos de capitalización)
 WITH polizas_union AS (
+
+    -- Selecciona pólizas vigentes de seguros
     SELECT DISTINCT
         CODIGO_COMPANIA, 
         CODIGO_RAMO_EMISION, 
         NOMBRE_RAMO_EMISION, 
         CODIGO_PRODUCTO, 
         NOMBRE_PRODUCTO,
-        NUMERO_POLIZA AS NUMERO_PRODUCTO, 
+        NUMERO_POLIZA AS NUMERO_PRODUCTO,  -- Renombramos como número de producto para estandarizar
         CAST(CODIGO_LOCALIDAD AS STRING) AS CODIGO_LOCALIDAD,  
         NOMBRE_LOCALIDAD, 
-        FECHA_INICIO_POLIZA AS FECHA_EMISION,
+        FECHA_INICIO_POLIZA AS FECHA_EMISION, -- Fecha de inicio como fecha de emisión
         CAST(CLAVE_AGENTE AS STRING) AS CLAVE_AGENTE, 
         CAST(NOMBRE_AGENTE AS STRING) AS NOMBRE_AGENTE,                  
         TIPO_DOCUMENTO_TOMADOR,
         KEY_ID_TOMADOR
     FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes
-    WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE() -- Solo pólizas vigentes
 
     UNION ALL
 
+    -- Selecciona títulos de capitalización vigentes
     SELECT DISTINCT
         1 AS CODIGO_COMPANIA,
         801 AS CODIGO_RAMO_EMISION, 
@@ -35,15 +39,20 @@ WITH polizas_union AS (
     FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
     INNER JOIN sb-ecosistemaanalitico-lago.capitalizadora.t_historico_titulos_capitalizacion h
         ON c.TITULO = h.NUMERO_TITULO
-    WHERE h.ESTADO_TITULO = 1
+    WHERE h.ESTADO_TITULO = 1 -- Solo títulos activos
 ),
 
+-- Quita duplicados, dejando solo el producto más reciente por tomador
 polizas_sin_duplicados AS (
     SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR ORDER BY FECHA_EMISION DESC) AS rn
+        ROW_NUMBER() OVER (
+            PARTITION BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR 
+            ORDER BY FECHA_EMISION DESC
+        ) AS rn
     FROM polizas_union
 )
 
+-- Consulta final con todos los cruces necesarios
 SELECT 
     p.CODIGO_COMPANIA, 
     p.CODIGO_RAMO_EMISION, 
@@ -78,6 +87,8 @@ SELECT
     f.COMENTARIO____DETALLE_DEL__FORMATO,
     l.MARCA_CANCELACION_DEFINITIVA
 FROM polizas_sin_duplicados p
+
+-- Cruce con clientes naturales y jurídicos
 LEFT JOIN (
     SELECT DISTINCT 
         TIPO_DOCUMENTO, 
@@ -88,10 +99,8 @@ LEFT JOIN (
         "" AS TIP_DOC_REPRESENTANTE_LEGAL, 
         "" AS KEY_ID_REPRESENTANTE_LEGAL,
         VINCULO_PERSONA_RECONOCIDA
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales  ---CLIENTES VIGENTES NATURALES
-     
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
     UNION ALL
-
     SELECT DISTINCT
         TIPO_DOCUMENTO, 
         KEY_ID, 
@@ -101,51 +110,57 @@ LEFT JOIN (
         TIP_DOC_REPRESENTANTE_LEGAL, 
         KEY_ID_REPRESENTANTE_LEGAL,
         VINCULO_PERSONA_RECONOCIDA
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos ---CLIENTES VIGENTES JURIDICOS
-) c
-ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
-AND p.KEY_ID_TOMADOR = c.KEY_ID
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+) c ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+  AND p.KEY_ID_TOMADOR = c.KEY_ID
 
-LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b -- RESTRINGIDOS
-ON p.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TERCERO
-AND p.KEY_ID_TOMADOR = b.KEY_ID
+-- Cruce con listas restrictivas
+LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos b 
+    ON p.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TERCERO
+   AND p.KEY_ID_TOMADOR = b.KEY_ID
 
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes m ---BASE DEENCRIPTAR DE GCP
-ON p.TIPO_DOCUMENTO_TOMADOR = m.TIPO_DOCUMENTO
-AND p.KEY_ID_TOMADOR = m.KEY_ID
+-- Cruce con base encriptada de clientes
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes m 
+    ON p.TIPO_DOCUMENTO_TOMADOR = m.TIPO_DOCUMENTO
+   AND p.KEY_ID_TOMADOR = m.KEY_ID
 
-LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato f --- BODEGA, EL REGISTRO 
-ON m.TIPO_DOCUMENTO = f.TIPO_ID
-AND m.NUMERO_DOCUMENTO = f.NO__ID
+-- Cruce con formato PEP diligenciado
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_bodega_bitacora_pep_formato f 
+    ON m.TIPO_DOCUMENTO = f.TIPO_ID
+   AND m.NUMERO_DOCUMENTO = f.NO__ID
 
-LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones as l --QUITAR PORLIZAS ANULADAS Y CANCELADAS
-ON p.NUMERO_PRODUCTO = l.NUMERO_POLIZA
+-- Cruce con cancelaciones para excluir productos anulados
+LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones l 
+    ON p.NUMERO_PRODUCTO = l.NUMERO_POLIZA
 
-LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_pep_acumulado_proveedor r -- base de pep's acumulados enviada por el proveedor
-ON m.NUMERO_DOCUMENTO = r.IDENTIFICACION_ORIGINAL
+-- Cruce con base de PEP's acumulados de proveedor
+LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_pep_acumulado_proveedor r 
+    ON m.NUMERO_DOCUMENTO = r.IDENTIFICACION_ORIGINAL
 
-LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_localidad_directorio_directores d -- base de pep's acumulados enviada por el proveedor
-ON CAST(p.CODIGO_LOCALIDAD AS STRING) = CAST(d.LOCALIDAD AS STRING)
+-- Cruce con directorio de localidades
+LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_localidad_directorio_directores d 
+    ON CAST(p.CODIGO_LOCALIDAD AS STRING) = CAST(d.LOCALIDAD AS STRING)
 
-
-
-WHERE rn = 1  
-AND p.CODIGO_RAMO_EMISION != 310
-AND p.CODIGO_RAMO_EMISION != 70
-AND p.CODIGO_RAMO_EMISION != 39 
-and (p.CODIGO_RAMO_EMISION != 23 and p.CODIGO_PRODUCTO != 339) 
-and (p.CODIGO_RAMO_EMISION != 42 and p.CODIGO_PRODUCTO != 759)
-and (p.CODIGO_RAMO_EMISION != 4 and p.CODIGO_PRODUCTO != 455)
-and (p.CODIGO_RAMO_EMISION != 10 and p.CODIGO_PRODUCTO != 215)
-and (p.CODIGO_RAMO_EMISION != 15 and p.CODIGO_PRODUCTO != 40)
-and (p.CODIGO_RAMO_EMISION != 18 and p.CODIGO_PRODUCTO != 541)
-and (p.CODIGO_RAMO_EMISION != 18 and p.CODIGO_PRODUCTO != 540)
-and (p.CODIGO_RAMO_EMISION != 20 and p.CODIGO_PRODUCTO != 721)
-and (p.CODIGO_RAMO_EMISION != 30 and p.CODIGO_PRODUCTO != 734)
-and (p.CODIGO_RAMO_EMISION != 34 and p.CODIGO_PRODUCTO != 90)
-and (p.CODIGO_RAMO_EMISION != 923 and p.CODIGO_PRODUCTO != 923)
-and (p.CODIGO_RAMO_EMISION != 1 and p.CODIGO_PRODUCTO not IN (3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 251, 999)) 
+-- Filtros finales
+WHERE rn = 1 -- Mantener solo el producto más reciente por tomador
+AND p.CODIGO_RAMO_EMISION NOT IN (310, 70, 39) -- Excluir ramos no relevantes
+-- Exclusiones por combinación ramo-producto
+AND (p.CODIGO_RAMO_EMISION != 23 OR p.CODIGO_PRODUCTO != 339)
+AND (p.CODIGO_RAMO_EMISION != 42 OR p.CODIGO_PRODUCTO != 759)
+AND (p.CODIGO_RAMO_EMISION != 4 OR p.CODIGO_PRODUCTO != 455)
+AND (p.CODIGO_RAMO_EMISION != 10 OR p.CODIGO_PRODUCTO != 215)
+AND (p.CODIGO_RAMO_EMISION != 15 OR p.CODIGO_PRODUCTO != 40)
+AND (p.CODIGO_RAMO_EMISION != 18 OR p.CODIGO_PRODUCTO NOT IN (540, 541))
+AND (p.CODIGO_RAMO_EMISION != 20 OR p.CODIGO_PRODUCTO != 721)
+AND (p.CODIGO_RAMO_EMISION != 30 OR p.CODIGO_PRODUCTO != 734)
+AND (p.CODIGO_RAMO_EMISION != 34 OR p.CODIGO_PRODUCTO != 90)
+AND (p.CODIGO_RAMO_EMISION != 923 OR p.CODIGO_PRODUCTO != 923)
+AND (p.CODIGO_RAMO_EMISION != 1 OR p.CODIGO_PRODUCTO NOT IN (3,9,10,11,12,13,14,15,16,17,18,19,251,999))
+-- Alerta si está en listas o es PEP/vinculado
 AND (b.CODIGO_RESTRICCION = 23 OR c.PUBLICAMENTE_EXPUESTA = "S" OR c.VINCULO_PERSONA_RECONOCIDA = "S")
-AND (f.PEP_CUENTA_CON__FORMATO__ = "NO"  OR f.PEP_CUENTA_CON__FORMATO__ IS NULL OR f.PEP_CUENTA_CON__FORMATO__ = ""  AND f.PEP_CUENTA_CON__FORMATO__ != "SI"  )
-AND  (l.MARCA_CANCELACION_DEFINITIVA = "N" OR l.MARCA_CANCELACION_DEFINITIVA IS NULL OR l.MARCA_CANCELACION_DEFINITIVA = "" AND l.MARCA_CANCELACION_DEFINITIVA != "S" )
-and ( b.FECHA_BAJA IS NULL ) 
+-- El formato PEP no debe estar diligenciado en forma válida
+AND (f.PEP_CUENTA_CON__FORMATO__ IS NULL OR f.PEP_CUENTA_CON__FORMATO__ IN ("", "NO"))
+-- Excluir pólizas canceladas
+AND (l.MARCA_CANCELACION_DEFINITIVA IS NULL OR l.MARCA_CANCELACION_DEFINITIVA IN ("", "N"))
+-- Asegura que no se hayan dado de baja de listas
+AND b.FECHA_BAJA IS NULL
