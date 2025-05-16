@@ -1,5 +1,5 @@
----fALTA QUE SUBAN EL jIRA DE PROFESION Y QUE encripten la variable de id tomador de la tabla de recaudos
--- Nivel de Riesgo LAFT + Ocupación + info de siniestros
+--Falta el tema del recaudo id encriptado.
+-- Nivel de Riesgo LAFT + Ocupación + info de siniestros + riesgo por profesión
 SELECT DISTINCT
     -- Datos de la póliza
     p.CODIGO_COMPANIA,
@@ -14,12 +14,17 @@ SELECT DISTINCT
     c.CODIGO_CIIU,
     c.ACTIVIDAD_ECONOMICA,
     c.COD_OCUPACION,
-    o.ocupacion,
+    o.OCUPACION,
+    c.COD_PROFESION,
+
+    -- Datos de riesgo por profesión
+    pr.PROFESION,
+    pr.NIVEL_DE_RIESGO AS NIVEL_RIESGO_PROFESION,
 
     -- Nivel de riesgo desde la tabla de score
     IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
 
-    -- Agregados de siniestros (con valores por defecto si no hay match)
+    -- Agregados de siniestros
     IFNULL(sin.CANTIDAD_REGISTROS, 0) AS CANTIDAD_SINIESTROS_ULT_12_MESES,
     IFNULL(sin.SUMATORIA_LIQUIDADO, 0) AS SUMA_LIQUIDADO_ULT_12_MESES
 
@@ -39,9 +44,12 @@ LEFT JOIN
 
 LEFT JOIN 
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ocupacion_nivel_riesgo_real` o
-    ON c.COD_OCUPACION = o.id
+    ON c.COD_OCUPACION = o.ID
 
--- LEFT JOIN con siniestros agregados por compañía + tomador
+LEFT JOIN 
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_profesion` pr
+    ON c.COD_PROFESION = pr.ID
+
 LEFT JOIN (
     SELECT
         CODIGO_COMPANIA,
@@ -65,54 +73,6 @@ LEFT JOIN (
     AND p.KEY_ID_TOMADOR = sin.KEY_ID_TOMADOR
 
 -- Solo pólizas activas (vigentes a hoy)
-WHERE DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()  AND p.KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==';
-
-
-
-
-
-
--------------------------------
-
-
-
-
-
-
-SELECT
-    CODIGO_COMPANIA,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    COUNT(*) AS CANTIDAD_REGISTROS,
-    SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
-FROM
-    `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-WHERE
-    DATE(FECHA_RECAUDO) BETWEEN 
-        DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-        AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-GROUP BY
-    CODIGO_COMPANIA,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR
-
-
--------------------------------------------
-
-SELECT
-    CODIGO_COMPANIA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    COUNT(*) AS CANTIDAD_REGISTROS,
-    SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
-FROM
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
-WHERE
-    DATE(FECHA_ORDEN_PAGO) BETWEEN 
-        DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-        AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-GROUP BY
-    CODIGO_COMPANIA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR
-
+WHERE 
+    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==';
