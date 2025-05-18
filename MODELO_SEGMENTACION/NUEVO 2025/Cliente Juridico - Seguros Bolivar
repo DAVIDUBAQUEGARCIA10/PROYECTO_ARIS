@@ -1,0 +1,98 @@
+SELECT DISTINCT
+    -- Identificadores
+    --p.CODIGO_COMPANIA,
+    --p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+
+    -- Datos del cliente jurídico
+    --c.TIPO_DOCUMENTO,
+    c.CODIGO_CIIU,
+    c.TIPO_EMPRESA,
+    IFNULL(c.VALOR_INGRESOS, 0) AS VALOR_INGRESOS,
+    IFNULL(c.VALOR_EGRESOS, 0) AS VALOR_EGRESOS,
+    IFNULL(c.VALOR_ACTIVO, 0) AS VALOR_ACTIVO,
+    IFNULL(c.VALOR_PASIVO, 0) AS VALOR_PASIVO,
+
+    -- Nacionalidad del cliente
+    CASE 
+        WHEN c.TIPO_DOCUMENTO = 'NE' THEN 0
+        ELSE 1
+    END AS NACIONAL,
+
+    -- Nivel de riesgo
+    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
+
+    -- Datos agregados de siniestros
+    IFNULL(sin.CANTIDAD_REGISTROS, 0) AS CANTIDAD_SINIESTROS_ULT_12_MESES,
+    IFNULL(sin.SUMATORIA_LIQUIDADO, 0) AS SUMA_LIQUIDADO_ULT_12_MESES,
+
+    -- Datos agregados de recaudo
+    IFNULL(rec.CANTIDAD_REGISTROS, 0) AS CANTIDAD_RECAUDOS_ULT_12_MESES,
+    IFNULL(rec.SUMATORIA_RECAUDO, 0) AS SUMA_RECAUDO_ULT_12_MESES
+
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
+
+LEFT JOIN  
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
+    ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = c.KEY_ID
+
+LEFT JOIN 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
+    ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = s.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = s.KEY_ID
+
+-- LEFT JOIN con siniestros agregados
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
+    FROM
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE
+        DATE(FECHA_ORDEN_PAGO) BETWEEN 
+            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR
+) sin
+    ON p.CODIGO_COMPANIA = sin.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = sin.TIPO_DOCUMENTO_TOMADOR
+    AND p.KEY_ID_TOMADOR = sin.KEY_ID_TOMADOR
+
+-- LEFT JOIN con recaudo agregado
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        NUMERO_DOCUMENTO_TOMADOR,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
+    FROM
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE
+        DATE(FECHA_RECAUDO) BETWEEN 
+            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        NUMERO_DOCUMENTO_TOMADOR
+) rec
+    ON p.CODIGO_COMPANIA = rec.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = rec.TIPO_DOCUMENTO_TOMADOR
+    AND CAST(p.KEY_ID_TOMADOR AS INT64) = rec.NUMERO_DOCUMENTO_TOMADOR
+
+-- Filtro de pólizas vigentes y documentos tipo NE o NT
+WHERE 
+    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.CODIGO_COMPANIA = 2
+    AND p.TIPO_DOCUMENTO_TOMADOR IN ('NE', 'NT')
+    AND p.MARCA_ANULACION != 'S'
