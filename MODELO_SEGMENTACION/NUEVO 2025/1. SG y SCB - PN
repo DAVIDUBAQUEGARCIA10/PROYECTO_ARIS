@@ -1,4 +1,3 @@
---Falta el tema del recaudo id encriptado.
 -- Nivel de Riesgo LAFT + Ocupación + info de siniestros + riesgo por profesión
 SELECT DISTINCT
     -- Datos de la póliza
@@ -29,7 +28,7 @@ SELECT DISTINCT
     IFNULL(sin.SUMATORIA_LIQUIDADO, 0) AS SUMA_LIQUIDADO_ULT_12_MESES
 
 FROM 
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
 
 LEFT JOIN 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
@@ -75,4 +74,5 @@ LEFT JOIN (
 -- Solo pólizas activas (vigentes a hoy)
 WHERE 
     DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
-    AND p.KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q==';
+    AND p.KEY_ID_TOMADOR = 'Inc1rdLOgGbaZN6ZUCsrhWmPbB6TXAShR0l0lOA1ZHzAHiNmcRB28t3P+1bQTENCuzfdOKy7UVsv9srIyU7mZA=='
+    AND MARCA_ANULACION != 'S'
