@@ -31,9 +31,9 @@ WITH SiniestrosPorMes AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
+        DATE(FECHA_SUSCRIPCION) >= '2025-01-01'
         AND CODIGO_COMPANIA = 3
-        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
+        AND DATE(FECHA_SINIESTRO) >= '2025-01-01'
         AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
         AND LIQUIDADO_BOLIVAR > 0
@@ -158,9 +158,9 @@ WITH SiniestrosPorMes AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01'
+        DATE(FECHA_SUSCRIPCION) >= '2025-01-01'
         AND CODIGO_COMPANIA = 3
-        AND DATE(FECHA_SINIESTRO) >= '2024-01-01'
+        AND DATE(FECHA_SINIESTRO) >= '2025-01-01'
         AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')  -- Excluir los NITs específicos
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluir ciertos códigos de ramo
         AND LIQUIDADO_BOLIVAR > 0
