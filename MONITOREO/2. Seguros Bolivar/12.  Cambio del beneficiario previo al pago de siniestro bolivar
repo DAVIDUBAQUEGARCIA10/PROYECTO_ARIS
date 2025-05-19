@@ -54,14 +54,15 @@ WITH registros_ordenados AS (
 
     -- Filtros para seleccionar registros relevantes
     WHERE 
-        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2024-12-31' AND
-        CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2024-12-31' AND
-        CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2024-01-01' AND
-        CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2024-01-01' AND
+        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2025-01-01' AND
+        CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' AND
+        CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' AND
+        CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' AND
         t1.CODIGO_COMPANIA = 2 AND
         t2.CODIGO_COMPANIA = 2 AND
         t2.FECHA_ORDEN_PAGO IS NOT NULL AND
-        t2.FECHA_ORDEN_PAGO >= '2024-01-01' AND
+        t2.FECHA_ORDEN_PAGO >= '2025-01-01' AND
+        AND t1.MARCA_ANULACION != 'S' 
 
         -- Solo casos donde el pago ocurrió después del endoso y dentro de 90 días
         DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0 AND
@@ -78,6 +79,7 @@ WITH registros_ordenados AS (
             t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' OR
             t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' OR
             t1.DESCRIPCION_ENDOSO LIKE '%ADICION%'
+
         )
 )
 
@@ -126,9 +128,7 @@ ORDER BY LIQUIDADO_BOLIVAR DESC;
 
 
 INSERT -----
--- Inserta en la tabla SEG_0005_VISOR_REPO únicamente los registros que aún no existen,
--- con base en una combinación clave: NUMERO_POLIZA, KEY_ID_TOMADOR y FECHA_ORDEN_PAGO.
-
+-- Insertar solo los registros nuevos que no existan en la tabla SEG_0005_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO
 (
     CODIGO_COMPANIA,
@@ -157,11 +157,8 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO
     FECHA_ALERTA_MES,
     FECHA_ALERTA
 )
-
--- CTE que organiza los registros base con filtros, cálculo de días y numeración
 WITH registros_ordenados AS (
     SELECT DISTINCT
-        -- Información de la póliza y del producto contratado
         t1.CODIGO_COMPANIA,
         t1.CODIGO_RAMO_EMISION,
         t1.NOMBRE_RAMO_EMISION,
@@ -180,76 +177,43 @@ WITH registros_ordenados AS (
         t1.TIPO_ENDOSO,
         t1.DESCRIPCION_ENDOSO,
         CAST(t1.FECHA_ORIGEN AS DATE) AS FECHA_ORIGEN,
-
-        -- Información del siniestro relacionado a la póliza
         t2.FECHA_SUSCRIPCION,
         t2.FECHA_SINIESTRO,
         t2.LIQUIDADO_BOLIVAR,
         t2.FECHA_ORDEN_PAGO,
-
-        -- Cálculo de la diferencia entre la orden de pago y la fecha de emisión del endoso
-        DATE_DIFF(
-            CAST(t2.FECHA_ORDEN_PAGO AS DATE),
-            CAST(t1.FECHA_EMISION_ENDOSO AS DATE),
-            DAY
-        ) AS DIFERENCIA_DIAS,
-
-        -- Enumeración para quedarse con la fila prioritaria por combinación clave
-        ROW_NUMBER() OVER (
-            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR
-            ORDER BY t2.LIQUIDADO_BOLIVAR DESC
-        ) AS fila
-
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
-
-    -- Asociación con la tabla de siniestros para cada póliza y tomador
-    LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros t2
+        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_EMISION_ENDOSO AS DATE), DAY) AS DIFERENCIA_DIAS,
+        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR ORDER BY t2.LIQUIDADO_BOLIVAR DESC) AS fila
+    FROM 
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
+    LEFT JOIN 
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros t2
         ON t1.NUMERO_POLIZA = t2.NUMERO_POLIZA 
         AND t1.KEY_ID_TOMADOR = t2.KEY_ID_TOMADOR
-
-    -- Filtros específicos para identificar casos de riesgo:
     WHERE 
-        -- Fechas válidas y actuales
-        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2024-12-31' AND
-        CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2024-12-31' AND
-        CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2024-01-01' AND
-        CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2024-01-01' AND
-
-        -- Endosos que mencionen beneficiarios pero sin indicar fallecimiento
-        t1.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%' AND
-        t1.DESCRIPCION_ENDOSO NOT LIKE '%FALLE%' AND
-
-        -- Solo registros de la compañía 2
-        t1.CODIGO_COMPANIA = 2 AND
-        t2.CODIGO_COMPANIA = 2 AND
-
-        -- Solo siniestros con orden de pago reciente y válida
-        t2.FECHA_ORDEN_PAGO IS NOT NULL AND
-        t2.FECHA_ORDEN_PAGO >= '2024-01-01' AND
-
-        -- Días entre orden de pago y endoso deben estar entre 1 y 90 días
-        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0 AND
-        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90 AND
-
-        -- Solo pólizas madre (ALTURA_POLIZA = '01') y sin ramo 34
-        t1.ALTURA_POLIZA = '01' AND
-        t1.CODIGO_RAMO_EMISION != 34 AND
-
-        -- Se filtran los endosos de tipo modificación/inclusión/cambio beneficiario
-        (
-            t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' OR
-            t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%' OR
-            t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' OR
-            t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' OR
-            t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' OR
-            t1.DESCRIPCION_ENDOSO LIKE '%ADICION%'
-        ) AND
-
-        -- Se considera un valor mínimo significativo del siniestro
-        t2.LIQUIDADO_BOLIVAR > 780000.0
+        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2025-01-01' 
+        AND CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' 
+        AND CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' 
+        AND CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' 
+        AND (t1.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%') 
+        AND t1.CODIGO_COMPANIA = 2
+        AND t2.CODIGO_COMPANIA = 2  
+        AND t2.FECHA_ORDEN_PAGO IS NOT NULL  
+        AND t2.FECHA_ORDEN_PAGO >= '2025-01-01'
+        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0
+        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90
+        AND t1.ALTURA_POLIZA = '01'
+        AND t1.DESCRIPCION_ENDOSO NOT LIKE '%FALLE%' 
+        AND (t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' 
+             OR t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%'     
+             OR t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' 
+             OR t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' 
+             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' 
+             OR t1.DESCRIPCION_ENDOSO LIKE '%ADICION%' 
+             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%')
+        AND t1.CODIGO_RAMO_EMISION != 34
+        AND LIQUIDADO_BOLIVAR > 780000.0
+                AND t1.MARCA_ANULACION != 'S'        
 )
-
--- Selección de los registros que pasarán al INSERT final
 SELECT
     r.CODIGO_COMPANIA,
     r.CODIGO_RAMO_EMISION,
@@ -274,21 +238,16 @@ SELECT
     r.LIQUIDADO_BOLIVAR,
     r.FECHA_ORDEN_PAGO,
     r.DIFERENCIA_DIAS,
-
-    -- Fecha de ejecución del proceso como alerta
     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA
-
--- Se filtran los registros para no insertar duplicados
-FROM registros_ordenados r
+    CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha de alerta
+FROM 
+    registros_ordenados r
 LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO t
     ON r.NUMERO_POLIZA = t.NUMERO_POLIZA
     AND r.KEY_ID_TOMADOR = t.KEY_ID_TOMADOR
     AND r.FECHA_ORDEN_PAGO = t.FECHA_ORDEN_PAGO
-
--- Se queda únicamente con la fila principal y los registros no existentes
 WHERE 
-    r.fila = 1 AND
-    t.NUMERO_POLIZA IS NULL  -- Esta condición garantiza que el registro no está ya insertado
-
-ORDER BY r.LIQUIDADO_BOLIVAR DESC;  -- Prioriza los valores más altos de pago para revisión
+    r.fila = 1
+    AND t.NUMERO_POLIZA IS NULL  -- Esto asegura que solo se inserten los registros nuevos
+ORDER BY 
+    r.LIQUIDADO_BOLIVAR DESC;
