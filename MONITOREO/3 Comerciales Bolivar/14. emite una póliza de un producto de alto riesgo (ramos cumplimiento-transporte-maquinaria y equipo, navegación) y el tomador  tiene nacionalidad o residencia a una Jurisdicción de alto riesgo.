@@ -70,6 +70,7 @@ WITH resultado AS (
         AND p.MARCA_ANULACION != 'S'
         AND p.CODIGO_RAMO_EMISION IN (4, 8, 9, 15)
         AND (nat.Nivel_de_riesgo_asignado = "Alto" OR j.NIVEL_DE_RIESGO_ASIGNADO = "Alto")
+        AND p.MARCA_ANULACION != 'S' 
 ),
 
 numeradas AS (
@@ -202,6 +203,7 @@ WITH resultado AS (
         AND p.MARCA_ANULACION != 'S'
         AND p.CODIGO_RAMO_EMISION IN (4, 8, 9, 15)
         AND (nat.Nivel_de_riesgo_asignado = "Alto" OR j.NIVEL_DE_RIESGO_ASIGNADO = "Alto")
+        AND p.MARCA_ANULACION != 'S' 
 ),
 
 numeradas AS (
