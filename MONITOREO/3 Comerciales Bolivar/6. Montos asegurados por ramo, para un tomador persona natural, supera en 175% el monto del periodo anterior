@@ -45,7 +45,7 @@ WITH ranked_policies AS (
                 CODIGO_COBERTURA
             FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
             WHERE 
-                FECHA_EMISION_ENDOSO = "2025-01-01"                      # Endoso emitido en esa fecha
+                FECHA_EMISION_ENDOSO > "2025-01-01"                      # Endoso emitido en esa fecha
                 AND FECHA_FIN_ENDOSO > "2025-01-01"                      # Aún vigente
                 AND VALOR_ASEGURADO > 0                                  # Solo con valor asegurado
                 AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')          # Excluye tipos no válidos
@@ -77,6 +77,7 @@ WITH ranked_policies AS (
                 AND CODIGO_RIESGO = 1
                 AND VALOR_ASEGURADO > 0
                 AND PRIMA_EMITIDA > 0
+                AND MARCA_ANULACION != 'S'
         ) t2
     ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA
 
@@ -191,7 +192,7 @@ WITH ranked_policies AS (
                 CODIGO_COBERTURA
             FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
             WHERE 
-                FECHA_EMISION_ENDOSO BETWEEN "2025-01-01" AND "2025-01-01"
+                FECHA_EMISION_ENDOSO > "2025-01-01" 
                 AND FECHA_FIN_ENDOSO > "2025-01-01"
                 AND VALOR_ASEGURADO > 0
                 AND TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
@@ -202,6 +203,7 @@ WITH ranked_policies AS (
                 AND NUMERO_ENDOSO = 0
                 AND CODIGO_RIESGO = 1
                 AND PRIMA_EMITIDA > 0
+                AND MARCA_ANULACION != 'S'
         ) t1
     LEFT JOIN 
         (
@@ -222,6 +224,7 @@ WITH ranked_policies AS (
                 AND CODIGO_RIESGO = 1
                 AND VALOR_ASEGURADO > 0
                 AND PRIMA_EMITIDA > 0
+                AND MARCA_ANULACION != 'S'
         ) t2     
     ON t1.NUMERO_POLIZA_ANTERIOR = t2.NUMERO_POLIZA 
 
