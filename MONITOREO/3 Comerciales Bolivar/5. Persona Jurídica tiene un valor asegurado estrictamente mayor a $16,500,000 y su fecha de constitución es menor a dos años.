@@ -45,6 +45,7 @@ WITH fila_unica AS (
         AND p.VALOR_ASEGURADO > 16500000
         AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
         AND CODIGO_COMPANIA = 3
+        AND MARCA_ANULACION != 'S' 
 )
 
 SELECT
@@ -161,6 +162,7 @@ WITH fila_unica AS (
         AND p.VALOR_ASEGURADO > 16500000
         AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
         AND CODIGO_COMPANIA = 3
+        AND MARCA_ANULACION != 'S' 
 )
 
 -- Seleccionar solo los registros nuevos que no están en la tabla COM_0116_VISOR_REPO
