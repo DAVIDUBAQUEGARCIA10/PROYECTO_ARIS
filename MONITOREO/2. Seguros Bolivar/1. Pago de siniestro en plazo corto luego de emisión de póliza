@@ -39,8 +39,8 @@ WITH SiniestrosConFila AS (
 
     -- Filtros clave para identificar siniestros relevantes
     WHERE 
-        -- Siniestros de pólizas suscritas desde 2024
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01' AND
+        -- Siniestros de pólizas suscritas desde 2025
+        DATE(FECHA_SUSCRIPCION) >= '2025-01-01' AND
 
         -- La orden de pago ocurrió dentro de los 90 días posteriores a la suscripción
         DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 AND
@@ -51,8 +51,8 @@ WITH SiniestrosConFila AS (
         -- Solo registros de la compañía 2
         CODIGO_COMPANIA = 2 AND
 
-        -- Siniestros con fecha desde 2024
-        DATE(FECHA_SINIESTRO) >= '2024-01-01' AND
+        -- Siniestros con fecha desde 2025
+        DATE(FECHA_SINIESTRO) >= '2025-01-01' AND
 
         -- Se excluyen clientes internos o específicos por su identificador
         KEY_ID_TOMADOR NOT IN ('860034313', '830053700') AND
@@ -153,8 +153,8 @@ WITH SiniestrosConFila AS (
 
     WHERE 
         -- Fechas recientes desde 2024
-        DATE(FECHA_SUSCRIPCION) >= '2024-01-01' AND
-        DATE(FECHA_SINIESTRO) >= '2024-01-01' AND
+        DATE(FECHA_SUSCRIPCION) >= '2025-01-01' AND
+        DATE(FECHA_SINIESTRO) >= '2025-01-01' AND
 
         -- Orden de pago en los 90 días posteriores a la suscripción
         DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 AND
