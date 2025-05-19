@@ -45,7 +45,7 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para prep
         AND a.CODIGO_COMPANIA = 2  # Solo datos de la compañía con código 2
         AND a.FECHA_EMISION_POLIZA >= '2024-01-01'  # Pólizas emitidas desde enero de 2024
         AND a.FECHA_VIGENCIA_POLIZA >= '2024-01-01'  # Pólizas vigentes desde enero de 2024
-        AND a.FECHA_VENCIMIENTO_POLIZA >= '2024-10-31'  # Pólizas con vencimiento después de octubre 2024
+        AND a.FECHA_VENCIMIENTO_POLIZA >= '2025-01-01'  # Pólizas con vencimiento después
         AND a.FECHA_RECAUDO >= '2024-01-01'  # Recaudos registrados desde enero de 2024
         AND a.VALOR_RECAUDO_MES > 0  # Solo recaudos positivos
         AND a.FORMA_COBRO NOT IN ('CONVENIO')  # Se excluyen recaudos con forma de cobro tipo CONVENIO
@@ -57,6 +57,8 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para prep
         AND a.NUMERO_FACTURA = 1  # Se seleccionan registros con factura número 1
         AND a.CANAL_DESCUENTO != 'LIBRANZA'  # Se excluyen recaudos por libranza
         AND a.FORMA_COBRO != 'CONVENIO'  # Refuerza la exclusión de forma de cobro CONVENIO
+         AND b.MARCA_ANULACION != 'S' 
+
 )
 
 -- Seleccionamos solo el primer registro por NUMERO_DOCUMENTO_TOMADOR y agregamos FECHA_ALERTA
@@ -107,104 +109,107 @@ ORDER BY FECHA_EMISION_POLIZA ASC;  # Ordena los resultados por fecha de emisió
 
 INSERT ---------------
 
--- Insertar solo registros nuevos en la tabla SEG_0062_VISOR_REPO
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO
-WITH RankedPolizas AS (
-    SELECT distinct
-        a.TIPO_REGISTRO,
-        a.CODIGO_COMPANIA,
-        a.NOMBRE_COMPANIA,
-        a.CODIGO_RAMO_EMISION,
-        a.NOMBRE_RAMO_EMISION,
-        a.CODIGO_RAMO_CONTABLE,
-        a.NOMBRE_RAMO_CONTABLE,
-        a.CODIGO_PRODUCTO,
-        a.NOMBRE_PRODUCTO,
-        a.NUMERO_POLIZA,
-        a.FECHA_EMISION_POLIZA,
-        a.FECHA_VIGENCIA_POLIZA,
-        a.FECHA_VENCIMIENTO_POLIZA,
-        a.FECHA_CANCELACION_POLIZA,
-        a.FECHA_VIGENCIA_ENDOSO,
-        a.FECHA_VENCIMIENTO_ENDOSO,
-        a.TIPO_DOCUMENTO_TOMADOR,
-        a.NUMERO_DOCUMENTO_TOMADOR,
-        a.PERIODICIDAD_PAGO,
-        a.FECHA_RECAUDO,
-        (b.PRIMA_EMITIDA_CEDIDA + b.PRIMA_EMITIDA_RETENIDA) AS VALOR_INICIAL,
-        a.VALOR_RECAUDO_MES,
-        a.VALOR_PRIMA_ANUAL,
-        a.FORMA_COBRO,
-        a.CODIGO_CANAL_DESCUENTO,
-        a.CANAL_DESCUENTO,
-        b.PRIMA_EMITIDA_CEDIDA,
-        b.PRIMA_EMITIDA_RETENIDA,
-        b.PRIMA_EMITIDA_FACULTATIVO,
-        b.PRIMA_EMITIDA_CEDIDA_ACUMU,
-        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num
+-- Insertar solo los registros nuevos en la tabla SEG_0062_VISOR_REPO
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO  # Inserta nuevos registros en la tabla SEG_0062_VISOR_REPO evitando duplicados
+
+WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) llamada RankedPolizas para preparar los datos base
+    SELECT distinct  # Se eliminan duplicados exactos
+        a.TIPO_REGISTRO,  # Tipo de evento registrado (por ejemplo, RECAUDO)
+        a.CODIGO_COMPANIA,  # Código de la compañía aseguradora
+        a.NOMBRE_COMPANIA,  # Nombre de la compañía aseguradora
+        a.CODIGO_RAMO_EMISION,  # Código del ramo por el cual se emitió la póliza
+        a.NOMBRE_RAMO_EMISION,  # Nombre del ramo de emisión
+        a.CODIGO_RAMO_CONTABLE,  # Código del ramo contable asociado
+        a.NOMBRE_RAMO_CONTABLE,  # Nombre del ramo contable
+        a.CODIGO_PRODUCTO,  # Código del producto
+        a.NOMBRE_PRODUCTO,  # Nombre del producto asegurado
+        a.NUMERO_POLIZA,  # Número único de la póliza
+        a.FECHA_EMISION_POLIZA,  # Fecha de emisión de la póliza
+        a.FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de vigencia de la póliza
+        a.FECHA_VENCIMIENTO_POLIZA,  # Fecha de finalización de la póliza
+        a.FECHA_CANCELACION_POLIZA,  # Fecha de cancelación, si aplica
+        a.FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso asociado
+        a.FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+        a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.PERIODICIDAD_PAGO,  # Frecuencia de pago pactada (mensual, anual, etc.)
+        a.FECHA_RECAUDO,  # Fecha del recaudo
+        (b.PRIMA_EMITIDA_CEDIDA + b.PRIMA_EMITIDA_RETENIDA) AS VALOR_INICIAL,  # Valor inicial de la prima emitida (suma de cedida y retenida)
+        a.VALOR_RECAUDO_MES,  # Valor recaudado en el mes
+        a.VALOR_PRIMA_ANUAL,  # Valor total de la prima anual
+        a.FORMA_COBRO,  # Modalidad de cobro (ej: débito, recaudo, etc.)
+        a.CODIGO_CANAL_DESCUENTO,  # Código del canal que aplica descuentos
+        a.CANAL_DESCUENTO,  # Nombre del canal de descuento
+        b.PRIMA_EMITIDA_CEDIDA,  # Valor de la prima cedida
+        b.PRIMA_EMITIDA_RETENIDA,  # Valor de la prima retenida
+        b.PRIMA_EMITIDA_FACULTATIVO,  # Valor de la prima emitida por facultativo
+        b.PRIMA_EMITIDA_CEDIDA_ACUMU,  # Prima cedida acumulada
+        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num  # Número de fila para seleccionar el registro más antiguo por tomador
     FROM 
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla base con datos de recaudos
     LEFT JOIN 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` b
-        ON a.NUMERO_POLIZA = b.NUMERO_POLIZA
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` b  # Tabla complementaria con datos de primas
+        ON a.NUMERO_POLIZA = b.NUMERO_POLIZA  # Unión por número de póliza
     WHERE 
-        a.TIPO_REGISTRO = 'RECAUDO'
-        AND a.CODIGO_COMPANIA = 2
-        AND a.FECHA_EMISION_POLIZA >= '2024-01-01'
-        AND a.FECHA_VIGENCIA_POLIZA >= '2024-01-01'
-        AND a.FECHA_VENCIMIENTO_POLIZA >= '2024-10-31'
-        AND a.FECHA_RECAUDO >= '2024-01-01'
-        AND a.VALOR_RECAUDO_MES > 0
-        AND a.FORMA_COBRO NOT IN ('CONVENIO')
-        AND b.PRIMA_EMITIDA_RETENIDA > 0
-        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)
-        AND a.VALOR_RECAUDO_MES > (VALOR_PRIMA_ANUAL)
-        AND a.CODIGO_LOCALIDAD != 3551
-        AND a.TIPO_ENDOSO != 'AT'
-        AND a.NUMERO_FACTURA = 1
-        AND a.CANAL_DESCUENTO != 'LIBRANZA'
-        AND a.FORMA_COBRO != 'CONVENIO'
+        a.TIPO_REGISTRO = 'RECAUDO'  # Solo se consideran registros de tipo recaudo
+        AND a.CODIGO_COMPANIA = 2  # Solo registros de la compañía con código 2
+        AND a.FECHA_EMISION_POLIZA >= '2025-01-01'  # Solo pólizas emitidas desde 2025
+        AND a.FECHA_VIGENCIA_POLIZA >= '2025-01-01'  # Vigencia desde 2025
+        AND a.FECHA_VENCIMIENTO_POLIZA >= '2025-01-01'  # Pólizas con vigencia más allá de octubre 2024
+        AND a.FECHA_RECAUDO >= '2025-01-01'  # Solo recaudos realizados desde 2025
+        AND a.VALOR_RECAUDO_MES > 0  # Se filtran solo recaudos con valor positivo
+        AND a.FORMA_COBRO NOT IN ('CONVENIO')  # Se excluyen pólizas cobradas por convenio
+        AND b.PRIMA_EMITIDA_RETENIDA > 0  # Se requiere que exista prima retenida
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Se filtran los ramos específicos
+        AND a.VALOR_RECAUDO_MES > (VALOR_PRIMA_ANUAL)  # El recaudo mensual debe superar la prima anual (alerta)
+        AND a.CODIGO_LOCALIDAD != 3551  # Se excluye una localidad específica
+        AND a.TIPO_ENDOSO != 'AT'  # Se excluyen endosos de tipo 'AT'
+        AND a.NUMERO_FACTURA = 1  # Se consideran solo facturas número 1
+        AND a.CANAL_DESCUENTO != 'LIBRANZA'  # Se excluyen recaudos por libranza
+        AND a.FORMA_COBRO != 'CONVENIO'  # Redundante: refuerza la exclusión de forma convenio
+         AND b.MARCA_ANULACION != 'S' 
 )
+
 -- Insertar solo registros nuevos
 SELECT 
-    TIPO_REGISTRO,
-    CODIGO_COMPANIA,
-    NOMBRE_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_RAMO_CONTABLE,
-    NOMBRE_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_POLIZA,
-    FECHA_EMISION_POLIZA,
-    FECHA_VIGENCIA_POLIZA,
-    FECHA_VENCIMIENTO_POLIZA,
-    FECHA_CANCELACION_POLIZA,
-    FECHA_VIGENCIA_ENDOSO,
-    FECHA_VENCIMIENTO_ENDOSO,
-    TIPO_DOCUMENTO_TOMADOR,
-    NUMERO_DOCUMENTO_TOMADOR,
-    PERIODICIDAD_PAGO,
-    FECHA_RECAUDO,
-    VALOR_INICIAL,
-    VALOR_RECAUDO_MES,
-    VALOR_PRIMA_ANUAL,
-    FORMA_COBRO,
-    CODIGO_CANAL_DESCUENTO,
-    CANAL_DESCUENTO,
-    PRIMA_EMITIDA_CEDIDA,
-    PRIMA_EMITIDA_RETENIDA,
-    PRIMA_EMITIDA_FACULTATIVO,
-    PRIMA_EMITIDA_CEDIDA_ACUMU,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,    
-    CURRENT_DATE() AS FECHA_ALERTA -- Agregar la fecha de alerta
-FROM RankedPolizas
-WHERE row_num = 1
-  AND NOT EXISTS (
+    TIPO_REGISTRO,  # Tipo de evento (ej: RECAUDO)
+    CODIGO_COMPANIA,  # Código de la compañía
+    NOMBRE_COMPANIA,  # Nombre de la compañía
+    CODIGO_RAMO_EMISION,  # Código del ramo
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_RAMO_CONTABLE,  # Código contable del ramo
+    NOMBRE_RAMO_CONTABLE,  # Nombre contable del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    NUMERO_POLIZA,  # Número de póliza
+    FECHA_EMISION_POLIZA,  # Fecha de emisión
+    FECHA_VIGENCIA_POLIZA,  # Fecha de inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fecha de vencimiento
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación
+    FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
+    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento
+    PERIODICIDAD_PAGO,  # Frecuencia de pago
+    FECHA_RECAUDO,  # Fecha de recaudo
+    VALOR_INICIAL,  # Suma de prima cedida y retenida (valor inicial de prima)
+    VALOR_RECAUDO_MES,  # Valor recaudado en el mes
+    VALOR_PRIMA_ANUAL,  # Prima anual total
+    FORMA_COBRO,  # Forma de cobro
+    CODIGO_CANAL_DESCUENTO,  # Código del canal con descuento
+    CANAL_DESCUENTO,  # Nombre del canal
+    PRIMA_EMITIDA_CEDIDA,  # Valor cedido de la prima
+    PRIMA_EMITIDA_RETENIDA,  # Valor retenido de la prima
+    PRIMA_EMITIDA_FACULTATIVO,  # Prima facultativa emitida
+    PRIMA_EMITIDA_CEDIDA_ACUMU,  # Prima cedida acumulada
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes actual como referencia de la alerta
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha actual como fecha de alerta
+FROM RankedPolizas  # Se extraen los datos de la CTE
+WHERE row_num = 1  # Se selecciona solo el primer recaudo por tomador (más antiguo)
+  AND NOT EXISTS (  # Se evita insertar registros ya existentes
       SELECT 1
-      FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO existing
-      WHERE existing.NUMERO_DOCUMENTO_TOMADOR = RankedPolizas.NUMERO_DOCUMENTO_TOMADOR
-        AND existing.NUMERO_POLIZA = RankedPolizas.NUMERO_POLIZA
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO existing  # Tabla destino
+      WHERE existing.NUMERO_DOCUMENTO_TOMADOR = RankedPolizas.NUMERO_DOCUMENTO_TOMADOR  # Mismo tomador
+        AND existing.NUMERO_POLIZA = RankedPolizas.NUMERO_POLIZA  # Y misma póliza
   )
-ORDER BY FECHA_EMISION_POLIZA ASC;
+ORDER BY FECHA_EMISION_POLIZA ASC;  # Se ordenan los resultados por fecha de emisión para trazabilidad
