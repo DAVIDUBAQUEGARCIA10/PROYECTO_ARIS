@@ -1,89 +1,5 @@
-WITH registros_ordenados AS (
-    SELECT 
-        s.CODIGO_COMPANIA,
-        s.CODIGO_RAMO_CONTABLE,
-        s.NOMBRE_RAMO_CONTABLE,
-        s.CODIGO_PRODUCTO,
-        s.NOMBRE_PRODUCTO,
-        s.NUMERO_POLIZA,
-        s.TIPO_DOCUMENTO_TOMADOR,
-        s.KEY_ID_TOMADOR,
-        s.TIPO_DOCUMENTO_ASEGURADO,
-        s.KEY_ID_ASEGURADO,
-        s.KEY_ID_BENEFICIARIO,
-        s.FECHA_SUSCRIPCION,
-        s.FECHA_SINIESTRO,
-        s.FECHA_AVISO,
-        s.FECHA_EQUIPO,
-        s.FECHA_MOVIMIENTO,
-        s.LIQUIDADO_BOLIVAR,
-        s.ESTADO_SINIESTRO,
-        s.ESTADO_RESERVA,
-        s.DESCRIPCION_SINIESTRO,
-        s.CODIGO_CAUSA_OBJECION,
-        s.DESCRIPCION_CAUSA_OBJECION,
-        s.CODIGO_GESTOR,
-        s.CODIGO_CANAL,
-        s.FECHA_ORDEN_PAGO,
-        s.FECHA_PROCESO,
-        t.CODIGO_RESTRICCION,
-        t.DESCRIPCION,
-        ROW_NUMBER() OVER (PARTITION BY s.KEY_ID_TOMADOR ORDER,s.LIQUIDADO_BOLIVAR BY s.FECHA_ORDEN_PAGO DESC) AS fila
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
-    JOIN
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
-        ON s.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
-        AND s.KEY_ID_TOMADOR = t.KEY_ID
-    WHERE 
-        t.CODIGO_RESTRICCION = 23 
-        AND s.CODIGO_RAMO_CONTABLE IN (4, 8, 15, 9) 
-        AND s.LIQUIDADO_BOLIVAR > 0 
-        AND s.FECHA_ORDEN_PAGO >= '2024-01-01'
-)
-SELECT 
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_CONTABLE,
-    NOMBRE_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_POLIZA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    TIPO_DOCUMENTO_ASEGURADO,
-    KEY_ID_ASEGURADO,
-    KEY_ID_BENEFICIARIO,
-    FECHA_SUSCRIPCION,
-    FECHA_SINIESTRO,
-    FECHA_AVISO,
-    FECHA_EQUIPO,
-    FECHA_MOVIMIENTO,
-    LIQUIDADO_BOLIVAR,
-    ESTADO_SINIESTRO,
-    ESTADO_RESERVA,
-    DESCRIPCION_SINIESTRO,
-    CODIGO_CAUSA_OBJECION,
-    DESCRIPCION_CAUSA_OBJECION,
-    CODIGO_GESTOR,
-    CODIGO_CANAL,
-    FECHA_ORDEN_PAGO,
-    FECHA_PROCESO,
-    CODIGO_RESTRICCION,
-    DESCRIPCION
-FROM 
-    registros_ordenados
-WHERE 
-    fila = 1
-ORDER BY 
-    FECHA_ORDEN_PAGO DESC;
-
-
-
-CREATE ------------
-
-
--- Crear la tabla con el nombre de la condición COM_0072_VISOR_REPO
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO AS
+---CREATE
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO`
 
 WITH registros_ordenados AS (
     SELECT 
@@ -115,105 +31,34 @@ WITH registros_ordenados AS (
         s.FECHA_PROCESO,
         t.CODIGO_RESTRICCION,
         t.DESCRIPCION,
-        ROW_NUMBER() OVER (PARTITION BY s.KEY_ID_TOMADOR,s.LIQUIDADO_BOLIVAR ORDER BY s.LIQUIDADO_BOLIVAR DESC, s.FECHA_ORDEN_PAGO DESC) AS fila
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
-    JOIN
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ROW_NUMBER() OVER (
+            PARTITION BY s.KEY_ID_TOMADOR, s.LIQUIDADO_BOLIVAR 
+            ORDER BY s.LIQUIDADO_BOLIVAR DESC, s.FECHA_ORDEN_PAGO DESC
+        ) AS fila,
+        tcn.PUBLICAMENTE_EXPUESTA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
+
+    JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
         ON s.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
         AND s.KEY_ID_TOMADOR = t.KEY_ID
-    WHERE 
-        t.CODIGO_RESTRICCION = 23 
-        AND s.CODIGO_RAMO_CONTABLE IN (4, 8, 15, 9) 
-        AND s.LIQUIDADO_BOLIVAR > 0 
-        AND s.FECHA_ORDEN_PAGO >= '2024-01-01'
+
+    INNER JOIN (
+        SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+        UNION ALL
+        SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    ) tcn
+    ON s.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
+    AND s.KEY_ID_TOMADOR = tcn.KEY_ID
+
+    WHERE  
+        s.CODIGO_RAMO_CONTABLE IN (4, 8, 15, 9)
+        AND s.LIQUIDADO_BOLIVAR > 0
+        AND s.FECHA_ORDEN_PAGO >= '2025-01-01'
+        AND (t.CODIGO_RESTRICCION = 23 OR tcn.PUBLICAMENTE_EXPUESTA != 'S')
 )
-SELECT 
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_CONTABLE,
-    NOMBRE_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_POLIZA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    TIPO_DOCUMENTO_ASEGURADO,
-    KEY_ID_ASEGURADO,
-    KEY_ID_BENEFICIARIO,
-    FECHA_SUSCRIPCION,
-    FECHA_SINIESTRO,
-    FECHA_AVISO,
-    FECHA_EQUIPO,
-    FECHA_MOVIMIENTO,
-    LIQUIDADO_BOLIVAR,
-    ESTADO_SINIESTRO,
-    ESTADO_RESERVA,
-    DESCRIPCION_SINIESTRO,
-    CODIGO_CAUSA_OBJECION,
-    DESCRIPCION_CAUSA_OBJECION,
-    CODIGO_GESTOR,
-    CODIGO_CANAL,
-    FECHA_ORDEN_PAGO,
-    FECHA_PROCESO,
-    CODIGO_RESTRICCION,
-    DESCRIPCION,  
- FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
-FROM 
-    registros_ordenados
-WHERE 
-    fila = 1
-ORDER BY 
-    FECHA_ORDEN_PAGO DESC;
 
-
-
-INSERT------------
--- Insertar nuevos registros evitando duplicados
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO
-WITH registros_ordenados AS (
-    SELECT 
-        s.CODIGO_COMPANIA,
-        s.CODIGO_RAMO_CONTABLE,
-        s.NOMBRE_RAMO_CONTABLE,
-        s.CODIGO_PRODUCTO,
-        s.NOMBRE_PRODUCTO,
-        s.NUMERO_POLIZA,
-        s.TIPO_DOCUMENTO_TOMADOR,
-        s.KEY_ID_TOMADOR,
-        s.TIPO_DOCUMENTO_ASEGURADO,
-        s.KEY_ID_ASEGURADO,
-        s.KEY_ID_BENEFICIARIO,
-        s.FECHA_SUSCRIPCION,
-        s.FECHA_SINIESTRO,
-        s.FECHA_AVISO,
-        s.FECHA_EQUIPO,
-        s.FECHA_MOVIMIENTO,
-        s.LIQUIDADO_BOLIVAR,
-        s.ESTADO_SINIESTRO,
-        s.ESTADO_RESERVA,
-        s.DESCRIPCION_SINIESTRO,
-        s.CODIGO_CAUSA_OBJECION,
-        s.DESCRIPCION_CAUSA_OBJECION,
-        s.CODIGO_GESTOR,
-        s.CODIGO_CANAL,
-        s.FECHA_ORDEN_PAGO,
-        s.FECHA_PROCESO,
-        t.CODIGO_RESTRICCION,
-        t.DESCRIPCION,
-        ROW_NUMBER() OVER (PARTITION BY s.KEY_ID_TOMADOR, s.LIQUIDADO_BOLIVAR ORDER BY s.LIQUIDADO_BOLIVAR DESC, s.FECHA_ORDEN_PAGO DESC) AS fila
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
-    JOIN
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
-        ON s.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
-        AND s.KEY_ID_TOMADOR = t.KEY_ID
-    WHERE 
-        t.CODIGO_RESTRICCION = 23 
-        AND s.CODIGO_RAMO_CONTABLE IN (4, 8, 15, 9) 
-        AND s.LIQUIDADO_BOLIVAR > 0 
-        AND s.FECHA_ORDEN_PAGO >= '2024-01-01'
-)
 SELECT 
     CODIGO_COMPANIA,
     CODIGO_RAMO_CONTABLE,
@@ -243,12 +88,132 @@ SELECT
     FECHA_PROCESO,
     CODIGO_RESTRICCION,
     DESCRIPCION,
-    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, 
-    CURRENT_DATE() AS FECHA_ALERTA  -- Columna que indica la fecha de ejecución
-FROM 
-    registros_ordenados
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+
+FROM registros_ordenados
 WHERE 
     fila = 1
+    AND (PUBLICAMENTE_EXPUESTA IS NULL OR PUBLICAMENTE_EXPUESTA = 'S')
+    AND NOT EXISTS (
+        SELECT 1
+        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO` t
+        WHERE 
+            t.CODIGO_COMPANIA = registros_ordenados.CODIGO_COMPANIA
+            AND t.CODIGO_RAMO_CONTABLE = registros_ordenados.CODIGO_RAMO_CONTABLE
+            AND t.CODIGO_PRODUCTO = registros_ordenados.CODIGO_PRODUCTO
+            AND t.NUMERO_POLIZA = registros_ordenados.NUMERO_POLIZA
+            AND t.LIQUIDADO_BOLIVAR = registros_ordenados.LIQUIDADO_BOLIVAR
+            AND t.KEY_ID_TOMADOR = registros_ordenados.KEY_ID_TOMADOR
+            AND t.FECHA_ORDEN_PAGO = registros_ordenados.FECHA_ORDEN_PAGO
+    )
+ORDER BY FECHA_ORDEN_PAGO DESC;
+
+
+
+
+
+
+
+-- Insertar nuevos registros evitando duplicados y excluyendo PEP (públicamente expuestos)
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO
+
+WITH registros_ordenados AS (
+    SELECT 
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_CONTABLE,
+        s.NOMBRE_RAMO_CONTABLE,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+        s.NUMERO_POLIZA,
+        s.TIPO_DOCUMENTO_TOMADOR,
+        s.KEY_ID_TOMADOR,
+        s.TIPO_DOCUMENTO_ASEGURADO,
+        s.KEY_ID_ASEGURADO,
+        s.KEY_ID_BENEFICIARIO,
+        s.FECHA_SUSCRIPCION,
+        s.FECHA_SINIESTRO,
+        s.FECHA_AVISO,
+        s.FECHA_EQUIPO,
+        s.FECHA_MOVIMIENTO,
+        s.LIQUIDADO_BOLIVAR,
+        s.ESTADO_SINIESTRO,
+        s.ESTADO_RESERVA,
+        s.DESCRIPCION_SINIESTRO,
+        s.CODIGO_CAUSA_OBJECION,
+        s.DESCRIPCION_CAUSA_OBJECION,
+        s.CODIGO_GESTOR,
+        s.CODIGO_CANAL,
+        s.FECHA_ORDEN_PAGO,
+        s.FECHA_PROCESO,
+        t.CODIGO_RESTRICCION,
+        t.DESCRIPCION,
+        ROW_NUMBER() OVER (
+            PARTITION BY s.KEY_ID_TOMADOR, s.LIQUIDADO_BOLIVAR 
+            ORDER BY s.LIQUIDADO_BOLIVAR DESC, s.FECHA_ORDEN_PAGO DESC
+        ) AS fila,
+        tcn.PUBLICAMENTE_EXPUESTA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
+
+    JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` t
+        ON s.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TERCERO
+        AND s.KEY_ID_TOMADOR = t.KEY_ID
+
+    INNER JOIN (
+        SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+        FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+
+        UNION ALL
+
+        SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+        FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+    ) tcn
+    ON s.TIPO_DOCUMENTO_TOMADOR = tcn.TIPO_DOCUMENTO
+    AND s.KEY_ID_TOMADOR = tcn.KEY_ID
+
+    WHERE  s.CODIGO_RAMO_CONTABLE IN (4, 8, 15, 9)
+        AND s.LIQUIDADO_BOLIVAR > 0
+        AND s.FECHA_ORDEN_PAGO >= '2025-01-01'
+        AND (t.CODIGO_RESTRICCION = 23 OR tcn.PUBLICAMENTE_EXPUESTA = 'S')
+
+)
+
+SELECT 
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_CONTABLE,
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO_ASEGURADO,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
+    FECHA_SUSCRIPCION,
+    FECHA_SINIESTRO,
+    FECHA_AVISO,
+    FECHA_EQUIPO,
+    FECHA_MOVIMIENTO,
+    LIQUIDADO_BOLIVAR,
+    ESTADO_SINIESTRO,
+    ESTADO_RESERVA,
+    DESCRIPCION_SINIESTRO,
+    CODIGO_CAUSA_OBJECION,
+    DESCRIPCION_CAUSA_OBJECION,
+    CODIGO_GESTOR,
+    CODIGO_CANAL,
+    FECHA_ORDEN_PAGO,
+    FECHA_PROCESO,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+
+FROM registros_ordenados
+WHERE 
+    fila = 1
+    AND (PUBLICAMENTE_EXPUESTA IS NULL OR PUBLICAMENTE_EXPUESTA != 'S')
     AND NOT EXISTS (
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO t
@@ -261,6 +226,4 @@ WHERE
             AND t.KEY_ID_TOMADOR = registros_ordenados.KEY_ID_TOMADOR
             AND t.FECHA_ORDEN_PAGO = registros_ordenados.FECHA_ORDEN_PAGO
     )
-ORDER BY 
-    FECHA_ORDEN_PAGO DESC;
-
+ORDER BY FECHA_ORDEN_PAGO DESC;
