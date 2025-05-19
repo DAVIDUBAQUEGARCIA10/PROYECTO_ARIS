@@ -94,7 +94,6 @@ SELECT
 FROM registros_ordenados
 WHERE 
     fila = 1
-    AND (PUBLICAMENTE_EXPUESTA IS NULL OR PUBLICAMENTE_EXPUESTA = 'S')
     AND NOT EXISTS (
         SELECT 1
         FROM `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO` t
@@ -212,9 +211,7 @@ SELECT
 
 FROM registros_ordenados
 WHERE 
-    fila = 1
-    AND (PUBLICAMENTE_EXPUESTA IS NULL OR PUBLICAMENTE_EXPUESTA != 'S')
-    AND NOT EXISTS (
+    fila = 1 AND  NOT EXISTS (
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO t
         WHERE 
