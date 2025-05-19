@@ -44,6 +44,7 @@ WITH fila_unica AS (
         AND p.VALOR_ASEGURADO > 16500000
         AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
         AND CODIGO_COMPANIA = 2
+        AND MARCA_ANULACION != 'S' 
 )
 
 SELECT
@@ -160,6 +161,7 @@ WITH fila_unica AS (
         AND p.VALOR_ASEGURADO > 16500000
         AND DATE(c.FECHA_NACIMIENTO) > DATE_SUB(CURRENT_DATE(), INTERVAL 2 YEAR)
         AND CODIGO_COMPANIA = 2
+        AND MARCA_ANULACION != 'S' 
 )
 
 -- Seleccionar solo los registros nuevos que no están en la tabla SEG_0103_VISOR_REPO
