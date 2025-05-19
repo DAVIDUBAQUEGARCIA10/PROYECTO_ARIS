@@ -1,102 +1,22 @@
-WITH registros_ordenados AS (
-    SELECT DISTINCT
-        t1.CODIGO_COMPANIA,
-        t1.CODIGO_RAMO_EMISION,
-        t1.NOMBRE_RAMO_EMISION,
-        t1.CODIGO_PRODUCTO,
-        t1.NOMBRE_PRODUCTO,
-        t1.NUMERO_POLIZA,
-        t1.TIPO_DOCUMENTO_TOMADOR,
-        t1.KEY_ID_TOMADOR,    
-        t1.COD_MOTIVO_CANCELACION_POLIZA,
-        t1.DES_MOTIVO_CANCELACION_POLIZA,
-        CAST(t1.FECHA_EMISION_ENDOSO AS DATE) AS FECHA_EMISION_ENDOSO,
-        CAST(t1.FECHA_INICIO_ENDOSO AS DATE) AS FECHA_INICIO_ENDOSO,
-        CAST(t1.FECHA_FIN_ENDOSO AS DATE) AS FECHA_FIN_ENDOSO,
-        CAST(t1.FECHA_INICIO_POLIZA AS DATE) AS FECHA_INICIO_POLIZA,
-        CAST(t1.FECHA_FIN_POLIZA AS DATE) AS FECHA_FIN_POLIZA,
-        t1.TIPO_ENDOSO,
-        t1.DESCRIPCION_ENDOSO,
-        CAST(t1.FECHA_ORIGEN AS DATE) AS FECHA_ORIGEN,
-        t2.FECHA_SUSCRIPCION,
-        t2.FECHA_SINIESTRO,
-        t2.LIQUIDADO_BOLIVAR,
-        t2.FECHA_ORDEN_PAGO,
-        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_EMISION_ENDOSO AS DATE), DAY) AS DIFERENCIA_DIAS,
-        ROW_NUMBER() OVER (PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR BY t2.LIQUIDADO_BOLIVAR DESC) AS fila
-    FROM 
-        sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
-    LEFT JOIN 
-        sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros t2
-        ON t1.NUMERO_POLIZA = t2.NUMERO_POLIZA 
-        AND t1.KEY_ID_TOMADOR = t2.KEY_ID_TOMADOR
-    WHERE 
-        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2024-12-31' 
-        AND CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2024-12-31' 
-        AND CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2024-01-01' 
-        AND CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2024-01-01' 
-        AND (t1.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%') 
-        AND t1.CODIGO_COMPANIA = 3
-        AND t2.CODIGO_COMPANIA = 3  
-        AND t2.FECHA_ORDEN_PAGO IS NOT NULL  
-        AND t2.FECHA_ORDEN_PAGO >= '2024-01-01'
-        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0
-        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90
-        AND t1.ALTURA_POLIZA = '01'
-        AND (t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%'     
-             OR t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%ADICION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%')
-)
-SELECT
-    CODIGO_COMPANIA,
-    CODIGO_RAMO_EMISION,
-    NOMBRE_RAMO_EMISION,
-    CODIGO_PRODUCTO,
-    NOMBRE_PRODUCTO,
-    NUMERO_POLIZA,
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,    
-    COD_MOTIVO_CANCELACION_POLIZA,
-    DES_MOTIVO_CANCELACION_POLIZA,
-    FECHA_EMISION_ENDOSO,
-    FECHA_INICIO_ENDOSO,
-    FECHA_FIN_ENDOSO,
-    FECHA_INICIO_POLIZA,
-    FECHA_FIN_POLIZA,
-    TIPO_ENDOSO,
-    DESCRIPCION_ENDOSO,
-    FECHA_ORIGEN,
-    FECHA_SUSCRIPCION,
-    FECHA_SINIESTRO,
-    LIQUIDADO_BOLIVAR,
-    FECHA_ORDEN_PAGO,
-    DIFERENCIA_DIAS
-FROM 
-    registros_ordenados
-WHERE 
-    fila = 1
-ORDER BY 
-    LIQUIDADO_BOLIVAR DESC;
-
-
+ 
 CREATE -----
-
--- Crear o reemplazar la tabla SEG_0005_VISOR_REPO con la fecha de alerta
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0068_VISOR_REPO AS
+-- CTE (Common Table Expression) para estructurar y filtrar los registros relevantes
 WITH registros_ordenados AS (
     SELECT DISTINCT
+        -- Información básica de la póliza y producto
         t1.CODIGO_COMPANIA,
         t1.CODIGO_RAMO_EMISION,
         t1.NOMBRE_RAMO_EMISION,
         t1.CODIGO_PRODUCTO,
         t1.NOMBRE_PRODUCTO,
         t1.NUMERO_POLIZA,
+
+        -- Datos del tomador
         t1.TIPO_DOCUMENTO_TOMADOR,
         t1.KEY_ID_TOMADOR,    
+
+        -- Información del endoso y su motivo
         t1.COD_MOTIVO_CANCELACION_POLIZA,
         t1.DES_MOTIVO_CANCELACION_POLIZA,
         CAST(t1.FECHA_EMISION_ENDOSO AS DATE) AS FECHA_EMISION_ENDOSO,
@@ -107,39 +27,62 @@ WITH registros_ordenados AS (
         t1.TIPO_ENDOSO,
         t1.DESCRIPCION_ENDOSO,
         CAST(t1.FECHA_ORIGEN AS DATE) AS FECHA_ORIGEN,
+
+        -- Datos del siniestro relacionados con la póliza
         t2.FECHA_SUSCRIPCION,
         t2.FECHA_SINIESTRO,
         t2.LIQUIDADO_BOLIVAR,
         t2.FECHA_ORDEN_PAGO,
+
+        -- Días entre la fecha del endoso y la orden de pago
         DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_EMISION_ENDOSO AS DATE), DAY) AS DIFERENCIA_DIAS,
-        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR ORDER BY t2.LIQUIDADO_BOLIVAR DESC) AS fila
+
+        -- Enumeración de filas por póliza y tomador (para quedarnos con un único registro por caso)
+        ROW_NUMBER() OVER (
+            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR 
+            ORDER BY t2.LIQUIDADO_BOLIVAR DESC
+        ) AS fila
+
     FROM 
+        -- Fuente de pólizas y endosos
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
-    LEFT JOIN 
-        sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros t2
+
+    -- Relación con tabla de siniestros
+    LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros t2
         ON t1.NUMERO_POLIZA = t2.NUMERO_POLIZA 
         AND t1.KEY_ID_TOMADOR = t2.KEY_ID_TOMADOR
+
+    -- Filtros para seleccionar registros relevantes
     WHERE 
-        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2024-12-31' 
-        AND CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2024-12-31' 
-        AND CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2024-01-01' 
-        AND CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2024-01-01' 
-        AND (t1.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%') 
-        AND t1.CODIGO_COMPANIA = 3
-        AND t2.CODIGO_COMPANIA = 3  
-        AND t2.FECHA_ORDEN_PAGO IS NOT NULL  
-        AND t2.FECHA_ORDEN_PAGO >= '2024-01-01'
-        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0
-        AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90
-        AND t1.ALTURA_POLIZA = '01'
-        AND (t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%'     
-             OR t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%ADICION%' 
-             OR t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%')
+        CAST(t1.FECHA_FIN_POLIZA AS DATE) > '2024-12-31' AND
+        CAST(t1.FECHA_FIN_ENDOSO AS DATE) > '2024-12-31' AND
+        CAST(t1.FECHA_EMISION_ENDOSO AS DATE) > '2024-01-01' AND
+        CAST(t1.FECHA_INICIO_ENDOSO AS DATE) > '2024-01-01' AND
+        t1.CODIGO_COMPANIA = 3 AND
+        t2.CODIGO_COMPANIA = 3 AND
+        t2.FECHA_ORDEN_PAGO IS NOT NULL AND
+        t2.FECHA_ORDEN_PAGO >= '2025-01-01' AND
+        t1.MARCA_ANULACION != 'S' AND
+
+        -- Solo casos donde el pago ocurrió después del endoso y dentro de 90 días
+        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0 AND
+        DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90 AND
+
+        -- Solo pólizas principales (ALTURA_POLIZA = '01')
+        t1.ALTURA_POLIZA = '01' AND
+
+        -- Endosos relacionados con beneficiarios (tipos específicos)
+        t1.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%' AND (
+            t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' OR
+            t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%' OR
+            t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' OR
+            t1.DESCRIPCION_ENDOSO LIKE '%VINCULACION%' OR
+            t1.DESCRIPCION_ENDOSO LIKE '%CAMBIO%' OR
+            t1.DESCRIPCION_ENDOSO LIKE '%ADICION%'
+        )
 )
+
+-- Selección final de la fila más relevante (por póliza)
 SELECT
     CODIGO_COMPANIA,
     CODIGO_RAMO_EMISION,
@@ -164,14 +107,24 @@ SELECT
     LIQUIDADO_BOLIVAR,
     FECHA_ORDEN_PAGO,
     DIFERENCIA_DIAS,
-     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-    CURRENT_DATE() AS FECHA_ALERTA -- Se agrega la fecha de alerta
-FROM 
-    registros_ordenados
-WHERE 
-    fila = 1
-ORDER BY 
-    LIQUIDADO_BOLIVAR DESC;
+
+    -- Información de alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+
+FROM registros_ordenados
+
+-- Se selecciona solo la fila más representativa por grupo (la de mayor valor liquidado)
+WHERE fila = 1
+
+-- Ordenamiento por monto liquidado, de mayor a menor
+ORDER BY LIQUIDADO_BOLIVAR DESC;
+
+
+
+
+
+
 
 
 INSERT -----
@@ -249,6 +202,7 @@ WITH registros_ordenados AS (
         AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0
         AND DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) <= 90
         AND t1.ALTURA_POLIZA = '01'
+        AND t1.MARCA_ANULACION != 'S' 
         AND (t1.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' 
              OR t1.DESCRIPCION_ENDOSO LIKE '%MODIFICA%'     
              OR t1.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' 
