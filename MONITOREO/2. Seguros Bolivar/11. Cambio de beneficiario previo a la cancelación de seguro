@@ -74,10 +74,11 @@ WITH RankedRows AS (
         WHERE
             CAST(FECHA_FIN_POLIZA AS DATE) > '2025-01-01' AND
             CAST(FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' AND
-            CAST(FECHA_EMISION_ENDOSO AS DATE) > '2024-10-01' AND
-            CAST(FECHA_INICIO_ENDOSO AS DATE) > '2024-10-01' AND
+            CAST(FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' AND
+            CAST(FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' AND
             TIPO_ENDOSO LIKE '%AT%' AND
             CODIGO_COMPANIA = 2
+            AND MARCA_ANULACION != 'S' 
     ) b
     ON a.NUMERO_POLIZA = b.NUMERO_POLIZA AND a.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
 
@@ -91,10 +92,11 @@ WITH RankedRows AS (
         c.ORDEN_PAGO > 0 AND
         c.FECHA_ULT_MODIFICACION > '2025-01-01' AND
         CAST(a.FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' AND
-        CAST(a.FECHA_EMISION_ENDOSO AS DATE) > '2024-10-01' AND
-        CAST(a.FECHA_INICIO_ENDOSO AS DATE) > '2024-10-01' AND
+        CAST(a.FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' AND
+        CAST(a.FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' AND
         CAST(b.FECHA_PROCESO AS DATE) IS NOT NULL AND
         a.CODIGO_COMPANIA = 2 AND
+        AND MARCA_ANULACION != 'S' 
         a.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%' AND
         a.DESCRIPCION_ENDOSO NOT LIKE '%DESVINCU%' AND
         b.DESCRIPCION_ENDOSO NOT LIKE '%FACTURA%' AND
@@ -181,10 +183,7 @@ WHERE
 
 
 INSERT --------------------------
-
--- Inserta solo los registros nuevos en la tabla SEG_0004_VISOR_REPO
--- Evita duplicados mediante una subconsulta NOT EXISTS al final
-
+-- Insertar solo registros nuevos (sin duplicados) en SEG_0004_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO (
     CODIGO_COMPANIA,
     CODIGO_RAMO_EMISION,
@@ -218,10 +217,8 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO (
     MARCA_CANCELACION_DEFINITIVA
 )
 
--- Subconsulta principal para seleccionar y filtrar los registros candidatos
 WITH RankedRows AS (
     SELECT DISTINCT
-        -- Datos de la póliza, tomador y endoso
         a.CODIGO_COMPANIA,
         a.CODIGO_RAMO_EMISION,
         a.NOMBRE_RAMO_EMISION,
@@ -241,30 +238,17 @@ WITH RankedRows AS (
         a.TIPO_ENDOSO,
         a.DESCRIPCION_ENDOSO,
         CAST(a.FECHA_ORIGEN AS DATE) AS FECHA_ORIGEN,
-
-        -- Información del endoso alterno (fuente B)
         b.COD_MOTIVO_CANCELACION_POLIZA AS COD_MOTIVO_CANCELACION_POLIZA_B,
         b.DES_MOTIVO_CANCELACION_POLIZA AS DES_MOTIVO_CANCELACION_POLIZA_B,
         b.TIPO_ENDOSO AS TIPO_ENDOSO_B,
         b.DESCRIPCION_ENDOSO AS DESCRIPCION_ENDOSO_B,
-
-        -- Fecha de la alerta generada
         FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
         CURRENT_DATE() AS FECHA_ALERTA,
-
-        -- Monto y fecha de la orden de pago asociada
         c.VALOR_GIRADO,
         c.FECHA_ULT_MODIFICACION,
-
-        -- Enumerador para seleccionar solo la fila más reciente por póliza
-        ROW_NUMBER() OVER (
-            PARTITION BY a.NUMERO_POLIZA
-            ORDER BY c.FECHA_ULT_MODIFICACION DESC
-        ) AS rn
-
-    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos a
-
-    -- Join izquierdo con subconjunto de endosos que cumplen ciertos criterios de cancelación
+        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_POLIZA ORDER BY c.FECHA_ULT_MODIFICACION DESC) AS rn
+    FROM 
+        sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos a
     LEFT JOIN (
         SELECT DISTINCT
             NUMERO_POLIZA,
@@ -280,35 +264,34 @@ WITH RankedRows AS (
             TIPO_ENDOSO,
             DESCRIPCION_ENDOSO,
             FECHA_PROCESO
-        FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
+        FROM 
+            sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
         WHERE 
-            CAST(FECHA_FIN_POLIZA AS DATE) > '2025-01-01' AND
-            CAST(FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' AND
-            CAST(FECHA_EMISION_ENDOSO AS DATE) > '2024-10-01' AND
-            CAST(FECHA_INICIO_ENDOSO AS DATE) > '2024-10-01' AND
-            TIPO_ENDOSO LIKE '%AT%' AND
-            CODIGO_COMPANIA = 2
+            CAST(FECHA_FIN_POLIZA AS DATE) > '2025-01-01' 
+            AND CAST(FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' 
+            AND CAST(FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' 
+            AND CAST(FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' 
+            AND TIPO_ENDOSO LIKE '%AT%'
+            AND CODIGO_COMPANIA = 2
+                    AND MARCA_ANULACION != 'S' 
     ) b
     ON a.NUMERO_POLIZA = b.NUMERO_POLIZA AND a.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
-
-    -- Join con la tabla de órdenes de pago de vida
     INNER JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_vida_retiros c
     ON a.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO AND a.KEY_ID_TOMADOR = c.KEY_ID_TOMADOR
-
-    -- Filtros para garantizar registros recientes, válidos y relevantes
     WHERE 
-        CAST(a.FECHA_FIN_POLIZA AS DATE) > '2025-01-01' AND
-        c.ORDEN_PAGO > 0 AND
-        c.FECHA_ULT_MODIFICACION > '2025-01-01' AND
-        CAST(a.FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' AND
-        CAST(a.FECHA_EMISION_ENDOSO AS DATE) > '2024-10-01' AND
-        CAST(a.FECHA_INICIO_ENDOSO AS DATE) > '2024-10-01' AND
-        CAST(b.FECHA_PROCESO AS DATE) IS NOT NULL AND
-        a.CODIGO_COMPANIA = 2 AND
-        a.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%' AND
-        a.DESCRIPCION_ENDOSO NOT LIKE '%DESVINCU%' AND
-        b.DESCRIPCION_ENDOSO NOT LIKE '%FACTURA%' AND
-        (
+        CAST(a.FECHA_FIN_POLIZA AS DATE) > '2025-01-01'
+        AND c.ORDEN_PAGO > 0   
+        AND c.FECHA_ULT_MODIFICACION > '2025-01-01'
+        AND CAST(a.FECHA_FIN_ENDOSO AS DATE) > '2025-01-01' 
+        AND CAST(a.FECHA_EMISION_ENDOSO AS DATE) > '2025-01-01' 
+        AND CAST(a.FECHA_INICIO_ENDOSO AS DATE) > '2025-01-01' 
+        AND CAST(b.FECHA_PROCESO AS DATE) IS NOT NULL
+        AND a.CODIGO_COMPANIA = 2
+                AND MARCA_ANULACION != 'S' 
+        AND (a.DESCRIPCION_ENDOSO LIKE '%BENEFICIARIO%')
+        AND (a.DESCRIPCION_ENDOSO NOT LIKE '%DESVINCU%') 
+        AND (b.DESCRIPCION_ENDOSO NOT LIKE '%FACTURA%')         
+        AND (
             a.DESCRIPCION_ENDOSO LIKE '%INCLUSION%' OR 
             a.DESCRIPCION_ENDOSO LIKE '%MODIFICA%' OR
             a.DESCRIPCION_ENDOSO LIKE '%ACTUALIZA%' OR
@@ -318,7 +301,6 @@ WITH RankedRows AS (
         )
 )
 
--- Selección final para insertar en la tabla destino
 SELECT 
     r.CODIGO_COMPANIA,
     r.CODIGO_RAMO_EMISION,
@@ -336,9 +318,9 @@ SELECT
     r.FECHA_FIN_POLIZA,
     r.TIPO_ENDOSO,
     r.DESCRIPCION_ENDOSO,
-    r.FECHA_INICIO_ENDOSO,
+    r.FECHA_INICIO_ENDOSO,    
     r.FECHA_ORIGEN AS FECHA_CAMBIO_NOVEDAD_BENEF,
-    t.FECHA_CANCELACION_DEF,
+    t.FECHA_CANCELACION_DEF,    
     r.COD_MOTIVO_CANCELACION_POLIZA_B,
     r.DES_MOTIVO_CANCELACION_POLIZA_B,
     r.TIPO_ENDOSO_B,
@@ -350,29 +332,16 @@ SELECT
     t.DESCRIPCION_ENDOSO AS DESCRIPCION_ENDOSO_CANCELACION,
     t.AGRUPACION_DESCRIPCION_ENDOSO_CANCELACION,
     t.MARCA_CANCELACION_DEFINITIVA
-
 FROM RankedRows r
-
--- Se une con tabla de cancelaciones para traer fecha de cancelación definitiva
 LEFT JOIN sb-ecosistemaanalitico-lago.datamart.t_cancelaciones t
-ON r.NUMERO_POLIZA = t.NUMERO_POLIZA
-
--- Se aplica lógica de negocio:
--- - Cancelaciones definitivas
--- - Cambio en beneficiario ocurrido antes de la cancelación
--- - Evento reciente (desde 2024)
--- - La fila más reciente por póliza (rn = 1)
--- - Cancelaciones dentro de 90 días luego del cambio en beneficiario
--- - Solo insertar si ese registro no existe ya en la tabla (según combinación clave)
+    ON r.NUMERO_POLIZA = t.NUMERO_POLIZA
 WHERE 
-    t.MARCA_CANCELACION_DEFINITIVA = 'S' AND
-    DATE(r.FECHA_EMISION_ENDOSO) < DATE(t.FECHA_CANCELACION_DEF) AND
-    r.FECHA_ORIGEN >= '2024-01-01' AND
-    r.rn = 1 AND
-    DATE_DIFF(DATE(t.FECHA_CANCELACION_DEF), r.FECHA_ORIGEN, DAY) < 90 AND
-
-    -- Validación para evitar insertar duplicados
-    NOT EXISTS (
+    t.MARCA_CANCELACION_DEFINITIVA = 'S'
+    AND DATE(r.FECHA_EMISION_ENDOSO) < DATE(t.FECHA_CANCELACION_DEF)
+    AND r.FECHA_ORIGEN >= '2025-01-01'
+    AND r.rn = 1
+    AND DATE_DIFF(DATE(t.FECHA_CANCELACION_DEF), r.FECHA_ORIGEN, DAY) < 90
+    AND NOT EXISTS (
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO existing
         WHERE existing.NUMERO_POLIZA = r.NUMERO_POLIZA
