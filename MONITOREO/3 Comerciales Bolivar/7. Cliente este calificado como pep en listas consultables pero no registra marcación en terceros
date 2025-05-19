@@ -2,7 +2,6 @@ CREATE -----
 
 -- Crear o reemplazar la tabla COM_0312_VISOR_REPO con datos de tomadores en listas restrictivas
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO AS
-
 -- CTE que selecciona la póliza más reciente por tomador en lista restrictiva
 WITH PolizasConFila AS (
     SELECT 
@@ -23,10 +22,8 @@ WITH PolizasConFila AS (
         p.KEY_ID_TOMADOR,                  -- Identificador del tomador
         p.FECHA_INICIO_POLIZA,             -- Fecha de inicio de la póliza
         p.FECHA_FIN_POLIZA,                -- Fecha de finalización de la póliza
-        p.FECHA_CORTE,                     -- Fecha de corte
         p.FECHA_EMISION_ENDOSO,            -- Fecha de emisión del endoso
-        p.FECHA_EMISION_ORIGINAL,          -- Fecha de emisión original de la póliza
-
+        
         -- Información de la lista restrictiva
         l.NOMBRES,                         -- Nombres registrados en la lista
         l.OBSERVACIONES,                   -- Observaciones de la lista
@@ -64,7 +61,7 @@ WITH PolizasConFila AS (
         FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES, -- Mes de la alerta
         CURRENT_DATE() AS FECHA_ALERTA      -- Fecha de ejecución de la alerta
     FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
         ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
@@ -77,7 +74,8 @@ WITH PolizasConFila AS (
     WHERE 
         p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza debe estar vigente
         AND p.CODIGO_COMPANIA = 3                 -- Compañía específica (por ejemplo, Capitalizadora)
-        AND tcn.FECHA_INICIO >= "2024-10-01"      -- Clientes vinculados a partir de octubre de 2024
+        AND tcn.FECHA_INICIO >= "2025-01-01"      -- Clientes vinculados a partir de octubre de 2024
+                AND p.MARCA_ANULACION != 'S' 
 )
 
 -- Selección final de los registros para crear la tabla
@@ -86,8 +84,8 @@ SELECT
     p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
     p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
     p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
-    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE,
-    p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL, l.NOMBRES, l.OBSERVACIONES,
+    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
+    p.FECHA_EMISION_ENDOSO, l.NOMBRES, l.OBSERVACIONES,
     l.CODIGO_LISTA, l.NOMBRE_LISTA, tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO,
     tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL, tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN,
     tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS, tcn.VALOR_INGRESOS, tcn.VALOR_ACTIVO,
@@ -108,10 +106,10 @@ WHERE
     AND tcn.PUBLICAMENTE_EXPUESTA != 'S'  -- Solo si no es persona expuesta públicamente
     AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()
     AND p.CODIGO_COMPANIA = 3
-    AND tcn.FECHA_INICIO >= "2024-10-01"
+    AND tcn.FECHA_INICIO >= "2025-01-01"
     AND p.NOMBRE_PRODUCTO != "SOAT"  -- Se excluye el producto SOAT
-ORDER BY 
-    p.FECHA_CORTE DESC;  -- Ordena para priorizar los registros con corte más reciente
+
+
 
 
 
@@ -128,8 +126,8 @@ INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
     CODIGO_COMPANIA, CODIGO_RAMO_EMISION, NOMBRE_RAMO_EMISION, CODIGO_PRODUCTO, 
     NOMBRE_PRODUCTO, CLAVE_AGENTE, CODIGO_LOCALIDAD, NOMBRE_LOCALIDAD, CODIGO_CANAL, 
     NOMBRE_CANAL, NUMERO_POLIZA, NUMERO_POLIZA_MADRE, TIPO_DOCUMENTO_TOMADOR, 
-    KEY_ID_TOMADOR, FECHA_INICIO_POLIZA, FECHA_FIN_POLIZA, FECHA_CORTE, FECHA_EMISION_ENDOSO, 
-    FECHA_EMISION_ORIGINAL, NOMBRES, OBSERVACIONES, CODIGO_LISTA, NOMBRE_LISTA, PUBLICAMENTE_EXPUESTA, 
+    KEY_ID_TOMADOR, FECHA_INICIO_POLIZA, FECHA_FIN_POLIZA, FECHA_EMISION_ENDOSO, 
+     NOMBRES, OBSERVACIONES, CODIGO_LISTA, NOMBRE_LISTA, PUBLICAMENTE_EXPUESTA, 
     SEXO, FEC_NACIMIENTO, NACIONALIDAD, ESTRATO_SOCIAL, EMPRESA_TRABAJA, CARGO, CONTACTAR_EN, 
     FECHA_ACTUALIZACION, VALOR_EGRESOS, VALOR_INGRESOS, VALOR_ACTIVO, VALOR_PASIVO, VALOR_PATRIMONIO, 
     CODIGO_CIIU, ACTIVIDAD_ECONOMICA, FUENTE_EMPRESA_TRABAJA, FUENTE_INGRESO, FECHA_ULTIMO_SALARIO, 
@@ -142,8 +140,8 @@ WITH PolizasConFila AS (
         p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
         p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
         p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
-        p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE, 
-        p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+        p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, 
+        p.FECHA_EMISION_ENDOSO, 
         l.NOMBRES, l.OBSERVACIONES, l.CODIGO_LISTA, l.NOMBRE_LISTA,
         tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO, tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL,
         tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN, tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS,
@@ -157,7 +155,7 @@ WITH PolizasConFila AS (
         ) AS fila,  -- Identifica la fila más reciente por tomador
         CURRENT_DATE() AS FECHA_ALERTA  -- Fecha exacta de generación de la alerta
     FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
         ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO AND p.KEY_ID_TOMADOR = l.KEY_ID
@@ -168,8 +166,9 @@ WITH PolizasConFila AS (
     WHERE 
         p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza aún está vigente
         AND p.CODIGO_COMPANIA = 3  -- Compañía específica
-        AND tcn.FECHA_INICIO >= "2024-10-01"  -- Fecha de inicio de cliente reciente
+        AND tcn.FECHA_INICIO >= "2025-01-01"  -- Fecha de inicio de cliente reciente
         AND p.NOMBRE_PRODUCTO != "SOAT"  -- Se excluyen productos SOAT
+           AND p.MARCA_ANULACION != 'S' 
 )
 
 -- Selección de los datos depurados para insertar
@@ -177,8 +176,8 @@ SELECT
     p.CODIGO_COMPANIA, p.CODIGO_RAMO_EMISION, p.NOMBRE_RAMO_EMISION, p.CODIGO_PRODUCTO,
     p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL,
     p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
-    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_CORTE,
-    p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL, l.NOMBRES, l.OBSERVACIONES,
+    p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
+    p.FECHA_EMISION_ENDOSO, l.NOMBRES, l.OBSERVACIONES,
     l.CODIGO_LISTA, l.NOMBRE_LISTA, tcn.PUBLICAMENTE_EXPUESTA, tcn.SEXO, tcn.FEC_NACIMIENTO,
     tcn.NACIONALIDAD, tcn.ESTRATO_SOCIAL, tcn.EMPRESA_TRABAJA, tcn.CARGO, tcn.CONTACTAR_EN,
     tcn.FECHA_ACTUALIZACION, tcn.VALOR_EGRESOS, tcn.VALOR_INGRESOS, tcn.VALOR_ACTIVO,
@@ -199,7 +198,7 @@ WHERE
     AND tcn.PUBLICAMENTE_EXPUESTA != 'S'  -- El cliente no debe estar marcado como PEP
     AND p.FECHA_FIN_POLIZA > CURRENT_TIMESTAMP()  -- La póliza debe seguir vigente
     AND p.CODIGO_COMPANIA = 3  -- Compañía específica
-    AND tcn.FECHA_INICIO >= "2024-10-01"  -- Clientes activos recientes
+    AND tcn.FECHA_INICIO >= "2025-01-01"  -- Clientes activos recientes
     AND NOT EXISTS (
         -- Se evita duplicar registros ya existentes para misma póliza y tomador en el mismo mes de alerta
         SELECT 1
@@ -209,5 +208,4 @@ WHERE
           AND repo.TIPO_DOCUMENTO_TOMADOR = p.TIPO_DOCUMENTO_TOMADOR
           AND repo.FECHA_ALERTA_MES = p.FECHA_ALERTA_MES
     )
-ORDER BY 
-    p.FECHA_CORTE DESC;  -- Se priorizan los registros con corte más reciente
+
