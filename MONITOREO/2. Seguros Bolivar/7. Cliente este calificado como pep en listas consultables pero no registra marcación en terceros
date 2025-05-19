@@ -1,4 +1,3 @@
-CREATE -----
 # Crear o reemplazar tabla que consolida alertas por tomadores en lista restrictiva
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO AS
 
@@ -13,8 +12,7 @@ WITH PolizasConFila AS (
         p.CODIGO_PRODUCTO, p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE,
         p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL, p.NOMBRE_CANAL,
         p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
-        p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
-        p.FECHA_CORTE, p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+        p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA, p.FECHA_EMISION_ENDOSO,
 
         # Datos de lista restrictiva
         l.CODIGO_LISTA, l.NOMBRE_LISTA,
@@ -33,7 +31,7 @@ WITH PolizasConFila AS (
         CURRENT_DATE() AS FECHA_ALERTA
 
     FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
     
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
@@ -57,6 +55,7 @@ WITH PolizasConFila AS (
         AND p.CODIGO_COMPANIA = 2                  # Solo compañía 2
         AND p.FECHA_INICIO_POLIZA >= "2025-01-01" 
         AND tcn.PUBLICAMENTE_EXPUESTA != 'S'     # Clientes recientes
+                AND p.MARCA_ANULACION != 'S' 
 )
 
 # ---------------------------
@@ -69,7 +68,7 @@ SELECT distinct
     p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL, p.NOMBRE_CANAL,
     p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
     p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
-    p.FECHA_CORTE, p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+     p.FECHA_EMISION_ENDOSO, 
     l.CODIGO_LISTA, l.NOMBRE_LISTA,
     tcn.PUBLICAMENTE_EXPUESTA,
     FECHA_ALERTA_MES,
@@ -103,9 +102,6 @@ WHERE
     AND p.CODIGO_COMPANIA = 2
     AND p.FECHA_INICIO_POLIZA >= "2025-01-01"  
 
-ORDER BY 
-    p.FECHA_CORTE DESC;                    # Más reciente primero
-
 
 
 
@@ -119,8 +115,8 @@ INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO`
      CODIGO_COMPANIA, CODIGO_RAMO_EMISION, NOMBRE_RAMO_EMISION, CODIGO_PRODUCTO, 
      NOMBRE_PRODUCTO, CLAVE_AGENTE, CODIGO_LOCALIDAD, NOMBRE_LOCALIDAD, CODIGO_CANAL, 
      NOMBRE_CANAL, NUMERO_POLIZA, NUMERO_POLIZA_MADRE, TIPO_DOCUMENTO_TOMADOR, 
-     KEY_ID_TOMADOR, FECHA_INICIO_POLIZA, FECHA_FIN_POLIZA, FECHA_CORTE, FECHA_EMISION_ENDOSO, 
-     FECHA_EMISION_ORIGINAL, CODIGO_LISTA, NOMBRE_LISTA, 
+     KEY_ID_TOMADOR, FECHA_INICIO_POLIZA, FECHA_FIN_POLIZA,  FECHA_EMISION_ENDOSO, 
+     CODIGO_LISTA, NOMBRE_LISTA, 
      PUBLICAMENTE_EXPUESTA,
      FECHA_ALERTA_MES, FECHA_ALERTA
     )
@@ -134,7 +130,7 @@ WITH PolizasConFila AS (
         p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD, p.CODIGO_CANAL, p.NOMBRE_CANAL,
         p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE, p.TIPO_DOCUMENTO_TOMADOR,
         p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
-        p.FECHA_CORTE, p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+         p.FECHA_EMISION_ENDOSO, 
 
         # Datos de lista restrictiva
         l.CODIGO_LISTA, l.NOMBRE_LISTA,
@@ -153,7 +149,7 @@ WITH PolizasConFila AS (
         ) AS fila
 
     FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas` p
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
     INNER JOIN 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_lista_restrictivas` l
         ON p.TIPO_DOCUMENTO_TOMADOR = l.TIPO_DOCUMENTO
@@ -172,6 +168,7 @@ WITH PolizasConFila AS (
         AND p.CODIGO_COMPANIA = 2                        # Compañía específica
         AND p.FECHA_INICIO_POLIZA >= "2025-01-01"  
         AND tcn.PUBLICAMENTE_EXPUESTA != 'S'          # Relación iniciada desde octubre 2024
+                        AND p.MARCA_ANULACION != 'S' 
 )
 
 SELECT distinct
@@ -179,7 +176,7 @@ SELECT distinct
     p.NOMBRE_PRODUCTO, p.CLAVE_AGENTE, p.CODIGO_LOCALIDAD, p.NOMBRE_LOCALIDAD,
     p.CODIGO_CANAL, p.NOMBRE_CANAL, p.NUMERO_POLIZA, p.NUMERO_POLIZA_MADRE,
     p.TIPO_DOCUMENTO_TOMADOR, p.KEY_ID_TOMADOR, p.FECHA_INICIO_POLIZA, p.FECHA_FIN_POLIZA,
-    p.FECHA_CORTE, p.FECHA_EMISION_ENDOSO, p.FECHA_EMISION_ORIGINAL,
+    p.FECHA_EMISION_ENDOSO,
     l.CODIGO_LISTA, l.NOMBRE_LISTA,
     tcn.PUBLICAMENTE_EXPUESTA,
     FECHA_ALERTA_MES,
@@ -215,6 +212,3 @@ WHERE
           AND repo.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR
           AND repo.TIPO_DOCUMENTO_TOMADOR = p.TIPO_DOCUMENTO_TOMADOR
     )
-
-ORDER BY 
-    p.FECHA_CORTE DESC;                          # Orden por póliza más reciente
