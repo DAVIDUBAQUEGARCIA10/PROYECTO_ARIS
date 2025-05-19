@@ -46,7 +46,7 @@ WITH RankedSiniestros AS (
     WHERE
         s.FECHA_SUSCRIPCION >= '2025-01-01'           -- Solo siniestros suscritos a partir de 2024
         AND p.FECHA_INICIO_POLIZA >= '2025-01-01'     -- Solo pólizas vigentes desde 2024
-        AND p.FECHA_FIN_POLIZA >= '2024-10-31'        -- Pólizas activas hasta mínimo octubre de 2024
+        AND p.FECHA_FIN_POLIZA >= '2025-01-01'        -- Pólizas activas hasta mínimo octubre de 2024
         AND s.CODIGO_COMPANIA = 3                     -- Se restringe a una compañía específica (código 3)
 
         -- Se excluyen pólizas cuyo beneficiario del siniestro coincida con el asegurado o tomador
@@ -144,9 +144,9 @@ WITH RankedSiniestros AS (
         AND s.KEY_ID_ASEGURADO = p.KEY_ID_ASEGURADO
 
     WHERE
-        s.FECHA_SUSCRIPCION >= '2024-01-01'
-        AND p.FECHA_INICIO_POLIZA >= '2024-01-01'
-        AND p.FECHA_FIN_POLIZA >= '2024-10-31'
+        s.FECHA_SUSCRIPCION >= '2025-01-01'
+        AND p.FECHA_INICIO_POLIZA >= '2025-01-01'
+        AND p.FECHA_FIN_POLIZA >= '2025-01-01'
         AND s.CODIGO_COMPANIA = 3
 
         -- Se excluyen casos donde el beneficiario del siniestro sea el tomador o asegurado
