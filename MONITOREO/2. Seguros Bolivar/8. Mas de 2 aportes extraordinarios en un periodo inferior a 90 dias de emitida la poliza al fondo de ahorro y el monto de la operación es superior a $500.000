@@ -1,6 +1,6 @@
 
 CREATE ----
--- Crear o reemplazar la tabla SEG_0061_VISOR_REPO con la fecha de alerta
+
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO AS  # Crea o reemplaza la tabla destino donde se almacenarán las alertas generadas
 
 WITH ranked_data AS (  # Se define una CTE (Common Table Expression) llamada ranked_data para organizar los datos relevantes
@@ -21,12 +21,12 @@ WITH ranked_data AS (  # Se define una CTE (Common Table Expression) llamada ran
         FORMA_COBRO,  # Forma en la que se realiza el cobro (ej: mensual, anual, etc.)
         CANAL_DESCUENTO,  # Canal por el cual se aplicó un descuento, si aplica
         TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
-        NUMERO_DOCUMENTO_TOMADOR,  # Número de identificación del tomador
+        KEY_ID_TOMADOR,  # Número de identificación del tomador
         NOMBRE_TOMADOR,  # Nombre completo del tomador
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
         COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,  # Conteo de los registros de ahorro extra
         SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,  # Suma total del valor absoluto de los ahorros extra
-        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Número de fila para seleccionar al tomador más representativo
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Número de fila para seleccionar al tomador más representativo
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`  # Tabla de origen que contiene los registros de recaudos
     WHERE 
@@ -53,7 +53,7 @@ WITH ranked_data AS (  # Se define una CTE (Common Table Expression) llamada ran
         FORMA_COBRO,
         CANAL_DESCUENTO,
         TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
         NOMBRE_TOMADOR,
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
         VALOR_AHORRO_EXTRA  # Se agrupan los datos por todos estos campos para poder aplicar funciones de agregación
@@ -78,7 +78,7 @@ SELECT
     FORMA_COBRO,  # Modalidad de cobro
     CANAL_DESCUENTO,  # Canal de descuento
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+    KEY_ID_TOMADOR,  # Número del documento del tomador
     NOMBRE_TOMADOR,  # Nombre del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
     CANTIDAD_REGISTROS,  # Cantidad de aportes extraordinarios registrados
@@ -91,6 +91,7 @@ WHERE
     rn = 1  # Solo se toma el primer registro por cada tomador (más representativo)
 ORDER BY 
     CANTIDAD_REGISTROS DESC;  # Se ordena la salida desde el tomador con más registros
+
 
 
 
@@ -119,12 +120,12 @@ WITH ranked_data AS (  # Se define una CTE llamada ranked_data que agrupa y clas
         FORMA_COBRO,  # Modalidad de cobro (mensual, anual, etc.)
         CANAL_DESCUENTO,  # Canal de comercialización con descuento, si aplica
         TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
-        NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        KEY_ID_TOMADOR,  # Número del documento del tomador
         NOMBRE_TOMADOR,  # Nombre completo del tomador de la póliza
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
         COUNT(VALOR_AHORRO_EXTRA) AS CANTIDAD_REGISTROS,  # Cantidad de registros con aportes extraordinarios
         SUM(ABS(VALOR_AHORRO_EXTRA)) AS SUM_VALOR_AHORRO_EXTRA,  # Suma total del valor absoluto de los aportes extraordinarios
-        ROW_NUMBER() OVER (PARTITION BY NUMERO_DOCUMENTO_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Se asigna un número de fila por tomador, priorizando quienes tienen más registros
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY COUNT(*) DESC) AS rn  # Se asigna un número de fila por tomador, priorizando quienes tienen más registros
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`  # Tabla de origen con los registros de recaudo diario
     WHERE 
@@ -151,7 +152,7 @@ WITH ranked_data AS (  # Se define una CTE llamada ranked_data que agrupa y clas
         FORMA_COBRO,
         CANAL_DESCUENTO,
         TIPO_DOCUMENTO_TOMADOR,
-        NUMERO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
         NOMBRE_TOMADOR,
         CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
         VALOR_AHORRO_EXTRA  # Se agrupan los datos por todos los campos requeridos para aplicar agregaciones
@@ -177,7 +178,7 @@ SELECT
     FORMA_COBRO,  # Modalidad de cobro
     CANAL_DESCUENTO,  # Canal con descuento aplicado
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Documento del tomador
+    KEY_ID_TOMADOR,  # Documento del tomador
     NOMBRE_TOMADOR,  # Nombre completo del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
     CANTIDAD_REGISTROS,  # Cantidad de aportes registrados
@@ -192,7 +193,5 @@ WHERE
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO t  # Tabla destino ya existente
         WHERE t.NUMERO_POLIZA = ranked_data.NUMERO_POLIZA  # Verifica que no exista una coincidencia por número de póliza
-        AND t.NUMERO_DOCUMENTO_TOMADOR = ranked_data.NUMERO_DOCUMENTO_TOMADOR  # Y por número de documento del tomador
+        AND t.KEY_ID_TOMADOR = ranked_data.KEY_ID_TOMADOR  # Y por número de documento del tomador
     );
-
-
