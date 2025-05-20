@@ -1,0 +1,97 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_pn_cliente` AS 
+-- Consulta integrada: Nivel de Riesgo LAFT + Ocupación + Siniestros + Profesión + Recaudo
+SELECT DISTINCT
+    -- Datos de la póliza
+    p.CODIGO_COMPANIA,
+    p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+
+    -- Datos del cliente (con manejo de valores nulos)
+    IFNULL(c.VALOR_ACTIVO, 0) AS VALOR_ACTIVO,
+    IFNULL(c.VALOR_PASIVO, 0) AS VALOR_PASIVO,
+    IFNULL(c.VALOR_INGRESOS, 0) AS VALOR_INGRESOS,
+    IFNULL(c.VALOR_EGRESOS, 0) AS VALOR_EGRESOS,
+    c.CODIGO_CIIU,
+    c.ACTIVIDAD_ECONOMICA,
+    c.COD_OCUPACION,
+    o.OCUPACION,
+    c.COD_PROFESION,
+
+    -- Información de riesgo por profesión
+    pr.PROFESION,
+    pr.NIVEL_DE_RIESGO AS NIVEL_RIESGO_PROFESION,
+
+    -- Nivel de riesgo desde score LA/FT
+    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
+
+    -- Siniestros últimos 12 meses
+    IFNULL(sin.CANTIDAD_REGISTROS, 0) AS CANTIDAD_SINIESTROS_ULT_12_MESES,
+    IFNULL(sin.SUMATORIA_LIQUIDADO, 0) AS SUMA_LIQUIDADO_ULT_12_MESES,
+
+    -- Recaudo últimos 12 meses
+    IFNULL(r.SUMATORIA_RECAUDO, 0) AS SUMA_RECAUDO_ULT_12_MESES,
+    IFNULL(r.CANTIDAD_REGISTROS, 0) AS CANTIDAD_RECAUDOS_ULT_12_MESES
+
+FROM 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+-- Clientes
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+    ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = c.KEY_ID
+
+-- Score de riesgo
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
+    ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = s.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR = s.KEY_ID
+
+-- Ocupación con nivel de riesgo
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ocupacion_nivel_riesgo_real` o
+    ON c.COD_OCUPACION = o.ID
+
+-- Profesión con nivel de riesgo
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_profesion` pr
+    ON c.COD_PROFESION = pr.ID
+
+-- Siniestros en los últimos 12 meses
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE DATE(FECHA_ORDEN_PAGO) BETWEEN 
+          DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+          AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY CODIGO_COMPANIA, TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR
+) sin
+    ON p.CODIGO_COMPANIA = sin.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = sin.TIPO_DOCUMENTO_TOMADOR
+    AND p.KEY_ID_TOMADOR = sin.KEY_ID_TOMADOR
+
+-- Recaudos en los últimos 12 meses
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE DATE(FECHA_RECAUDO) BETWEEN 
+          DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+          AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY CODIGO_COMPANIA, TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR
+) r
+    ON p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = r.TIPO_DOCUMENTO_TOMADOR
+    AND p.KEY_ID_TOMADOR = r.KEY_ID_TOMADOR  
+
+-- Filtro de pólizas activas y no anuladas
+WHERE 
+    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND MARCA_ANULACION != 'S'
+     AND p.CODIGO_COMPANIA = 3
