@@ -28,7 +28,7 @@ WITH SiniestrosConFila AS (
     FROM 
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE 
-        DATE(FECHA_SINIESTRO) >= '2024-01-01'  -- Solo siniestros desde 2024
+        DATE(FECHA_SINIESTRO) >= '2025-01-01'  -- Solo siniestros desde 2025
         AND DATE_DIFF(DATE(FECHA_SINIESTRO), DATE(FECHA_SUSCRIPCION), DAY) <= 90  -- Dentro de los primeros 90 días desde la emisión
         AND CODIGO_COMPANIA = 2  -- Solo Seguros Bolívar
         AND CODIGO_RAMO_CONTABLE NOT IN (45, 34)  -- Excluye Salud y otros ramos no relevantes
