@@ -1,3 +1,4 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_canal` AS 
 -- Agrupación final por compañía, canal, localidad y agente con niveles de riesgo
 SELECT
     --p.CODIGO_COMPANIA,
