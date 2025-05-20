@@ -22,13 +22,13 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que selecciona y fi
         a.FORMA_COBRO,  # Modalidad de cobro (ej: mensual, recaudo directo)
         a.CANAL_DESCUENTO,  # Canal por el cual se aplicó descuento comercial
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
         c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es Persona Expuesta Públicamente (PEP)
         a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
         ROW_NUMBER() OVER (
-            PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
+            PARTITION BY a.KEY_ID_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
             ORDER BY a.FECHA_RECAUDO DESC
         ) AS rn  # Número de fila para seleccionar el recaudo más reciente por tomador
     FROM 
@@ -37,7 +37,7 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que selecciona y fi
         `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con información de terceros (clientes)
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO  # Unión por número de documento
+        AND a.KEY_ID_TOMADOR = b.KEY_ID  # Unión por número de documento
     LEFT JOIN
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  # Tabla con información adicional del cliente natural
     ON 
@@ -45,8 +45,8 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que selecciona y fi
         AND b.KEY_ID = c.KEY_ID  # Unión por identificador único interno
     WHERE 
         ABS(a.VALOR_AHORRO_EXTRA) > 653223  # Se filtran solo aportes extraordinarios superiores a $653.223
-        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"  # Se seleccionan pólizas vigentes a partir del 2024
-        AND a.FECHA_RECAUDO >= "2024-01-01"  # Recaudos realizados desde 2024 en adelante
+        AND a.FECHA_VIGENCIA_POLIZA >= "2025-01-01"  # Se seleccionan pólizas vigentes a partir del 2024
+        AND a.FECHA_RECAUDO >= "2025-01-01"  # Recaudos realizados desde 2024 en adelante
         AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Solo se consideran ciertos ramos específicos (vida, ahorro, etc.)
         AND a.TIPO_REGISTRO = 'RECAUDO'  # Solo se procesan registros que sean de tipo recaudo
         AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Solo se incluyen personas expuestas públicamente (PEP)
@@ -72,7 +72,7 @@ SELECT distinct  # Se seleccionan registros únicos del conjunto filtrado
     FORMA_COBRO,  # Forma de cobro
     CANAL_DESCUENTO,  # Canal de descuento
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Número de documento
+    KEY_ID_TOMADOR,  # Número de documento
     NOMBRE_TOMADOR,  # Nombre del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
     PUBLICAMENTE_EXPUESTA,  # Indicador si el tomador es PEP
@@ -115,13 +115,13 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que consolida y fil
         a.FORMA_COBRO,  # Modalidad de cobro (ej: débito, convenio, etc.)
         a.CANAL_DESCUENTO,  # Canal de comercialización con descuento, si aplica
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de actividad económica del tomador
         c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es persona expuesta públicamente (PEP)
         a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario realizado
         ROW_NUMBER() OVER (
-            PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
+            PARTITION BY a.KEY_ID_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
             ORDER BY a.FECHA_RECAUDO DESC
         ) AS rn  # Se asigna un número de fila para seleccionar el recaudo más reciente por cliente
     FROM 
@@ -130,7 +130,7 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que consolida y fil
         `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con información de terceros (clientes)
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO  # Unión por número de documento
+        AND a.KEY_ID_TOMADOR = b.KEY_ID  # Unión por número de documento
     LEFT JOIN
         `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  # Tabla con detalles adicionales del cliente natural
     ON 
@@ -165,7 +165,7 @@ SELECT distinct  # Se seleccionan registros únicos
     FORMA_COBRO,  # Forma de cobro
     CANAL_DESCUENTO,  # Canal de descuento
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento
-    NUMERO_DOCUMENTO_TOMADOR,  # Número de documento
+    KEY_ID_TOMADOR,  # Número de documento
     NOMBRE_TOMADOR,  # Nombre completo del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
     PUBLICAMENTE_EXPUESTA,  # Indicador de persona expuesta públicamente
@@ -179,6 +179,6 @@ WHERE
     AND NOT EXISTS (  # Se evita la inserción de duplicados
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO existing  # Tabla ya existente con registros previos
-        WHERE existing.NUMERO_DOCUMENTO_TOMADOR = CTE.NUMERO_DOCUMENTO_TOMADOR  # Coincidencia por documento
+        WHERE existing.KEY_ID_TOMADOR = CTE.KEY_ID_TOMADOR  # Coincidencia por documento
           AND existing.NUMERO_POLIZA = CTE.NUMERO_POLIZA  # Coincidencia por número de póliza
     );
