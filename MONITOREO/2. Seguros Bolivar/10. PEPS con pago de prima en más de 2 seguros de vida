@@ -6,7 +6,7 @@ CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_
 WITH polizas_con_pagos AS (
     SELECT 
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (ej: CC, NIT)
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
         COUNT(DISTINCT a.NUMERO_POLIZA) AS NUMERO_POLIZAS_PAGADAS  # Cuenta las pólizas distintas con recaudos realizados
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla con datos de recaudos y emisión de pólizas
@@ -14,7 +14,7 @@ WITH polizas_con_pagos AS (
         `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con datos de identificación de clientes
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO  # Unión por número de documento
+        AND a.KEY_ID_TOMADOR = b.KEY_ID  # Unión por número de documento
     LEFT JOIN
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales c  # Tabla con atributos adicionales del cliente natural
     ON 
@@ -28,7 +28,7 @@ WITH polizas_con_pagos AS (
         AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Se filtran únicamente personas expuestas públicamente (PEP)
     GROUP BY 
         a.TIPO_DOCUMENTO_TOMADOR,
-        a.NUMERO_DOCUMENTO_TOMADOR
+        a.KEY_ID_TOMADOR
     HAVING 
         COUNT(DISTINCT a.NUMERO_POLIZA) >= 2  # Solo tomadores con 2 o más pólizas distintas pagadas
 ),
@@ -45,12 +45,12 @@ polizas_ordenadas AS (
         a.FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio de vigencia del endoso
         a.FECHA_VENCIMIENTO_ENDOSO,  # Fecha de vencimiento del endoso
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número de documento del tomador
+        a.KEY_ID_TOMADOR,  # Número de documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica declarada del tomador
         b.NUMERO_POLIZAS_PAGADAS,  # Número total de pólizas pagadas por el tomador
         ROW_NUMBER() OVER (
-            PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.NUMERO_DOCUMENTO_TOMADOR
+            PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.KEY_ID_TOMADOR
             ORDER BY a.FECHA_VIGENCIA_ENDOSO DESC
         ) AS rn  # Se asigna un número de fila para seleccionar la póliza más reciente por tomador
     FROM 
@@ -59,12 +59,12 @@ polizas_ordenadas AS (
         polizas_con_pagos b  # Se une con la CTE que identifica los tomadores con múltiples pólizas pagadas
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TOMADOR 
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO_TOMADOR
+        AND a.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
     WHERE 
         b.NUMERO_POLIZAS_PAGADAS IS NOT NULL  # Se asegura que el tomador tenga pólizas pagadas
         AND b.NUMERO_POLIZAS_PAGADAS > 0
-        AND a.FECHA_VIGENCIA_POLIZA >= "2024-01-01"  # Se consideran pólizas con vigencia a partir de 2024
-        AND a.FECHA_RECAUDO >= "2024-01-01"  # Recaudos realizados desde 2024
+        AND a.FECHA_VIGENCIA_POLIZA >= "2025-01-01"  # Se consideran pólizas con vigencia a partir de 2024
+        AND a.FECHA_RECAUDO >= "2025-01-01"  # Recaudos realizados desde 2024
         AND CODIGO_PRODUCTO != 948  # Se excluye el producto con código 948 (posiblemente un producto no relevante para esta alerta)
         AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Se incluyen solo ramos definidos
         AND a.TIPO_REGISTRO = 'RECAUDO'  # Se filtran registros de tipo RECAUDO
@@ -81,7 +81,7 @@ SELECT
     FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
     FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento
-    NUMERO_DOCUMENTO_TOMADOR,  # Número de documento
+    KEY_ID_TOMADOR,  # Número de documento
     NOMBRE_TOMADOR,  # Nombre completo del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica declarada
     NUMERO_POLIZAS_PAGADAS,  # Total de pólizas pagadas
@@ -99,8 +99,9 @@ WHERE
 
 
 
-INSERT ----
 
+
+INSERT ----
 -- Insertar solo registros nuevos en SEG_0071_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO  # Inserta datos en la tabla SEG_0071_VISOR_REPO si aún no existen registros duplicados
 
@@ -108,7 +109,7 @@ INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO  # Inse
 WITH polizas_con_pagos AS (
     SELECT 
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (ej: CC, NIT)
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
         COUNT(DISTINCT a.NUMERO_POLIZA) AS NUMERO_POLIZAS_PAGADAS  # Conteo de pólizas distintas que han sido pagadas
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla principal con datos de recaudos
@@ -116,7 +117,7 @@ WITH polizas_con_pagos AS (
         `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla de terceros (clientes registrados)
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO
+        AND a.KEY_ID_TOMADOR = b.KEY_ID
     LEFT JOIN
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales c  # Información adicional de clientes naturales
     ON 
@@ -130,7 +131,7 @@ WITH polizas_con_pagos AS (
         AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Se filtran únicamente personas expuestas públicamente (PEP)
     GROUP BY 
         a.TIPO_DOCUMENTO_TOMADOR,
-        a.NUMERO_DOCUMENTO_TOMADOR
+        a.KEY_ID_TOMADOR
     HAVING 
         COUNT(DISTINCT a.NUMERO_POLIZA) > 2  # Solo se consideran tomadores con más de 2 pólizas pagadas
 ),
@@ -147,12 +148,12 @@ polizas_ordenadas AS (
         a.FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio del endoso
         a.FECHA_VENCIMIENTO_ENDOSO,  # Fecha de vencimiento del endoso
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número de documento del tomador
+        a.KEY_ID_TOMADOR,  # Número de documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
         b.NUMERO_POLIZAS_PAGADAS,  # Número total de pólizas pagadas del tomador
         ROW_NUMBER() OVER (
-            PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.NUMERO_DOCUMENTO_TOMADOR
+            PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.KEY_ID_TOMADOR
             ORDER BY a.FECHA_VIGENCIA_ENDOSO DESC
         ) AS rn  # Asigna un número de fila ordenado por fecha más reciente del endoso
     FROM 
@@ -161,7 +162,7 @@ polizas_ordenadas AS (
         polizas_con_pagos b  # Se une con la CTE anterior
     ON 
         a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TOMADOR 
-        AND a.NUMERO_DOCUMENTO_TOMADOR = b.NUMERO_DOCUMENTO_TOMADOR
+        AND a.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
     WHERE 
         b.NUMERO_POLIZAS_PAGADAS IS NOT NULL  # Se asegura que el tomador tenga pólizas pagadas
         AND b.NUMERO_POLIZAS_PAGADAS > 0
@@ -182,7 +183,7 @@ SELECT
     FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio del endoso
     FECHA_VENCIMIENTO_ENDOSO,  # Fecha de vencimiento del endoso
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+    KEY_ID_TOMADOR,  # Número del documento del tomador
     NOMBRE_TOMADOR,  # Nombre completo del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica asociada al tomador
     NUMERO_POLIZAS_PAGADAS,  # Cantidad de pólizas pagadas que tiene el tomador
@@ -196,6 +197,6 @@ WHERE
         -- Verificar que el registro no existe ya en la tabla
         SELECT 1
         FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO existing  # Tabla destino
-        WHERE existing.NUMERO_DOCUMENTO_TOMADOR = polizas_ordenadas.NUMERO_DOCUMENTO_TOMADOR
+        WHERE existing.KEY_ID_TOMADOR = polizas_ordenadas.KEY_ID_TOMADOR
           AND existing.NUMERO_POLIZA = polizas_ordenadas.NUMERO_POLIZA
     );
