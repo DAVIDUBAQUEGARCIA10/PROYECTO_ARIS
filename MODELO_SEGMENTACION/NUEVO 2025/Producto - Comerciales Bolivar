@@ -1,3 +1,5 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_prodcuto` AS 
+
 SELECT
     --p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
