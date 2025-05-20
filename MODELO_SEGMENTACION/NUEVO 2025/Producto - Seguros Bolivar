@@ -1,3 +1,4 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_producto` AS 
 SELECT
     --p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
