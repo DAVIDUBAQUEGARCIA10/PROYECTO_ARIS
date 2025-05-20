@@ -93,6 +93,5 @@ LEFT JOIN (
 -- Filtro de pólizas activas y no anuladas
 WHERE 
     DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
-    AND p.KEY_ID_TOMADOR = 'Inc1rdLOgGbaZN6ZUCsrhWmPbB6TXAShR0l0lOA1ZHzAHiNmcRB28t3P+1bQTENCuzfdOKy7UVsv9srIyU7mZA=='
     AND MARCA_ANULACION != 'S'
     AND p.CODIGO_COMPANIA = 2
