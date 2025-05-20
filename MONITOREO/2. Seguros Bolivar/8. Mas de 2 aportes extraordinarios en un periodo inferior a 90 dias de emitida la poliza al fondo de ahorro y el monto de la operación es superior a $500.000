@@ -33,8 +33,8 @@ WITH ranked_data AS (  # Se define una CTE (Common Table Expression) llamada ran
         ABS(VALOR_AHORRO_EXTRA) > 500000  # Se filtran aportes extraordinarios con un valor superior a $500.000
         AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) <= 90  # El recaudo ocurrió dentro de los primeros 90 días del endoso
         AND DATE_DIFF(FECHA_RECAUDO, FECHA_VIGENCIA_ENDOSO, DAY) >= 0  # El recaudo no ocurrió antes de la vigencia del endoso
-        AND FECHA_VIGENCIA_POLIZA >= "2024-01-01"  # Solo se incluyen pólizas vigentes a partir del 1 de enero de 2024
-        AND FECHA_RECAUDO >= "2024-01-01"  # Solo se consideran recaudos a partir del 1 de enero de 2024
+        AND FECHA_VIGENCIA_POLIZA >= "2025-01-01"  # Solo se incluyen pólizas vigentes a partir del 1 de enero de 2024
+        AND FECHA_RECAUDO >= "2025-01-01"  # Solo se consideran recaudos a partir del 1 de enero de 2024
         AND CODIGO_RAMO_EMISION IN (46,47,48,49)  # Solo se consideran ciertos ramos específicos (46 a 49)
     GROUP BY 
         NUMERO_POLIZA,
