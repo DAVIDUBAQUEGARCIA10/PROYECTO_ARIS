@@ -1,7 +1,4 @@
-CREATE ---------------
--- Crear o reemplazar la tabla SEG_0062_VISOR_REPO con la fecha de alerta
 CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO AS  # Crea o reemplaza la tabla que almacenará los registros de alertas
-
 WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para preparar los datos base clasificados por tomador
     SELECT distinct  # Se eliminan registros duplicados exactos
         a.TIPO_REGISTRO,  # Tipo de registro: RECAUDO, EMISIÓN, etc.
@@ -21,7 +18,7 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para prep
         a.FECHA_VIGENCIA_ENDOSO,  # Fecha de inicio del endoso
         a.FECHA_VENCIMIENTO_ENDOSO,  # Fecha de finalización del endoso
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número de documento del tomador
+        a.KEY_ID_TOMADOR,  # Número de documento del tomador
         a.PERIODICIDAD_PAGO,  # Periodicidad de pago (mensual, anual, etc.)
         a.FECHA_RECAUDO,  # Fecha en que se registró el recaudo
         (b.PRIMA_EMITIDA_CEDIDA + b.PRIMA_EMITIDA_RETENIDA) AS VALOR_INICIAL,  # Valor inicial de la prima emitida
@@ -34,7 +31,7 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para prep
         b.PRIMA_EMITIDA_RETENIDA,  # Prima retenida por la aseguradora
         b.PRIMA_EMITIDA_FACULTATIVO,  # Prima emitida bajo modalidad facultativa
         b.PRIMA_EMITIDA_CEDIDA_ACUMU,  # Acumulado de la prima cedida
-        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num  # Se asigna un número de fila para tomar la póliza más antigua por tomador
+        ROW_NUMBER() OVER (PARTITION BY a.KEY_ID_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num  # Se asigna un número de fila para tomar la póliza más antigua por tomador
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla base con información de producción y recaudos
     LEFT JOIN 
@@ -43,10 +40,10 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) para prep
     WHERE 
         a.TIPO_REGISTRO = 'RECAUDO'  # Se filtran solo registros de tipo RECAUDO
         AND a.CODIGO_COMPANIA = 2  # Solo datos de la compañía con código 2
-        AND a.FECHA_EMISION_POLIZA >= '2024-01-01'  # Pólizas emitidas desde enero de 2024
-        AND a.FECHA_VIGENCIA_POLIZA >= '2024-01-01'  # Pólizas vigentes desde enero de 2024
+        AND a.FECHA_EMISION_POLIZA >= '2025-01-01'  # Pólizas emitidas desde enero de 2024
+        AND a.FECHA_VIGENCIA_POLIZA >= '2025-01-01'  # Pólizas vigentes desde enero de 2024
         AND a.FECHA_VENCIMIENTO_POLIZA >= '2025-01-01'  # Pólizas con vencimiento después
-        AND a.FECHA_RECAUDO >= '2024-01-01'  # Recaudos registrados desde enero de 2024
+        AND a.FECHA_RECAUDO >= '2025-01-01'  # Recaudos registrados desde enero de 2024
         AND a.VALOR_RECAUDO_MES > 0  # Solo recaudos positivos
         AND a.FORMA_COBRO NOT IN ('CONVENIO')  # Se excluyen recaudos con forma de cobro tipo CONVENIO
         AND b.PRIMA_EMITIDA_RETENIDA > 0  # Se aseguran primas retenidas positivas
@@ -80,7 +77,7 @@ SELECT
     FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
     FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+    KEY_ID_TOMADOR,  # Número del documento del tomador
     PERIODICIDAD_PAGO,  # Periodicidad pactada para el pago
     FECHA_RECAUDO,  # Fecha del recaudo
     VALOR_INICIAL,  # Valor inicial calculado como suma de primas retenidas y cedidas
@@ -131,7 +128,7 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) llamada R
         a.FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso asociado
         a.FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
         a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
-        a.NUMERO_DOCUMENTO_TOMADOR,  # Número del documento del tomador
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
         a.PERIODICIDAD_PAGO,  # Frecuencia de pago pactada (mensual, anual, etc.)
         a.FECHA_RECAUDO,  # Fecha del recaudo
         (b.PRIMA_EMITIDA_CEDIDA + b.PRIMA_EMITIDA_RETENIDA) AS VALOR_INICIAL,  # Valor inicial de la prima emitida (suma de cedida y retenida)
@@ -144,7 +141,7 @@ WITH RankedPolizas AS (  # Se define una CTE (Common Table Expression) llamada R
         b.PRIMA_EMITIDA_RETENIDA,  # Valor de la prima retenida
         b.PRIMA_EMITIDA_FACULTATIVO,  # Valor de la prima emitida por facultativo
         b.PRIMA_EMITIDA_CEDIDA_ACUMU,  # Prima cedida acumulada
-        ROW_NUMBER() OVER (PARTITION BY a.NUMERO_DOCUMENTO_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num  # Número de fila para seleccionar el registro más antiguo por tomador
+        ROW_NUMBER() OVER (PARTITION BY a.KEY_ID_TOMADOR ORDER BY a.FECHA_EMISION_POLIZA ASC) AS row_num  # Número de fila para seleccionar el registro más antiguo por tomador
     FROM 
         `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla base con datos de recaudos
     LEFT JOIN 
@@ -189,7 +186,7 @@ SELECT
     FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
     FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
     TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador
-    NUMERO_DOCUMENTO_TOMADOR,  # Número del documento
+    KEY_ID_TOMADOR,  # Número del documento
     PERIODICIDAD_PAGO,  # Frecuencia de pago
     FECHA_RECAUDO,  # Fecha de recaudo
     VALOR_INICIAL,  # Suma de prima cedida y retenida (valor inicial de prima)
@@ -209,7 +206,7 @@ WHERE row_num = 1  # Se selecciona solo el primer recaudo por tomador (más anti
   AND NOT EXISTS (  # Se evita insertar registros ya existentes
       SELECT 1
       FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO existing  # Tabla destino
-      WHERE existing.NUMERO_DOCUMENTO_TOMADOR = RankedPolizas.NUMERO_DOCUMENTO_TOMADOR  # Mismo tomador
+      WHERE existing.KEY_ID_TOMADOR = RankedPolizas.KEY_ID_TOMADOR  # Mismo tomador
         AND existing.NUMERO_POLIZA = RankedPolizas.NUMERO_POLIZA  # Y misma póliza
   )
 ORDER BY FECHA_EMISION_POLIZA ASC;  # Se ordenan los resultados por fecha de emisión para trazabilidad
