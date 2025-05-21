@@ -1,14 +1,12 @@
-SELECT 
-    j.SECUENCIA,    
+WITH base AS (
+SELECT     
     j.NUMERO_DOCUMENTO,
     j.DIGITO_CHEQUEO,
     j.TIPDOC_CODIGO,    
     j.RAZON_SOCIAL, 
-    j.EXCEPTUADO_SARLAFT,
+    j.EXCEPTUADO_SARLAFT as EXCEPTUADO_SARLAFT_SISTEM,
     ae.CODIGO,
-    ae.DESCRIPCION,    
-    a.ACTECO_SECUENCIA,
-
+    ae.DESCRIPCION,
     -- Nueva columna con lógica combinada para identificar si es "realmente exceptuado"
     CASE 
         WHEN ae.CODIGO IN (
@@ -67,4 +65,11 @@ SELECT
 
 FROM juridicos j
 LEFT JOIN acteco_tercero a ON j.SECUENCIA = a.JUR_SECUENCIA
-LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA;
+LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA
+)
+SELECT *
+FROM base
+WHERE 
+    (EXCEPTUADO_SARLAFT_SISTEM = 'S' AND REAL_EXCEPTUADO = 'No')
+    OR
+    (EXCEPTUADO_SARLAFT_SISTEM = 'N' AND REAL_EXCEPTUADO = 'Sí');
