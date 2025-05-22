@@ -1,0 +1,41 @@
+-- CTE para identificar tomadores que pagaron por CAJA a más de 3 pólizas
+WITH TercerosConPagosCaja AS (
+    SELECT 
+        KEY_ID_TOMADOR
+    FROM 
+        sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    WHERE 
+        FECHA_RECAUDO >= '2025-01-01'
+        AND FECHA_CARGUE >= '2025-01-01'
+        AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+    GROUP BY 
+        KEY_ID_TOMADOR
+    HAVING 
+        COUNT(DISTINCT NUMERO_POLIZA) > 3
+)
+
+-- Consulta principal: filtra solo registros de esos terceros
+SELECT DISTINCT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_EMISION, 
+    CODIGO_PRODUCTO, 
+    CODIGO_LOCALIDAD, 
+    NUMERO_POLIZA, 
+    FECHA_EMISION_POLIZA, 
+    FECHA_VIGENCIA_POLIZA, 
+    FECHA_VENCIMIENTO_POLIZA, 
+    FECHA_CANCELACION_POLIZA, 
+    CODIGO_FORMA_COBRO, 
+    FORMA_COBRO, 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    VALOR_RECAUDO_MES, 
+    FECHA_RECAUDO, 
+    VALOR_AHORRO_EXTRA
+FROM 
+    sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+WHERE 
+    FECHA_RECAUDO >= '2025-01-01'
+    AND FECHA_CARGUE >= '2025-01-01'
+    AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+    AND KEY_ID_TOMADOR IN (SELECT KEY_ID_TOMADOR FROM TercerosConPagosCaja);
