@@ -1,0 +1,317 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0104_VISOR_REPO AS
+
+-- CTE 1: Clientes con nacionalidad o jurisdicción de riesgo alto
+WITH resultado AS (
+    SELECT 
+        p.CODIGO_COMPANIA,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_SUBPRODUCTO,
+        c.CODIGO_LUGAR_REGISTRO,
+        c.NOMBRE_LUGAR_REGISTRO,
+        c.CODIGO_CODAZZI_DIRECCION_1 AS Codazzi_cod_direccion,
+        c.CODIGO_LUGAR_NACIMIENTO,
+        nat.CIUDAD AS Ciudad_nacionalidad,
+        nat.NACIONALIDAD,    
+        nat.Nivel_de_riesgo_asignado AS nivel_riesgo_nacionalidad,
+        j.C__DIGO_DANE_DEL_MUNICIPIO AS Codigo_municipio,
+        j.MUNICIPIO AS municipio_direccion_1,
+        j.NIVEL_DE_RIESGO_ASIGNADO AS nivel_riesgo_jurisdiccion,
+        FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+        CURRENT_DATE() AS FECHA_ALERTA,
+        p.FECHA_INICIO_POLIZA
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+    LEFT JOIN (
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CODAZZI_DIRECCION_1,
+            CODIGO_CODAZZI_DIRECCION_2
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+        WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+        UNION ALL
+
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CODAZZI_DIRECCION_1,
+            CODIGO_CODAZZI_DIRECCION_2
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+        WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL 
+    ) c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+       AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+
+    LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` nat
+      ON c.CODIGO_LUGAR_NACIMIENTO = nat.ID
+
+    LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+      ON c.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+
+    WHERE 
+        DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+        AND p.MARCA_ANULACION != 'S'
+        AND (
+            nat.Nivel_de_riesgo_asignado = "Alto" 
+            OR j.NIVEL_DE_RIESGO_ASIGNADO = "Alto"
+        )
+        AND p.CODIGO_COMPANIA = 3
+),
+
+-- CTE 2: Recaudos por CAJA o RECAUDO EMPRESARIAL (último por póliza)
+recaudos_filtrados AS (
+    SELECT 
+        NUMERO_POLIZA,
+        KEY_ID_TOMADOR,
+        FORMA_COBRO,
+        FECHA_RECAUDO,
+        VALOR_RECAUDO_MES,
+        ROW_NUMBER() OVER (PARTITION BY NUMERO_POLIZA, KEY_ID_TOMADOR ORDER BY FECHA_RECAUDO DESC) AS rn
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE 
+        FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+        AND VALOR_RECAUDO_MES > 0 
+        AND FECHA_RECAUDO > '2025-01-01'
+        AND CODIGO_COMPANIA = 3
+),
+
+-- CTE 3: Riesgo + Recaudo + Nivel de Riesgo del producto
+riesgo_y_recaudo AS (
+    SELECT 
+        r.*,
+        rf.FORMA_COBRO,
+        rf.FECHA_RECAUDO,
+        rf.VALOR_RECAUDO_MES,
+        pr.NIVEL_DE_RIESGO AS nivel_riesgo_producto,
+        ROW_NUMBER() OVER (PARTITION BY r.KEY_ID_TOMADOR ORDER BY rf.FECHA_RECAUDO DESC) AS rn_cliente
+    FROM resultado r
+    JOIN recaudos_filtrados rf
+      ON r.NUMERO_POLIZA = rf.NUMERO_POLIZA
+     AND r.KEY_ID_TOMADOR = rf.KEY_ID_TOMADOR
+    LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo` pr
+      ON r.CODIGO_RAMO_EMISION = SAFE_CAST(pr.C__digo_del_Ramo AS INT64)
+     AND r.CODIGO_PRODUCTO = SAFE_CAST(pr.C__digo_de_Producto AS INT64)
+    WHERE rf.rn = 1
+)
+
+-- Consulta final: un registro por tomador, solo si el producto es de riesgo alto
+SELECT 
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_SUBPRODUCTO,
+    CODIGO_LUGAR_REGISTRO,
+    NOMBRE_LUGAR_REGISTRO,
+    Codazzi_cod_direccion,
+    CODIGO_LUGAR_NACIMIENTO,
+    Ciudad_nacionalidad,
+    NACIONALIDAD,
+    nivel_riesgo_nacionalidad,
+    Codigo_municipio,
+    municipio_direccion_1,
+    nivel_riesgo_jurisdiccion,
+    nivel_riesgo_producto,
+    FORMA_COBRO,
+    FECHA_RECAUDO,
+    VALOR_RECAUDO_MES,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+FROM riesgo_y_recaudo
+WHERE rn_cliente = 1
+  AND nivel_riesgo_producto = 'Alto';
+
+
+
+
+
+
+-- INSERTAR REGISTROS DE ALERTA POR RIESGO GEOGRÁFICO + PRODUCTO ALTO + RECAUDO EN CAJA
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0104_VISOR_REPO (
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_SUBPRODUCTO,
+    CODIGO_LUGAR_REGISTRO,
+    NOMBRE_LUGAR_REGISTRO,
+    Codazzi_cod_direccion,
+    CODIGO_LUGAR_NACIMIENTO,
+    Ciudad_nacionalidad,
+    NACIONALIDAD,
+    nivel_riesgo_nacionalidad,
+    Codigo_municipio,
+    municipio_direccion_1,
+    nivel_riesgo_jurisdiccion,
+    nivel_riesgo_producto,
+    FORMA_COBRO,
+    FECHA_RECAUDO,
+    VALOR_RECAUDO_MES,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
+
+WITH resultado AS (
+    SELECT 
+        p.CODIGO_COMPANIA,
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_SUBPRODUCTO,
+        c.CODIGO_LUGAR_REGISTRO,
+        c.NOMBRE_LUGAR_REGISTRO,
+        c.CODIGO_CODAZZI_DIRECCION_1 AS Codazzi_cod_direccion,
+        c.CODIGO_LUGAR_NACIMIENTO,
+        nat.CIUDAD AS Ciudad_nacionalidad,
+        nat.NACIONALIDAD,    
+        nat.Nivel_de_riesgo_asignado AS nivel_riesgo_nacionalidad,
+        j.C__DIGO_DANE_DEL_MUNICIPIO AS Codigo_municipio,
+        j.MUNICIPIO AS municipio_direccion_1,
+        j.NIVEL_DE_RIESGO_ASIGNADO AS nivel_riesgo_jurisdiccion,
+        p.FECHA_INICIO_POLIZA
+    FROM 
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+    LEFT JOIN (
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CODAZZI_DIRECCION_1,
+            CODIGO_CODAZZI_DIRECCION_2
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+        WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+        UNION ALL
+
+        SELECT DISTINCT 
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            CODIGO_LUGAR_REGISTRO,
+            NOMBRE_LUGAR_REGISTRO,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            NACIONALIDAD,
+            CODIGO_CODAZZI_DIRECCION_1,
+            CODIGO_CODAZZI_DIRECCION_2
+        FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+        WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL 
+    ) c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+       AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+
+    LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` nat
+      ON c.CODIGO_LUGAR_NACIMIENTO = nat.ID
+
+    LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+      ON c.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+
+    WHERE 
+        DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+        AND p.MARCA_ANULACION != 'S'
+        AND (
+            nat.Nivel_de_riesgo_asignado = "Alto" 
+            OR j.NIVEL_DE_RIESGO_ASIGNADO = "Alto"
+        )
+        AND p.CODIGO_COMPANIA = 3
+),
+
+recaudos_filtrados AS (
+    SELECT 
+        NUMERO_POLIZA,
+        KEY_ID_TOMADOR,
+        FORMA_COBRO,
+        FECHA_RECAUDO,
+        VALOR_RECAUDO_MES,
+        ROW_NUMBER() OVER (PARTITION BY NUMERO_POLIZA, KEY_ID_TOMADOR ORDER BY FECHA_RECAUDO DESC) AS rn
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE 
+        FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+        AND VALOR_RECAUDO_MES > 0 
+        AND FECHA_RECAUDO > '2025-01-01'
+        AND CODIGO_COMPANIA = 3
+),
+
+riesgo_y_recaudo AS (
+    SELECT 
+        r.*,
+        rf.FORMA_COBRO,
+        rf.FECHA_RECAUDO,
+        rf.VALOR_RECAUDO_MES,
+        pr.NIVEL_DE_RIESGO AS nivel_riesgo_producto,
+        ROW_NUMBER() OVER (PARTITION BY r.KEY_ID_TOMADOR ORDER BY rf.FECHA_RECAUDO DESC) AS rn_cliente
+    FROM resultado r
+    JOIN recaudos_filtrados rf
+      ON r.NUMERO_POLIZA = rf.NUMERO_POLIZA
+     AND r.KEY_ID_TOMADOR = rf.KEY_ID_TOMADOR
+    LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo` pr
+      ON r.CODIGO_RAMO_EMISION = SAFE_CAST(pr.C__digo_del_Ramo AS INT64)
+     AND r.CODIGO_PRODUCTO = SAFE_CAST(pr.C__digo_de_Producto AS INT64)
+    WHERE rf.rn = 1
+)
+
+SELECT 
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_SUBPRODUCTO,
+    CODIGO_LUGAR_REGISTRO,
+    NOMBRE_LUGAR_REGISTRO,
+    Codazzi_cod_direccion,
+    CODIGO_LUGAR_NACIMIENTO,
+    Ciudad_nacionalidad,
+    NACIONALIDAD,
+    nivel_riesgo_nacionalidad,
+    Codigo_municipio,
+    municipio_direccion_1,
+    nivel_riesgo_jurisdiccion,
+    nivel_riesgo_producto,
+    FORMA_COBRO,
+    FECHA_RECAUDO,
+    VALOR_RECAUDO_MES,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM riesgo_y_recaudo
+WHERE rn_cliente = 1
+  AND nivel_riesgo_producto = 'Alto'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0104_VISOR_REPO t
+      WHERE 
+          t.KEY_ID_TOMADOR = riesgo_y_recaudo.KEY_ID_TOMADOR
+          AND t.NUMERO_POLIZA = riesgo_y_recaudo.NUMERO_POLIZA
+  );
