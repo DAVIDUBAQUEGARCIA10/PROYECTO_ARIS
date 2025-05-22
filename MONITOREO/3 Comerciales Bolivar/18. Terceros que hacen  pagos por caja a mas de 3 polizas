@@ -1,0 +1,140 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0106_VISOR_REPO AS
+WITH TercerosConPagosCaja AS (
+    SELECT 
+        KEY_ID_TOMADOR
+    FROM 
+        sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    WHERE 
+        FECHA_RECAUDO >= '2025-01-01'
+        AND FECHA_CARGUE >= '2025-01-01'
+        AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+    GROUP BY 
+        KEY_ID_TOMADOR
+    HAVING 
+        COUNT(DISTINCT NUMERO_POLIZA) > 3
+),
+
+-- CTE 2: Datos con row_number para seleccionar 1 fila por tomador
+PagosConAlerta AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_RECAUDO DESC) AS rn
+    FROM 
+        sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    WHERE 
+        FECHA_RECAUDO >= '2025-01-01'
+        AND FECHA_CARGUE >= '2025-01-01'
+        AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+        AND VALOR_RECAUDO_MES > 1000
+        AND CODIGO_COMPANIA = 3
+        AND KEY_ID_TOMADOR IN (SELECT KEY_ID_TOMADOR FROM TercerosConPagosCaja)
+)
+
+-- Consulta final: un registro por tomador
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_EMISION, 
+    CODIGO_PRODUCTO, 
+    CODIGO_LOCALIDAD, 
+    NUMERO_POLIZA, 
+    FECHA_EMISION_POLIZA, 
+    FECHA_VIGENCIA_POLIZA, 
+    FECHA_VENCIMIENTO_POLIZA, 
+    FECHA_CANCELACION_POLIZA, 
+    CODIGO_FORMA_COBRO, 
+    FORMA_COBRO, 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    VALOR_RECAUDO_MES, 
+    FECHA_RECAUDO, 
+    VALOR_AHORRO_EXTRA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA    
+FROM PagosConAlerta
+WHERE rn = 1;
+
+
+
+INSERT----
+
+-- INSERTAR REGISTROS DE TOMADORES CON RECAUDOS ALTOS POR CAJA O RECAUDO EMPRESARIAL
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0103_VISOR_REPO (
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_EMISION, 
+    CODIGO_PRODUCTO, 
+    CODIGO_LOCALIDAD, 
+    NUMERO_POLIZA, 
+    FECHA_EMISION_POLIZA, 
+    FECHA_VIGENCIA_POLIZA, 
+    FECHA_VENCIMIENTO_POLIZA, 
+    FECHA_CANCELACION_POLIZA, 
+    CODIGO_FORMA_COBRO, 
+    FORMA_COBRO, 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    VALOR_RECAUDO_MES, 
+    FECHA_RECAUDO, 
+    VALOR_AHORRO_EXTRA,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
+
+WITH TercerosConPagosCaja AS (
+    SELECT 
+        KEY_ID_TOMADOR
+    FROM 
+        sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    WHERE 
+        FECHA_RECAUDO >= '2025-01-01'
+        AND FECHA_CARGUE >= '2025-01-01'
+        AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+    GROUP BY 
+        KEY_ID_TOMADOR
+    HAVING 
+        COUNT(DISTINCT NUMERO_POLIZA) > 3
+),
+
+PagosConAlerta AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY FECHA_RECAUDO DESC) AS rn
+    FROM 
+        sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario
+    WHERE 
+        FECHA_RECAUDO >= '2025-01-01'
+        AND FECHA_CARGUE >= '2025-01-01'
+        AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+        AND VALOR_RECAUDO_MES > 1000
+        AND CODIGO_COMPANIA = 3
+        AND KEY_ID_TOMADOR IN (SELECT KEY_ID_TOMADOR FROM TercerosConPagosCaja)
+)
+
+SELECT 
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_EMISION, 
+    CODIGO_PRODUCTO, 
+    CODIGO_LOCALIDAD, 
+    NUMERO_POLIZA, 
+    FECHA_EMISION_POLIZA, 
+    FECHA_VIGENCIA_POLIZA, 
+    FECHA_VENCIMIENTO_POLIZA, 
+    FECHA_CANCELACION_POLIZA, 
+    CODIGO_FORMA_COBRO, 
+    FORMA_COBRO, 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    VALOR_RECAUDO_MES, 
+    FECHA_RECAUDO, 
+    VALOR_AHORRO_EXTRA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM PagosConAlerta
+WHERE rn = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0106_VISOR_REPO t
+      WHERE 
+          t.KEY_ID_TOMADOR = PagosConAlerta.KEY_ID_TOMADOR
+          AND t.NUMERO_POLIZA = PagosConAlerta.NUMERO_POLIZA
+  );
+
