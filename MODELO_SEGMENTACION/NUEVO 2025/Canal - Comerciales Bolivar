@@ -1,9 +1,9 @@
 CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_canal` AS 
 -- Agrupación final por compañía, canal, localidad y agente con niveles de riesgo
+ WITH datos_agregados AS (
 SELECT
     --p.CODIGO_COMPANIA,
-    p.CODIGO_CANAL,
-    --p.NOMBRE_CANAL,
+    p.NOMBRE_CANAL,
     p.codigo_localidad,
     p.clave_agente,
 
@@ -84,3 +84,20 @@ GROUP BY
     p.codigo_localidad,
     p.clave_agente,
     cnr.Nivel_de_riesgo
+
+
+    )
+
+
+
+SELECT  TOTAL_RECAUDOS, VALOR_TOTAL_RECAUDO, TOTAL_SINIESTROS, VALOR_TOTAL_SINIESTROS, Nivel_riesgo_canal,NOMBRE_CANAL,clave_agente, codigo_localidad
+FROM (
+  SELECT *,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_RECAUDO) AS percentil_rank_r,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_SINIESTROS) AS percentil_rank_s
+  FROM datos_agregados
+)
+WHERE VALOR_TOTAL_RECAUDO <= 400000000 
+  AND VALOR_TOTAL_RECAUDO >= 0
+  AND VALOR_TOTAL_SINIESTROS <= 1500000 
+  AND VALOR_TOTAL_SINIESTROS >= 0
