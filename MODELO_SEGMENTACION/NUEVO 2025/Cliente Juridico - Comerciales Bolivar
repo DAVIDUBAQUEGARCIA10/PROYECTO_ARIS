@@ -28,37 +28,9 @@ SELECT DISTINCT
     END AS NACIONAL,
 
     -- Nivel de riesgo
-    --IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
+    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
 
-    CASE 
-        WHEN NIVEL_DE_RIESGO = 'Medio' THEN 1
-        ELSE 0
-    END AS NIVEL_RIESGO_MEDIO,
-    
-    -- Nueva columna: SI cuando el nivel es Bajo
-    CASE 
-        WHEN NIVEL_DE_RIESGO = 'Bajo' THEN 1
-        ELSE 0
-    END AS NIVEL_RIESGO_BAJO,
-    
-    -- Nueva columna: SI cuando el nivel es Sin Nivel Riesgo
-    CASE 
-        WHEN NIVEL_DE_RIESGO = 'Sin Nivel Riesgo' THEN 1
-        ELSE 0
-    END AS NIVEL_RIESGO_SINNIVEL,
-    
-    -- Nueva columna: SI cuando el nivel es Alto
-    CASE 
-        WHEN NIVEL_DE_RIESGO = 'Alto' THEN 1
-        ELSE 0
-    END AS NIVEL_RIESGO_ALTO,
-    
-    -- Nueva columna: SI cuando el nivel es Especial
-    CASE 
-        WHEN NIVEL_DE_RIESGO = 'Especial' THEN 1
-        ELSE 0
-    END AS NIVEL_RIESGO_ESPECIAL,
-
+   
     CASE 
     WHEN TIPO_EMPRESA = 1 THEN 'Privada'
     WHEN TIPO_EMPRESA = 2 THEN 'Publica'
@@ -162,11 +134,6 @@ SELECT
     VINCULO_PERSONA_RECONOCIDA,
     OPERACIONES_INTERNACIONALES,
     NACIONAL,
-    NIVEL_RIESGO_MEDIO,
-    NIVEL_RIESGO_BAJO,
-    NIVEL_RIESGO_SINNIVEL,
-    NIVEL_RIESGO_ALTO,
-    NIVEL_RIESGO_ESPECIAL,
     TIPO_EMPRESA_CATEGORIZADA
 
 FROM (
@@ -175,12 +142,8 @@ FROM (
          NTILE(100) OVER (ORDER BY VALOR_SINIESTROS_ULT_12_MESES) AS percentil_rank_s
   FROM datos_agregados
 )
-WHERE percentil_rank_r < 90
+WHERE percentil_rank_r < 95
   AND VALOR_RECAUDO_ULT_12_MESES >= 0 
-  AND percentil_rank_s < 90
+  AND percentil_rank_s < 95
   AND VALOR_SINIESTROS_ULT_12_MESES >= 0
-  AND VALOR_INGRESOS < 7000.000000
-  AND VALOR_EGRESOS < 5000000000
-  AND VALOR_ACTIVO < 5000000000
-  AND VALOR_PASIVO < 10000000000;
-
+    AND VALOR_SINIESTROS_ULT_12_MESES <= 5000000
