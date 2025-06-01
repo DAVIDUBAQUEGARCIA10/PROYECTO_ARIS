@@ -25,6 +25,7 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que selecciona y fi
         a.KEY_ID_TOMADOR,  # Número del documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de la actividad económica del tomador
+        a.FECHA_RECAUDO,
         c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es Persona Expuesta Públicamente (PEP)
         a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
         ROW_NUMBER() OVER (
@@ -75,6 +76,7 @@ SELECT distinct  # Se seleccionan registros únicos del conjunto filtrado
     KEY_ID_TOMADOR,  # Número de documento
     NOMBRE_TOMADOR,  # Nombre del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    FECHA_RECAUDO,
     PUBLICAMENTE_EXPUESTA,  # Indicador si el tomador es PEP
     VALOR_AHORRO_EXTRA,  # Valor del ahorro extra que genera la alerta
     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Fecha de alerta en formato año-mes
@@ -90,7 +92,12 @@ WHERE
 
 
 
+
+
+
+
 INSERT ---
+-- Insertar solo registros nuevos en la tabla SEG_0070_VISOR_REPO
 -- Insertar solo registros nuevos en la tabla SEG_0070_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO  # Inserta nuevos registros con criterios de alerta relacionados con clientes expuestos públicamente
 
@@ -118,6 +125,7 @@ WITH CTE AS (  # Se define una CTE (Common Table Expression) que consolida y fil
         a.KEY_ID_TOMADOR,  # Número del documento del tomador
         a.NOMBRE_TOMADOR,  # Nombre completo del tomador
         a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de actividad económica del tomador
+        a.FECHA_RECAUDO,
         c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es persona expuesta públicamente (PEP)
         a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario realizado
         ROW_NUMBER() OVER (
@@ -168,6 +176,7 @@ SELECT distinct  # Se seleccionan registros únicos
     KEY_ID_TOMADOR,  # Número de documento
     NOMBRE_TOMADOR,  # Nombre completo del tomador
     CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    FECHA_RECAUDO,
     PUBLICAMENTE_EXPUESTA,  # Indicador de persona expuesta públicamente
     VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
     FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes actual en formato YYYY-MM como marca de alerta
