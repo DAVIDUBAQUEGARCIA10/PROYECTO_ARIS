@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO AS
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103Z_VISOR_REPO AS
 -- CTE 1: Identifica tomadores con ≥3 pólizas en el mismo ramo, con fechas de inicio en un rango ≤90 días
 WITH PolizasPorRamo AS (
     SELECT 
@@ -13,8 +13,8 @@ WITH PolizasPorRamo AS (
     FROM 
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
     WHERE 
-        FECHA_PROCESO > '2024-01-01'
-        AND FECHA_ORIGEN > '2024-01-01'
+        FECHA_PROCESO > '2025-01-01'
+        AND FECHA_ORIGEN > '2025-01-01'
         AND CAST(FECHA_FIN_POLIZA AS DATE) >= CURRENT_DATE
         AND MARCA_ANULACION != 'S'
     GROUP BY 
@@ -76,8 +76,8 @@ FROM (
         t.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR 
         AND t.CODIGO_RAMO_EMISION = p.CODIGO_RAMO_EMISION
     WHERE 
-        p.FECHA_PROCESO > '2024-01-01'
-        AND p.FECHA_ORIGEN > '2024-01-01'
+        p.FECHA_PROCESO > '2025-01-01'
+        AND p.FECHA_ORIGEN > '2025-01-01'
         AND CAST(p.FECHA_FIN_POLIZA AS DATE) >= CURRENT_DATE
         AND p.MARCA_ANULACION != 'S'
         AND p.CODIGO_COMPANIA = 2
@@ -112,10 +112,12 @@ WHERE
 
 
 
-INSERT ----
+
+
+-----INSERT INTO 
 
 -- INSERTAR NUEVOS REGISTROS EN SEG_0103_VISOR_REPO CON FECHA DE ALERTA
-INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO (
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103Z_VISOR_REPO (
     KEY_ID_TOMADOR,
     CODIGO_RAMO_EMISION,
     CODIGO_COMPANIA,
@@ -153,8 +155,8 @@ WITH PolizasPorRamo AS (
     FROM 
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
     WHERE 
-        FECHA_PROCESO > '2024-01-01'
-        AND FECHA_ORIGEN > '2024-01-01'
+        FECHA_PROCESO > '2025-01-01'
+        AND FECHA_ORIGEN > '2025-01-01'
         AND CAST(FECHA_FIN_POLIZA AS DATE) >= CURRENT_DATE()
         AND MARCA_ANULACION != 'S'
     GROUP BY 
@@ -191,8 +193,8 @@ PolizasFiltradas AS (
         ON t.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR 
         AND t.CODIGO_RAMO_EMISION = p.CODIGO_RAMO_EMISION
     WHERE 
-        p.FECHA_PROCESO > '2024-01-01'
-        AND p.FECHA_ORIGEN > '2024-01-01'
+        p.FECHA_PROCESO > '2025-01-01'
+        AND p.FECHA_ORIGEN > '2025-01-01'
         AND CAST(p.FECHA_FIN_POLIZA AS DATE) >= CURRENT_DATE()
         AND p.MARCA_ANULACION != 'S'
         AND p.CODIGO_COMPANIA = 2
@@ -228,9 +230,11 @@ SELECT
 FROM ConRiesgoAlto
 WHERE NOT EXISTS (
     SELECT 1
-    FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO t
+    FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103Z_VISOR_REPO t
     WHERE 
         t.KEY_ID_TOMADOR = ConRiesgoAlto.KEY_ID_TOMADOR
         AND t.CODIGO_RAMO_EMISION = ConRiesgoAlto.CODIGO_RAMO_EMISION
 );
+
+
 
