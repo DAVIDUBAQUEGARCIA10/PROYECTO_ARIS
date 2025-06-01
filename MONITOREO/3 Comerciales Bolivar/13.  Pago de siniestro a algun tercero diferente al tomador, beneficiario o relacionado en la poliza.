@@ -18,7 +18,7 @@ WITH RankedSiniestros AS (
         s.FECHA_MOVIMIENTO,          -- Fecha del movimiento asociado al siniestro
         s.CODIGO_CANAL,              -- Código del canal de distribución
         s.FECHA_ORDEN_PAGO,          -- Fecha de emisión de la orden de pago
-
+        s.LIQUIDADO_BOLIVAR,
         p.FECHA_INICIO_POLIZA,       -- Fecha de inicio de la póliza
         p.FECHA_FIN_POLIZA,          -- Fecha de fin de la póliza
         p.NUMERO_POLIZA,             -- Número único de la póliza
@@ -76,6 +76,7 @@ SELECT
     FECHA_MOVIMIENTO,
     CODIGO_CANAL,
     FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
     FECHA_INICIO_POLIZA,
     FECHA_FIN_POLIZA,
     NUMERO_POLIZA,
@@ -101,6 +102,7 @@ AND CODIGO_RAMO_EMISION != 34;
 
 
 
+
 INSERT -------------------------------
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0066_VISOR_REPO
 -- Definición del CTE que clasifica siniestros y filtra el más reciente por tomador
@@ -118,6 +120,7 @@ WITH RankedSiniestros AS (
         s.FECHA_MOVIMIENTO,
         s.CODIGO_CANAL,
         s.FECHA_ORDEN_PAGO,
+        s.LIQUIDADO_BOLIVAR,
 
         -- Fechas de la póliza (mantener tipo DATE)
         p.FECHA_INICIO_POLIZA,
@@ -176,6 +179,7 @@ SELECT
     FECHA_MOVIMIENTO,
     CODIGO_CANAL,
     FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
     FECHA_INICIO_POLIZA,
     FECHA_FIN_POLIZA,
     NUMERO_POLIZA,
