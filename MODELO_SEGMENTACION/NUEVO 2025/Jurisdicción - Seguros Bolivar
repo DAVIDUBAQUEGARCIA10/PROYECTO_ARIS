@@ -1,108 +1,138 @@
 
-CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_jurisdiccion` AS 
--- Consulta principal con cruce de recaudos, siniestros y nivel de riesgo de jurisdicción
-SELECT distinct
-    --p.CODIGO_COMPANIA,
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_jurisdiccion` AS   -- Consulta principal con cruce de recaudos, siniestros y nivel de riesgo de jurisdicción
+  WITH datos_agregados AS (
 
-    -- Datos del cliente (valores nulos reemplazados)
-    IFNULL(c.CODIGO_LUGAR_REGISTRO, 0) AS CODIGO_LUGAR_REGISTRO,
-    IFNULL(c.CODIGO_LUGAR_NACIMIENTO, 0) AS CODIGO_LUGAR_NACIMIENTO,
-    IFNULL(c.CODIGO_CODAZZI_DIRECCION_1, 0) AS CODIGO_CODAZZI_DIRECCION_1,
-    
-    -- Datos de jurisdicción (nivel de riesgo ajustado)
-    --j.MUNICIPIO,
-    IFNULL(j.NIVEL_DE_RIESGO_ASIGNADO, 'Sin nivel de riesgo') AS Nivel_riesgo_direccion,
+  SELECT distinct
+      p.CODIGO_COMPANIA,
 
-    -- Métricas agregadas
-    SUM(IFNULL(r.CANTIDAD_REGISTROS, 0)) AS TOTAL_RECAUDOS,
-    SUM(IFNULL(r.SUMATORIA_RECAUDO, 0)) AS VALOR_TOTAL_RECAUDO,
-    SUM(IFNULL(s.CANTIDAD_REGISTROS, 0)) AS TOTAL_SINIESTROS,
-    SUM(IFNULL(s.SUMATORIA_LIQUIDADO, 0)) AS VALOR_TOTAL_SINIESTROS
+      -- Datos del cliente (valores nulos reemplazados)
+      --IFNULL(c.CODIGO_LUGAR_REGISTRO, 0) AS CODIGO_LUGAR_REGISTRO,
+      --IFNULL(c.CODIGO_LUGAR_NACIMIENTO, 0) AS CODIGO_LUGAR_NACIMIENTO,
+      IFNULL(c.CODIGO_CODAZZI_DIRECCION_1, 0) AS CODIGO_CODAZZI_DIRECCION_1,
+      
+       --Datos de jurisdicción (nivel de riesgo ajustado)
+      j.MUNICIPIO, 
+      IFNULL(j.NIVEL_DE_RIESGO_ASIGNADO, 'Sin nivel de riesgo') AS Nivel_riesgo_direccion,
 
-FROM 
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+      CASE 
+        WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Alto' THEN 3
+        WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Medio' THEN 2
+        WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Bajo' THEN 1
+        WHEN j.NIVEL_DE_RIESGO_ASIGNADO IS NULL THEN 0  -- Si es NULL explícitamente
+        ELSE 0  -- También incluye 'Sin nivel de riesgo' u otros casos no contemplados
+      END AS Nivel_riesgo_direccion_numerico,
 
--- LEFT JOIN con tabla de recaudos
-LEFT JOIN (
-    SELECT distinct
-        CODIGO_COMPANIA,
-        NUMERO_POLIZA,
-        COUNT(*) AS CANTIDAD_REGISTROS,
-        SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
-    FROM
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-    WHERE
-        DATE(FECHA_RECAUDO) BETWEEN 
-            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-    GROUP BY
-        CODIGO_COMPANIA,
-        NUMERO_POLIZA
-) r
-ON p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
-AND p.NUMERO_POLIZA = r.NUMERO_POLIZA
+      -- Métricas agregadas
+      SUM(IFNULL(r.CANTIDAD_REGISTROS, 0)) AS TOTAL_RECAUDOS,
+      SUM(IFNULL(r.SUMATORIA_RECAUDO, 0)) AS VALOR_TOTAL_RECAUDO,
+      SUM(IFNULL(s.CANTIDAD_REGISTROS, 0)) AS TOTAL_SINIESTROS,
+      SUM(IFNULL(s.SUMATORIA_LIQUIDADO, 0)) AS VALOR_TOTAL_SINIESTROS
 
--- LEFT JOIN con tabla de siniestros
-LEFT JOIN (
-    SELECT distinct
-        CODIGO_COMPANIA,
-        NUMERO_POLIZA,
-        COUNT(*) AS CANTIDAD_REGISTROS,
-        SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
-    WHERE
-        DATE(FECHA_ORDEN_PAGO) BETWEEN 
-            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-    GROUP BY
-        CODIGO_COMPANIA,
-        NUMERO_POLIZA
-) s
-ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
-AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
+  FROM 
+      `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
 
--- LEFT JOIN con clientes jurídicos y naturales (UNIÓN)
-LEFT JOIN (
-    SELECT DISTINCT 
-        TIPO_DOCUMENTO,
-        KEY_ID,
-        CODIGO_LUGAR_REGISTRO,
-        CODIGO_LUGAR_NACIMIENTO,
-        CODIGO_CODAZZI_DIRECCION_1
-    FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+  -- LEFT JOIN con tabla de recaudos
+  LEFT JOIN (
+      SELECT distinct
+          CODIGO_COMPANIA,
+          NUMERO_POLIZA,
+          COUNT(*) AS CANTIDAD_REGISTROS,
+          SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
+      FROM
+          `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+      WHERE
+          DATE(FECHA_RECAUDO) BETWEEN 
+              DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+              AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+      GROUP BY
+          CODIGO_COMPANIA,
+          NUMERO_POLIZA
+  ) r
+  ON p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
+  AND p.NUMERO_POLIZA = r.NUMERO_POLIZA
 
-    UNION ALL
+  -- LEFT JOIN con tabla de siniestros
+  LEFT JOIN (
+      SELECT distinct
+          CODIGO_COMPANIA,
+          NUMERO_POLIZA,
+          COUNT(*) AS CANTIDAD_REGISTROS,
+          SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
+      FROM
+          `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+      WHERE
+          DATE(FECHA_ORDEN_PAGO) BETWEEN 
+              DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+              AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+      GROUP BY
+          CODIGO_COMPANIA,
+          NUMERO_POLIZA
+  ) s
+  ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
+  AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
 
-    SELECT DISTINCT 
-        TIPO_DOCUMENTO,
-        KEY_ID,
-        CODIGO_LUGAR_REGISTRO,
-        CODIGO_LUGAR_NACIMIENTO,
-        CODIGO_CODAZZI_DIRECCION_1
-    FROM 
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
-) c
-ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
-AND p.KEY_ID_TOMADOR = c.KEY_ID
+  -- LEFT JOIN con clientes jurídicos y naturales (UNIÓN)
+  LEFT JOIN (
+      SELECT DISTINCT 
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          CODIGO_LUGAR_REGISTRO,
+          CODIGO_LUGAR_NACIMIENTO,
+          CODIGO_CODAZZI_DIRECCION_1
+      FROM 
+          `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
 
--- LEFT JOIN con tabla de nivel de riesgo por jurisdicción
-LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
-ON c.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+      UNION ALL
 
--- Filtro de pólizas activas y válidas
-WHERE 
-    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
-    AND p.MARCA_ANULACION != 'S'
-    AND p.CODIGO_COMPANIA = 2  
+      SELECT DISTINCT 
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          CODIGO_LUGAR_REGISTRO,
+          CODIGO_LUGAR_NACIMIENTO,
+          CODIGO_CODAZZI_DIRECCION_1
+      FROM 
+          `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+  ) c
+  ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+  AND p.KEY_ID_TOMADOR = c.KEY_ID
 
--- Agrupación final
-GROUP BY
-    p.CODIGO_COMPANIA,
-    c.CODIGO_LUGAR_REGISTRO,
-    c.CODIGO_LUGAR_NACIMIENTO,
-    c.CODIGO_CODAZZI_DIRECCION_1,
-    j.MUNICIPIO,
-    j.C__DIGO_DANE_DEL_MUNICIPIO,
-    j.NIVEL_DE_RIESGO_ASIGNADO
+  -- LEFT JOIN con tabla de nivel de riesgo por jurisdicción
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+  ON c.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+
+  -- Filtro de pólizas activas y válidas
+  WHERE 
+      DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+      AND p.MARCA_ANULACION != 'S'
+      AND p.CODIGO_COMPANIA = 2   
+
+  -- Agrupación final
+  GROUP BY
+      p.CODIGO_COMPANIA,
+      --c.CODIGO_LUGAR_REGISTRO,
+      --c.CODIGO_LUGAR_NACIMIENTO,
+      c.CODIGO_CODAZZI_DIRECCION_1,
+      j.MUNICIPIO,     
+      j.C__DIGO_DANE_DEL_MUNICIPIO,
+      j.NIVEL_DE_RIESGO_ASIGNADO
+      
+)
+SELECT 
+--CODIGO_LUGAR_REGISTRO,
+--CODIGO_LUGAR_NACIMIENTO,
+CODIGO_CODAZZI_DIRECCION_1,
+Nivel_riesgo_direccion_numerico,
+VALOR_TOTAL_RECAUDO,
+VALOR_TOTAL_SINIESTROS,
+  LOG(VALOR_TOTAL_RECAUDO + 1) AS LOG_VALOR_TOTAL_RECAUDO,
+  LOG(VALOR_TOTAL_SINIESTROS + 1) AS LOG_VALOR_TOTAL_SINIESTROS
+FROM (
+  SELECT *,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_RECAUDO) AS percentil_rank_r,
+        NTILE(100) OVER (ORDER BY VALOR_TOTAL_SINIESTROS) AS percentil_rank_s
+
+  FROM datos_agregados
+)
+WHERE  VALOR_TOTAL_RECAUDO >= 0 
+and VALOR_TOTAL_SINIESTROS >= 0
+---quitar los logaritmos
