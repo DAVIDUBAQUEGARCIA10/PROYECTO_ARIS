@@ -1,18 +1,21 @@
 CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_producto` AS 
+WITH datos_agregados AS (
 SELECT
     --p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
     p.CODIGO_PRODUCTO,
 
     -- Variables SARLAFT 4.0
-    sar.Seguro_Obligatorio___Voluntario as SEGURO_VOLUNTARIO,
-    sar.P__liza_Individual___Colectiva as COLECTIVA,
-    sar.Clasificaci__n_de_Producto_en_Microseguro__Masivo AS CLASIFICACION,
-    sar.Dominio AS DOMINIO,
-    sar.SARLAFT__4_0__ AS TIPO_CONOCIMIENTO,
+    IFNULL(sar.Seguro_Obligatorio___Voluntario, 'Otro') AS SEGURO_VOLUNTARIO,
+    IFNULL(sar.P__liza_Individual___Colectiva, 'Otro') AS COLECTIVA,
+    IFNULL(sar.Clasificaci__n_de_Producto_en_Microseguro__Masivo, 'Otro') AS CLASIFICACION,
+    IFNULL(sar.Dominio, 'Otro') AS DOMINIO,
+    IFNULL(sar.SARLAFT__4_0__, 'Otro') AS TIPO_CONOCIMIENTO,
+
 
     -- Nivel de riesgo del producto
-    pr.NIVEL_DE_RIESGO,
+    IFNULL(pr.NIVEL_DE_RIESGO, 'Otro') AS NIVEL_DE_RIESGO,
+
 
     -- Métricas agregadas
     SUM(IFNULL(r.CANTIDAD_REGISTROS, 0)) AS TOTAL_RECAUDOS,
@@ -92,3 +95,34 @@ GROUP BY
     sar.Dominio,
     sar.SARLAFT__4_0__,
     pr.NIVEL_DE_RIESGO
+
+
+   )
+
+
+SELECT  
+CODIGO_RAMO_EMISION,
+CODIGO_PRODUCTO,
+SEGURO_VOLUNTARIO,
+COLECTIVA,
+CLASIFICACION,
+DOMINIO,
+TIPO_CONOCIMIENTO,
+NIVEL_DE_RIESGO,
+TOTAL_RECAUDOS,
+VALOR_TOTAL_RECAUDO,
+TOTAL_SINIESTROS,
+VALOR_TOTAL_SINIESTROS
+FROM (
+  SELECT *,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_RECAUDO) AS percentil_rank_r,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_SINIESTROS) AS percentil_rank_s
+  FROM datos_agregados
+)
+WHERE
+   VALOR_TOTAL_RECAUDO >= 0
+  AND VALOR_TOTAL_SINIESTROS >= 0
+    AND percentil_rank_r <= 90
+    AND percentil_rank_s <= 90
+
+    ----   solo dejar CLASIFICACION, TIPO_CONOCIMIENTO, NIVEL_DE_RIESGO, VALOR_TOTAL_RECAUDO, VALOR_TOTAL_SINIESTROS
