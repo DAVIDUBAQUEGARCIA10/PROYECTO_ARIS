@@ -1,5 +1,5 @@
-
-CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_jurisdiccion` AS   -- Consulta principal con cruce de recaudos, siniestros y nivel de riesgo de jurisdicción
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_jurisdiccion` AS 
+  -- Consulta principal con cruce de recaudos, siniestros y nivel de riesgo de jurisdicción
   WITH datos_agregados AS (
 
   SELECT distinct
@@ -104,7 +104,7 @@ CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod
   WHERE 
       DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
       AND p.MARCA_ANULACION != 'S'
-      AND p.CODIGO_COMPANIA = 2   
+      AND p.CODIGO_COMPANIA = 3    
 
   -- Agrupación final
   GROUP BY
@@ -135,4 +135,3 @@ FROM (
 )
 WHERE  VALOR_TOTAL_RECAUDO >= 0 
 and VALOR_TOTAL_SINIESTROS >= 0
----quitar los logaritmos
