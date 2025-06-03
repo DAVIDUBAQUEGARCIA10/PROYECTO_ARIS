@@ -84,3 +84,6 @@ GROUP BY
     p.codigo_localidad,
     p.clave_agente,
     cnr.Nivel_de_riesgo
+
+
+    --- Le quito clave de agent y codigod e localidad
