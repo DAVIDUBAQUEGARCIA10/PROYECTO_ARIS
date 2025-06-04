@@ -33,9 +33,6 @@ SELECT DISTINCT
 
     -- Actividad económica y profesión
     cn.CODIGO_CIIU,
-    cn.COD_OCUPACION,
-    cn.COD_PROFESION,
-    pr.NIVEL_DE_RIESGO AS NIVEL_RIESGO_PROFESION,
     --pol.TITULO,
    -- pol.FECHA_EMISION,
 
@@ -51,18 +48,13 @@ SELECT DISTINCT
 FROM 
     `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` c
 
-LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` cn
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` cn
     ON c.TIPO_DOCUMENTO = cn.TIPO_DOCUMENTO
     AND c.KEY_ID = cn.KEY_ID
 
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
     ON c.KEY_ID = s.KEY_ID
 
-LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ocupacion_nivel_riesgo_real` o
-    ON cn.COD_OCUPACION = o.ID
-
-LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_profesion` pr
-    ON cn.COD_PROFESION = pr.ID
 
 LEFT JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` pol
     ON c.key_id = pol.KEY_ID_BENEFICIARIO
@@ -74,9 +66,4 @@ WHERE c.fecha_corte = (
     SELECT MAX(fecha_corte)
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
 )
-AND c.tipo_documento IN ("NE", "NT");
-
---sin cantidades
---sin codigo de profesion
---sin codig ciiu
---sin tipo de documento
+AND c.tipo_documento  IN ("NE", "NT");
