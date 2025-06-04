@@ -1,0 +1,77 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_capitalizadora_pn_cliente` AS 
+WITH movimientos_12m AS (
+    SELECT 
+        pol.KEY_ID_BENEFICIARIO,
+
+        -- Recaudos (SIGNO +)
+        SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN mov.VALOR_TRANSACCION ELSE 0 END) AS SUMA_RECAUDOS,
+        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN 1 ELSE NULL END) AS CANTIDAD_RECAUDOS,
+
+        -- Pagos o sorteos (SIGNO -)
+        abs(SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN mov.VALOR_TRANSACCION ELSE 0 END)) AS SUMA_PAGOS_SORTEOS,
+        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN 1 ELSE NULL END) AS CANTIDAD_PAGOS_SORTEOS
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` mov
+    INNER JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` pol
+        ON mov.NUMERO_TITULO = pol.TITULO
+
+    WHERE mov.FECHA_TRANSACCION BETWEEN 
+        DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+        AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+
+    GROUP BY pol.KEY_ID_BENEFICIARIO
+)
+
+SELECT DISTINCT
+    -- Datos básicos del cliente
+    c.tipo_documento, 
+    c.key_id, 
+    --c.titulo, 
+    IFNULL(SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO ), 0) AS ACTIVO_PASIVO,
+    IFNULL(SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS ), 0) AS INGRESO_EGRESO,
+
+
+    -- Actividad económica y profesión
+    cn.CODIGO_CIIU,
+    cn.COD_OCUPACION,
+    cn.COD_PROFESION,
+    pr.NIVEL_DE_RIESGO AS NIVEL_RIESGO_PROFESION,
+    --pol.TITULO,
+   -- pol.FECHA_EMISION,
+
+    -- Score LA/FT
+    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
+
+    -- Valores agrupados por cliente en los últimos 12 meses
+    IFNULL(mov.SUMA_RECAUDOS, 0) AS SUMA_RECAUDOS,
+    IFNULL(mov.CANTIDAD_RECAUDOS, 0) AS CANTIDAD_RECAUDOS,
+    IFNULL(mov.SUMA_PAGOS_SORTEOS, 0) AS SUMA_PAGOS_SORTEOS,
+    IFNULL(mov.CANTIDAD_PAGOS_SORTEOS, 0) AS CANTIDAD_PAGOS_SORTEOS
+
+FROM 
+    `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` c
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` cn
+    ON c.TIPO_DOCUMENTO = cn.TIPO_DOCUMENTO
+    AND c.KEY_ID = cn.KEY_ID
+
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
+    ON c.KEY_ID = s.KEY_ID
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ocupacion_nivel_riesgo_real` o
+    ON cn.COD_OCUPACION = o.ID
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_profesion` pr
+    ON cn.COD_PROFESION = pr.ID
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` pol
+    ON c.key_id = pol.KEY_ID_BENEFICIARIO
+
+LEFT JOIN movimientos_12m mov
+    ON c.key_id = mov.KEY_ID_BENEFICIARIO
+
+WHERE c.fecha_corte = (
+    SELECT MAX(fecha_corte)
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+)
+AND c.tipo_documento IN ("NE", "NT");
