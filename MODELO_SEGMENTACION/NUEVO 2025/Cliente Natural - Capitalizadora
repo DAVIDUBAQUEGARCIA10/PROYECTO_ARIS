@@ -27,20 +27,17 @@ SELECT DISTINCT
     c.tipo_documento, 
     c.key_id, 
     --c.titulo, 
+    IFNULL(SAFE_DIVIDE(VALOR_ACTIVO, VALOR_PASIVO ), 0) AS ACTIVO_PASIVO,
+    IFNULL(SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS ), 0) AS INGRESO_EGRESO,
 
-    -- Manejo de valores nulos para indicadores financieros
-    IFNULL(cn.VALOR_ACTIVO, 0) AS VALOR_ACTIVO,
-    IFNULL(cn.VALOR_PASIVO, 0) AS VALOR_PASIVO,
-    IFNULL(cn.VALOR_INGRESOS, 0) AS VALOR_INGRESOS,
-    IFNULL(cn.VALOR_EGRESOS, 0) AS VALOR_EGRESOS,
 
     -- Actividad económica y profesión
     cn.CODIGO_CIIU,
     cn.COD_OCUPACION,
     cn.COD_PROFESION,
     pr.NIVEL_DE_RIESGO AS NIVEL_RIESGO_PROFESION,
-    pol.TITULO,
-    pol.FECHA_EMISION,
+    --pol.TITULO,
+   -- pol.FECHA_EMISION,
 
     -- Score LA/FT
     IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
