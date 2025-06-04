@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_capitalizadora_pn_cliente` AS 
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_capitalizadora_pj_cliente` AS 
 WITH movimientos_12m AS (
     SELECT 
         pol.KEY_ID_BENEFICIARIO,
@@ -75,3 +75,8 @@ WHERE c.fecha_corte = (
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
 )
 AND c.tipo_documento IN ("NE", "NT");
+
+--sin cantidades
+--sin codigo de profesion
+--sin codig ciiu
+--sin tipo de documento
