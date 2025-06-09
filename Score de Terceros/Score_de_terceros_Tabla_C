@@ -44,8 +44,26 @@ WITH CTE AS (
             WHEN B.NIVEL_DE_RIESGO IS NULL OR B.NIVEL_DE_RIESGO = '' THEN 'Vacio Plus'
             WHEN A.Nivel_de_Riesgo IS NULL OR A.Nivel_de_Riesgo = '' THEN 'Vacio ARIS'
             WHEN A.Nivel_de_Riesgo = 'Bajo' AND B.NIVEL_DE_RIESGO = 'Riesgo Bajo' THEN 'Coincide'
-            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'Coincide'
+            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'Coincide' 
             WHEN A.Nivel_de_Riesgo = 'Alto' AND B.NIVEL_DE_RIESGO = 'Riesgo Alto' THEN 'Coincide'
+            WHEN A.Nivel_de_Riesgo = 'Especial' AND B.NIVEL_DE_RIESGO = 'Riesgo Especial' THEN 'Coincide'            
+
+            WHEN A.Nivel_de_Riesgo = 'Bajo' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'ARIS Bajo'     
+            WHEN A.Nivel_de_Riesgo = 'Bajo' AND B.NIVEL_DE_RIESGO = 'Riesgo Alto' THEN 'ARIS Bajo' 
+            WHEN A.Nivel_de_Riesgo = 'Bajo' AND B.NIVEL_DE_RIESGO = 'Riesgo Especial' THEN 'ARIS Bajo' 
+
+            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Bajo' THEN 'ARIS Arriba' 
+            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Alto' THEN 'ARIS Bajo'     
+            WHEN A.Nivel_de_Riesgo = 'Medio' AND B.NIVEL_DE_RIESGO = 'Riesgo Especial' THEN 'ARIS Bajo'     
+
+            WHEN A.Nivel_de_Riesgo = 'Alto' AND B.NIVEL_DE_RIESGO = 'Riesgo Bajo' THEN 'ARIS Arriba'       
+            WHEN A.Nivel_de_Riesgo = 'Alto' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'ARIS Arriba' 
+            WHEN A.Nivel_de_Riesgo = 'Alto' AND B.NIVEL_DE_RIESGO = 'Riesgo Especial' THEN 'ARIS Bajo'      
+
+            WHEN A.Nivel_de_Riesgo = 'Especial' AND B.NIVEL_DE_RIESGO = 'Riesgo Bajo' THEN 'ARIS Arriba'       
+            WHEN A.Nivel_de_Riesgo = 'Especial' AND B.NIVEL_DE_RIESGO = 'Riesgo Medio' THEN 'ARIS Arriba' 
+            WHEN A.Nivel_de_Riesgo = 'Especial' AND B.NIVEL_DE_RIESGO = 'Riesgo Alto' THEN 'ARIS Arriba'        
+
             ELSE 'No Coincide'
         END AS Coincidencia
     FROM sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_B A
@@ -58,6 +76,8 @@ WITH CTE AS (
         AND B.TIPO_DOCUMENTO = C.TIPO_DOCUMENTO
         AND B.SERIAL = C.SERIAL  -- Unión con t_serial para obtener KEY_ID
 )
-SELECT * 
-FROM CTE
+SELECT 
+    *, 
+    DATE_TRUNC(CURRENT_DATE(), MONTH) AS FECHA_EJECUCION  -- <-- NUEVA COLUMNA AGREGADA
+FROM CTE;
 --WHERE Coincidencia IN('No Coincide',"Coincide","Vacio Plus","Vacio ARIS");
