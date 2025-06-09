@@ -70,4 +70,6 @@ AND NOT EXISTS (
     AND u.TIPO_DOCUMENTO_TOMADOR = t.TIPO_DOCUMENTO_TOMADOR
     AND u.KEY_ID_TOMADOR = t.KEY_ID_TOMADOR
     AND u.SEGMENTO = t.SEGMENTO
+        AND u.FECHA = t.FECHA  -- Esta línea es clave para que solo se inserte si es una fila nueva por fecha
+
 );
