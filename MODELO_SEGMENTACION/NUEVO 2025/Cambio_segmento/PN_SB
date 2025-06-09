@@ -56,7 +56,7 @@ WHERE (
   (SEGMENTO = "cluster_8" AND COMPANIA = 2) OR
   (SEGMENTO = "cluster_21" AND COMPANIA = 2) OR
   (SEGMENTO = "cluster_10" AND COMPANIA = 3) OR
-  (SEGMENTO = "cluster_23" AND COMPANIA = 3) or
+  (SEGMENTO = "cluster_13" AND COMPANIA = 3) or
   (SEGMENTO = "cluster_12" AND COMPANIA = 1) OR
   (SEGMENTO = "cluster_15" AND COMPANIA = 1) OR  
   (SEGMENTO = "cluster_17" AND COMPANIA = 1)    
