@@ -8,6 +8,72 @@ WITH historico_ordenado AS (
     PARSE_DATE('%Y-%m-%d', FECHA) AS FECHA,
     FORMAT_DATE('%Y-%m', PARSE_DATE('%Y-%m-%d', FECHA)) AS MES,
     
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.cambio_segmento_pn AS
+
+WITH historico_ordenado AS (
+  SELECT 
+    COMPANIA,
+    tipo_doc_normalizado,
+    KEY_ID_TOMADOR,
+    SEGMENTO,
+    DESCRIPCIONA,
+    PARSE_DATE('%Y-%m-%d', FECHA) AS FECHA,
+    FORMAT_DATE('%Y-%m', PARSE_DATE('%Y-%m-%d', FECHA)) AS MES,
+    
+    -- Segmento anterior
+    LAG(SEGMENTO) OVER (
+      PARTITION BY COMPANIA, tipo_doc_normalizado, KEY_ID_TOMADOR
+      ORDER BY PARSE_DATE('%Y-%m-%d', FECHA)
+    ) AS SEGMENTO_ANTERIOR,
+    
+    -- Mes anterior
+    LAG(FORMAT_DATE('%Y-%m', PARSE_DATE('%Y-%m-%d', FECHA))) OVER (
+      PARTITION BY COMPANIA, tipo_doc_normalizado, KEY_ID_TOMADOR
+      ORDER BY PARSE_DATE('%Y-%m-%d', FECHA)
+    ) AS MES_ANTERIOR,
+
+    -- Descripción anterior
+    LAG(DESCRIPCIONA) OVER (
+      PARTITION BY COMPANIA, tipo_doc_normalizado, KEY_ID_TOMADOR
+      ORDER BY PARSE_DATE('%Y-%m-%d', FECHA)
+    ) AS DESCRIPCIONA_ANTERIOR
+
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.union_pn_modelo_segmentacion`
+),
+
+cambios_mes_a_mes AS (
+  SELECT *
+  FROM historico_ordenado
+  WHERE SEGMENTO_ANTERIOR IS NOT NULL
+    AND SEGMENTO != SEGMENTO_ANTERIOR
+    AND MES != MES_ANTERIOR
+)
+
+SELECT 
+  COMPANIA,
+  tipo_doc_normalizado,
+  KEY_ID_TOMADOR,
+  FECHA,
+  MES AS MES_ACTUAL,  
+  MES_ANTERIOR,
+  SEGMENTO AS SEGMENTO_ACTUAL,
+  DESCRIPCIONA AS DESCRIPCIONA_ACTUAL,
+  SEGMENTO_ANTERIOR,
+  DESCRIPCIONA_ANTERIOR
+FROM cambios_mes_a_mes
+WHERE (
+  (SEGMENTO = "cluster_8" AND COMPANIA = 2) OR
+  (SEGMENTO = "cluster_21" AND COMPANIA = 2) OR
+  (SEGMENTO = "cluster_10" AND COMPANIA = 3) OR
+  (SEGMENTO = "cluster_23" AND COMPANIA = 3) or
+  (SEGMENTO = "cluster_12" AND COMPANIA = 1) OR
+  (SEGMENTO = "cluster_15" AND COMPANIA = 1) OR  
+  (SEGMENTO = "cluster_17" AND COMPANIA = 1)    
+)
+AND DESCRIPCIONA_ANTERIOR NOT LIKE '%NIVEL_DE_RIESGO:Sin Nivel%'
+ORDER BY COMPANIA, tipo_doc_normalizado, KEY_ID_TOMADOR, FECHA
+;
+
     -- Segmento anterior
     LAG(SEGMENTO) OVER (
       PARTITION BY COMPANIA, tipo_doc_normalizado, KEY_ID_TOMADOR
