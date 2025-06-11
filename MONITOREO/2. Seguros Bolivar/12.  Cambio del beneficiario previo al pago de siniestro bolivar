@@ -39,8 +39,8 @@ WITH registros_ordenados AS (
 
         -- Enumeración de filas por póliza y tomador (para quedarnos con un único registro por caso)
         ROW_NUMBER() OVER (
-            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR 
-            ORDER BY t2.LIQUIDADO_BOLIVAR DESC
+            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t1.NUMERO_POLIZA 
+            ORDER BY t2.LIQUIDADO_BOLIVAR DESC, t2.FECHA_ORDEN_PAGO DESC
         ) AS fila
 
     FROM 
@@ -61,8 +61,8 @@ WITH registros_ordenados AS (
         t1.CODIGO_COMPANIA = 2 AND
         t2.CODIGO_COMPANIA = 2 AND
         t2.FECHA_ORDEN_PAGO IS NOT NULL AND
-        t2.FECHA_ORDEN_PAGO >= '2025-01-01' AND
-        AND t1.MARCA_ANULACION != 'S' 
+        t2.FECHA_ORDEN_PAGO >= '2025-01-01'
+        AND t1.MARCA_ANULACION != 'S' AND 
 
         -- Solo casos donde el pago ocurrió después del endoso y dentro de 90 días
         DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_INICIO_ENDOSO AS DATE), DAY) > 0 AND
@@ -127,6 +127,10 @@ ORDER BY LIQUIDADO_BOLIVAR DESC;
 
 
 
+
+
+
+
 INSERT -----
 -- Insertar solo los registros nuevos que no existan en la tabla SEG_0005_VISOR_REPO
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO
@@ -182,7 +186,7 @@ WITH registros_ordenados AS (
         t2.LIQUIDADO_BOLIVAR,
         t2.FECHA_ORDEN_PAGO,
         DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_EMISION_ENDOSO AS DATE), DAY) AS DIFERENCIA_DIAS,
-        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR ORDER BY t2.LIQUIDADO_BOLIVAR DESC) AS fila
+        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t1.NUMERO_POLIZA  ORDER BY t2.LIQUIDADO_BOLIVAR DESC, t2.FECHA_ORDEN_PAGO DESC) AS fila
     FROM 
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
     LEFT JOIN 
