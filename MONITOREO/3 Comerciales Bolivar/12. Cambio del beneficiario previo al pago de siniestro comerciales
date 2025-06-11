@@ -39,8 +39,8 @@ WITH registros_ordenados AS (
 
         -- Enumeración de filas por póliza y tomador (para quedarnos con un único registro por caso)
         ROW_NUMBER() OVER (
-            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR 
-            ORDER BY t2.LIQUIDADO_BOLIVAR DESC
+            PARTITION BY t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t1.NUMERO_POLIZA
+            ORDER BY t2.LIQUIDADO_BOLIVAR DESC, t2.FECHA_ORDEN_PAGO DESC
         ) AS fila
 
     FROM 
@@ -182,7 +182,7 @@ WITH registros_ordenados AS (
         t2.LIQUIDADO_BOLIVAR,
         t2.FECHA_ORDEN_PAGO,
         DATE_DIFF(CAST(t2.FECHA_ORDEN_PAGO AS DATE), CAST(t1.FECHA_EMISION_ENDOSO AS DATE), DAY) AS DIFERENCIA_DIAS,
-        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t2.LIQUIDADO_BOLIVAR ORDER BY t2.LIQUIDADO_BOLIVAR DESC) AS fila
+        ROW_NUMBER() OVER (PARTITION BY  t1.NUMERO_POLIZA, t1.KEY_ID_TOMADOR, t1.NUMERO_POLIZA  ORDER BY t2.LIQUIDADO_BOLIVAR DESC, t2.FECHA_ORDEN_PAGO DESC) AS fila
     FROM 
         sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos t1
     LEFT JOIN 
