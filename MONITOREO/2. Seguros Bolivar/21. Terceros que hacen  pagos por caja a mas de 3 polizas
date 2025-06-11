@@ -88,6 +88,7 @@ WITH TercerosConPagosCaja AS (
         FECHA_RECAUDO >= '2025-01-01'
         AND FECHA_CARGUE >= '2025-01-01'
         AND FORMA_COBRO IN ('CAJA', 'RECAUDO EMPRESARIAL')
+               AND CODIGO_COMPANIA = 2
     GROUP BY 
         KEY_ID_TOMADOR
     HAVING 
