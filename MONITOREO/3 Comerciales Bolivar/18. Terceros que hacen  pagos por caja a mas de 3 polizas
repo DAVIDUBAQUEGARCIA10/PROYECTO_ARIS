@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0106_VISOR_REPO AS
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.COM_0103_VISOR_REPO AS
 WITH TercerosConPagosCaja AS (
     SELECT 
         KEY_ID_TOMADOR
@@ -55,7 +55,9 @@ WHERE rn = 1;
 
 
 
+
 INSERT----
+
 
 -- INSERTAR REGISTROS DE TOMADORES CON RECAUDOS ALTOS POR CAJA O RECAUDO EMPRESARIAL
 INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.COM_0103_VISOR_REPO (
@@ -132,9 +134,10 @@ FROM PagosConAlerta
 WHERE rn = 1
   AND NOT EXISTS (
       SELECT 1
-      FROM sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0106_VISOR_REPO t
+      FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0103_VISOR_REPO t
       WHERE 
           t.KEY_ID_TOMADOR = PagosConAlerta.KEY_ID_TOMADOR
           AND t.NUMERO_POLIZA = PagosConAlerta.NUMERO_POLIZA
   );
+
 
