@@ -139,7 +139,16 @@ SELECT
     FECHA_ALERTA
 FROM riesgo_y_recaudo
 WHERE rn_cliente = 1
-  AND nivel_riesgo_producto = 'Alto';
+  AND nivel_riesgo_producto = 'Alto'
+          AND (
+            nivel_riesgo_jurisdiccion = "Alto" 
+            OR nivel_riesgo_nacionalidad = "Alto"
+        );
+
+
+
+
+
 
 
 
@@ -308,6 +317,10 @@ SELECT
 FROM riesgo_y_recaudo
 WHERE rn_cliente = 1
   AND nivel_riesgo_producto = 'Alto'
+          AND (
+            nivel_riesgo_jurisdiccion = "Alto" 
+            OR nivel_riesgo_nacionalidad = "Alto"
+        )
   AND NOT EXISTS (
       SELECT 1
       FROM sb-sandbox-usuarios.sandbox_cumplimiento.COM_0104_VISOR_REPO t
