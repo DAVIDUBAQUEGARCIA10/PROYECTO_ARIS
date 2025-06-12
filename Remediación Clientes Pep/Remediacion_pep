@@ -1,3 +1,5 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.remediacion_clientes_pep AS
+
 -- Unifica información de productos vigentes (seguros y títulos de capitalización)
 WITH polizas_union AS (
 
@@ -62,6 +64,7 @@ SELECT
     p.NUMERO_PRODUCTO, 
     p.CODIGO_LOCALIDAD, 
     p.NOMBRE_LOCALIDAD,
+    d.NOMBRE_DEL_GERENTE___PARA_FIRMA_DE_PDF,
     d.NOMBRE_LOCALIDAD as NOMBRE_LOCALIDAD_BASE_DIRECTORES,
     d.DATO_PARA_CORREO_PPAL,
     d.DATO_PARA_CORREO__CCOPIA,
@@ -86,7 +89,10 @@ SELECT
     b.FECHA_BAJA,
     f.PEP_CUENTA_CON__FORMATO__, 
     f.COMENTARIO____DETALLE_DEL__FORMATO,
-    l.MARCA_CANCELACION_DEFINITIVA
+    l.MARCA_CANCELACION_DEFINITIVA,
+    rl.NUMERO_DOCUMENTO_REPRESENTANTE,
+    rl.TIPDOC_CODIGO_IDENTIFICADO_POR,
+    rl.REPRESENTANTE_LEGAL
 FROM polizas_sin_duplicados p
 
 -- Cruce con clientes naturales y jurídicos
@@ -141,6 +147,9 @@ LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_pep_acumulad
 -- Cruce con directorio de localidades
 LEFT JOIN sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_localidad_directorio_directores d 
     ON CAST(p.CODIGO_LOCALIDAD AS STRING) = CAST(d.LOCALIDAD AS STRING)
+
+LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_representante_legal_gsheet rl
+    ON CAST(c.KEY_ID AS STRING) = CAST(rl.NUMERO_DOCUMENTO AS STRING)
 
 -- Filtros finales
 WHERE rn = 1 -- Mantener solo el producto más reciente por tomador
