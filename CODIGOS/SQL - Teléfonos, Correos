@@ -1,0 +1,29 @@
+select DISTINCT j.numero_documento            numero_documento_juridico
+      ,j.tipdoc_codigo               tipo_documento_juridico
+      ,j.razon_social                razon_social_juridico
+      --,mcj.tipmedcom_codigo          cod_medio_comunica_jur
+      ,mcj.descripcion               desc_medio_comunica_jur
+      --,tmcj.descripcion              desc_tipo_medio_comunica_jur       
+      ,n.numero_documento            numero_documento_rep
+      ,j.tipdoc_codigo               tipo_documento_rep
+      ,n.primer_nombre||' '||
+       n.segundo_nombre||' '||
+       n.primer_apellido||
+       n.segundo_apellido            Nombres_Rep
+      ---,mcn.tipmedcom_codigo          cod_medio_comunica_rep
+      ,mcn.descripcion               desc_medio_comunica_rep
+      --,tmcn.descripcion               desc_tipo_medio_comunica_rep
+from   juridicos j
+      ,naturales n
+      ,medios_comunicacion mcn
+      ,tipos_medios_comunicacion tmcn
+      ,medios_comunicacion mcj
+      ,tipos_medios_comunicacion tmcj
+where n.numero_documento = j.numero_documento_representante
+  and  n.tipdoc_codigo    = j.tipdoc_codigo_identificado_por
+  and  mcn.nat_secuencia  = n.secuencia
+  and  tmcn.secuencia     = mcn.tipmedcom_codigo
+  and  mcj.jur_secuencia  = j.secuencia
+  and  tmcj.secuencia     = mcj.tipmedcom_codigo
+  and (tmcn.descripcion like '%EMAIL%' OR tmcj.descripcion like '%EMAIL%')
+  and  j.numero_documento = 901169698
