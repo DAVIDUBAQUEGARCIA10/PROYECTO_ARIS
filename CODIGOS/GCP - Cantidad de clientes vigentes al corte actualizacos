@@ -1,0 +1,128 @@
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.cifras_conocimiento_cliente 
+-- ✅ Parámetro de corte editable
+WITH parametros AS (
+    #SELECT DATE('2025-04-30') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
+    SELECT DATE('2025-05-31') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
+    #SELECT DATE('2025-06-30') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
+
+
+),
+
+clientes_unificados AS (
+    -- ✅ Unificamos clientes naturales y jurídicos con su última fecha de actualización
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        GREATEST(FECHA_MODIFICACION, FECHA_ULTIMO_SALARIO, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+
+    UNION ALL
+
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        GREATEST(FECHA_MODIFICACION, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+),
+
+polizas_vigentes AS (
+    -- ✅ Tomamos un solo registro por cliente y compañía
+    SELECT DISTINCT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+    JOIN parametros prm ON TRUE
+    WHERE 
+        FECHA_EMISION_ENDOSO <= TIMESTAMP(prm.FECHA_CORTE_CALCULO)
+        AND (FECHA_FIN_ENDOSO >= TIMESTAMP(prm.FECHA_CORTE_CALCULO) OR FECHA_FIN_ENDOSO IS NULL)
+        AND MCA_ANU_POLIZA != 'S'
+        AND CODIGO_RAMO_EMISION  != 310
+
+    UNION ALL
+
+    SELECT DISTINCT
+    1 AS CODIGO_COMPANIA,
+    tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+    key_id AS KEY_ID_TOMADOR
+    FROM (
+    -- ✅ Filtramos por la fecha de corte más reciente
+    SELECT *
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+    WHERE fecha_corte = '2025-05-31')
+
+),
+
+clientes_con_riesgo AS (
+    -- ✅ Nivel de riesgo por compañía
+    SELECT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_COMPANIA,
+        Nivel_de_Riesgo
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C`
+),
+
+clientes_enriquecidos AS (
+    -- ✅ Unimos pólizas con fechas de actualización y niveles de riesgo
+    SELECT 
+        p.CODIGO_COMPANIA,
+        p.TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO,
+        p.KEY_ID_TOMADOR AS KEY_ID,
+        CASE 
+            WHEN p.TIPO_DOCUMENTO_TOMADOR IN ('CC', 'CD', 'CE', 'CF', 'PE', 'PP', 'PT', 'RC', 'RE', 'TI', 'CI', 'NM', 'NN', '') 
+                THEN 'Persona Natural'
+            WHEN p.TIPO_DOCUMENTO_TOMADOR IN ('NC', 'NE', 'NT') 
+                THEN 'Persona Juridica'
+            ELSE 'Otro'
+        END AS tipo_persona,
+        r.Nivel_de_Riesgo,
+        c.FECHA_MODIFICACION
+    FROM polizas_vigentes p
+    LEFT JOIN clientes_unificados c 
+        ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO 
+        AND p.KEY_ID_TOMADOR = c.KEY_ID
+    LEFT JOIN clientes_con_riesgo r 
+        ON p.TIPO_DOCUMENTO_TOMADOR = r.TIPO_DOCUMENTO 
+        AND p.KEY_ID_TOMADOR = r.KEY_ID 
+        AND p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
+),
+
+evaluacion_actualizacion AS (
+    -- ✅ Clasificamos si el cliente está actualizado según el nivel de riesgo
+    SELECT 
+        ce.CODIGO_COMPANIA,
+        ce.tipo_persona,
+        ce.Nivel_de_Riesgo,
+        CASE 
+            WHEN ce.Nivel_de_Riesgo = 'Especial' 
+                 AND DATE(ce.FECHA_MODIFICACION) >= DATE_SUB(prm.FECHA_CORTE_CALCULO, INTERVAL 1 YEAR)
+                THEN 'Actualizado'
+            WHEN ce.Nivel_de_Riesgo IN ('Bajo', 'Medio', 'Alto') 
+                 AND DATE(ce.FECHA_MODIFICACION) >= DATE_SUB(prm.FECHA_CORTE_CALCULO, INTERVAL 3 YEAR)
+                THEN 'Actualizado'
+            ELSE 'No Actualizado'
+        END AS estado_actualizacion,
+        ce.KEY_ID,
+        prm.FECHA_CORTE_CALCULO
+    FROM clientes_enriquecidos ce
+    JOIN parametros prm ON TRUE
+    WHERE ce.Nivel_de_Riesgo IS NOT NULL
+)
+
+-- ✅ Resultado final agrupado por compañía, tipo de persona, riesgo y estado de actualización
+SELECT 
+    CODIGO_COMPANIA,
+    tipo_persona,
+    Nivel_de_Riesgo,
+    estado_actualizacion,
+    COUNT(DISTINCT KEY_ID) AS cantidad_clientes,
+    MAX(FECHA_CORTE_CALCULO) AS FECHA_CORTE_CALCULO
+FROM evaluacion_actualizacion
+GROUP BY 
+    CODIGO_COMPANIA,
+    tipo_persona,
+    Nivel_de_Riesgo,
+    estado_actualizacion
+ORDER BY 
+    CODIGO_COMPANIA, tipo_persona, Nivel_de_Riesgo, estado_actualizacion;
