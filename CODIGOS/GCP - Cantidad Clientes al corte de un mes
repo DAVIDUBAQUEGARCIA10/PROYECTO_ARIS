@@ -1,19 +1,24 @@
---INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.cifras_conocimiento_cliente 
+---CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.cifras_conocimiento_cliente AS
+
+INSERT INTO sb-sandbox-usuarios.sandbox_cumplimiento.cifras_conocimiento_cliente 
 -- ✅ Parámetro de corte editable
 WITH parametros AS (
+    SELECT DATE('2025-01-31') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES  
+    #SELECT DATE('2025-02-28') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES  
+    #SELECT DATE('2025-03-31') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
     #SELECT DATE('2025-04-30') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
     #SELECT DATE('2025-05-31') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
-    SELECT DATE('2025-06-30') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
+    #SELECT DATE('2025-06-30') AS FECHA_CORTE_CALCULO  -- <<< CAMBIA AQUÍ LA FECHA DE CORTE CUANDO LO NECESITES
 
 
 ),
 
 clientes_unificados AS (
-    -- ✅ Unificamos clientes naturales y jurídicos con su última fecha de actualización
     SELECT DISTINCT 
         TIPO_DOCUMENTO,
         KEY_ID,
-        GREATEST(FECHA_MODIFICACION, FECHA_ULTIMO_SALARIO, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION
+        GREATEST(FECHA_MODIFICACION, FECHA_ULTIMO_SALARIO, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION,
+        IFNULL(PUBLICAMENTE_EXPUESTA, 'N') AS PUBLICAMENTE_EXPUESTA
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
 
     UNION ALL
@@ -21,9 +26,11 @@ clientes_unificados AS (
     SELECT DISTINCT 
         TIPO_DOCUMENTO,
         KEY_ID,
-        GREATEST(FECHA_MODIFICACION, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION
+        GREATEST(FECHA_MODIFICACION, FECHA_ACTUALIZACION) AS FECHA_MODIFICACION,
+        IFNULL(PUBLICAMENTE_EXPUESTA, 'N') AS PUBLICAMENTE_EXPUESTA
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
 ),
+
 
 polizas_vigentes AS (
     -- ✅ Tomamos un solo registro por cliente y compañía
@@ -38,6 +45,20 @@ polizas_vigentes AS (
         AND (FECHA_FIN_ENDOSO >= TIMESTAMP(prm.FECHA_CORTE_CALCULO) OR FECHA_FIN_ENDOSO IS NULL)
         AND MCA_ANU_POLIZA != 'S'
         AND CODIGO_RAMO_EMISION  != 310
+
+    UNION ALL
+
+    SELECT DISTINCT
+        1 AS CODIGO_COMPANIA,
+        tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+        key_id AS KEY_ID_TOMADOR
+    FROM (
+        SELECT c.*
+        FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` c
+        JOIN parametros prm ON DATE(c.fecha_corte) = prm.FECHA_CORTE_CALCULO
+    )
+
+ 
 ),
 
 clientes_con_riesgo AS (
@@ -64,7 +85,8 @@ clientes_enriquecidos AS (
             ELSE 'Otro'
         END AS tipo_persona,
         r.Nivel_de_Riesgo,
-        c.FECHA_MODIFICACION
+        c.FECHA_MODIFICACION,
+         c.PUBLICAMENTE_EXPUESTA
     FROM polizas_vigentes p
     LEFT JOIN clientes_unificados c 
         ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO 
@@ -81,6 +103,7 @@ evaluacion_actualizacion AS (
         ce.CODIGO_COMPANIA,
         ce.tipo_persona,
         ce.Nivel_de_Riesgo,
+        ce.PUBLICAMENTE_EXPUESTA,
         CASE 
             WHEN ce.Nivel_de_Riesgo = 'Especial' 
                  AND DATE(ce.FECHA_MODIFICACION) >= DATE_SUB(prm.FECHA_CORTE_CALCULO, INTERVAL 1 YEAR)
@@ -102,6 +125,7 @@ SELECT
     CODIGO_COMPANIA,
     tipo_persona,
     Nivel_de_Riesgo,
+    PUBLICAMENTE_EXPUESTA,
     estado_actualizacion,
     COUNT(DISTINCT KEY_ID) AS cantidad_clientes,
     MAX(FECHA_CORTE_CALCULO) AS FECHA_CORTE_CALCULO
@@ -110,6 +134,7 @@ GROUP BY
     CODIGO_COMPANIA,
     tipo_persona,
     Nivel_de_Riesgo,
+    PUBLICAMENTE_EXPUESTA,
     estado_actualizacion
 ORDER BY 
-    CODIGO_COMPANIA, tipo_persona, Nivel_de_Riesgo, estado_actualizacion;
+    CODIGO_COMPANIA, tipo_persona, Nivel_de_Riesgo,PUBLICAMENTE_EXPUESTA, estado_actualizacion;
