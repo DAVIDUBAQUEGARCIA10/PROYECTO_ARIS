@@ -1,3 +1,6 @@
-select * 
-from sb-ecosistemaanalitico-lago.talento_humano.t_asignacion_mensual
-where FECHA_CORTE >= "2025-02-01"
+SELECT * 
+FROM `sb-ecosistemaanalitico-lago.talento_humano.t_asignacion_mensual`
+WHERE FECHA_CORTE = (
+  SELECT MAX(FECHA_CORTE)
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_asignacion_mensual`
+);
