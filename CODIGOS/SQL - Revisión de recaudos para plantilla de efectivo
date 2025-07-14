@@ -1,254 +1,76 @@
-https://docs.google.com/spreadsheets/d/1L2hSVBeXvqZHUtwlC9nbA9OBvecsFkdzLfi2LTQYnKE/edit?gid=0#gid=0
-
-
-select COD_CIA, FEC_ASIENTO, COD_OFIC_CONTAB, COD_OFIC_CIAL, NUM_ASIENTO, NUM_OPER_ASIENTO, TIPO_ACTU, COD_CAUSA_ANU, FECHA_VALOR, NUM_ORD_CRUCE, DESC_MOVIM, NUM_POL1, COD_SECC, COD_RAMO, COD_PROD, IMP_MON_PAIS, MCA_DEBE_HABER, IMP_MON_EXT, COD_MON, FECHA_CAPTURA, COD_BENEF, COD_ACT_BENEF, COD_PAGO, NOMBRE_ENTIDAD_TALON, NUMERO_TALON, NUM_ENTIDAD, NUMERO_CUENTA
-from a5021900
-where fec_asiento >= '01/04/25' AND fec_asiento <= '30/04/25'
-and tipo_actu = 'CB'
-AND IMP_MON_PAIS >= 10000000
-and MCA_DEBE_HABER = 'D'
-and COD_SECC IS NOT NULL
-AND NUMERO_CUENTA  IN (
-  '05300250331',
-  '006069999594',
-  '1081268701',
-  '5300250331',
-  '6069999594',
-  '221816614')
-AND num_pol1 NOT IN (
-  1563126072040,
-  1000503742504,
-  1500103432040,
-  1010506101802,
-  1563588043729,
-  1500510086222,
-  1004695998607,
-  2070626043614,
-  1512560081810,
-  2000598115325,
-  1522524336920,
-  2000598150413,
-  1004695998507,
-  1000501461130,
-  2070626067528,
-  1003692066329,
-  2010604086522,
-  1004696606826,
-  2010604139130,
-  4203100000030,
-  2040564066931,
-  2010604244828,
-  1530108511931,
-  1500510086722,
-  2020608056815,
-  2010604427101,
-  1530546201003,
-  1530546127732,
-  1004696003707,
-  1004696004407,
-  1563588376706,
-  2010604184140,
-  2070626067803,
-  1000501669723,
-  1010506027633,
-  1004695718739,
-  1522524074824,
-  1020508240203,
-  2002602174401,
-  1522524032226,
-  6500009255613,
-  2010604150118,
-  1511558115130,
-  1511558100028,
-  1511558047526,
-  1523528064613,
-  1578100016138,
-  1523106796301,
-  1003692082914,
-  1563126146002,
-  2000598258023,
-  1004695692249,
-  2010604424401,
-  2002602084717,
-  2010604257939,
-  2050014456530
-)
-and cod_benef != 860034313
-
-
-
-
------
-
-
-
-select COD_CIA, FEC_ASIENTO, COD_OFIC_CONTAB, COD_OFIC_CIAL, NUM_ASIENTO, NUM_OPER_ASIENTO, TIPO_ACTU, COD_CAUSA_ANU, FECHA_VALOR, NUM_ORD_CRUCE, DESC_MOVIM, NUM_POL1, COD_SECC, COD_RAMO, COD_PROD, IMP_MON_PAIS, MCA_DEBE_HABER, IMP_MON_EXT, COD_MON, FECHA_CAPTURA, COD_BENEF, COD_ACT_BENEF, COD_PAGO, NOMBRE_ENTIDAD_TALON, NUMERO_TALON, NUM_ENTIDAD, NUMERO_CUENTA
-from a5021900
-where fec_asiento >= '01/04/25' AND fec_asiento <= '30/04/25'
-and tipo_actu = 'CB'
-AND num_pol1 IN (
-  1563126072040,
-  1000503742504,
-  1500103432040,
-  1010506101802,
-  1563588043729,
-  1500510086222,
-  1004695998607,
-  2070626043614,
-  1512560081810,
-  2000598115325,
-  1522524336920,
-  2000598150413,
-  1004695998507,
-  1000501461130,
-  2070626067528,
-  1003692066329,
-  2010604086522,
-  1004696606826,
-  2010604139130,
-  4203100000030,
-  2040564066931,
-  2010604244828,
-  1530108511931,
-  1500510086722,
-  2020608056815,
-  2010604427101,
-  1530546201003,
-  1530546127732,
-  1004696003707,
-  1004696004407,
-  1563588376706,
-  2010604184140,
-  2070626067803,
-  1000501669723,
-  1010506027633,
-  1004695718739,
-  1522524074824,
-  1020508240203,
-  2002602174401,
-  1522524032226,
-  6500009255613,
-  2010604150118,
-  1511558115130,
-  1511558100028,
-  1511558047526,
-  1523528064613,
-  1578100016138,
-  1523106796301,
-  1003692082914,
-  1563126146002,
-  2000598258023,
-  1004695692249,
-  2010604424401,
-  2002602084717,
-  2010604257939,
-  2050014456530
-)
-
---and  = 1003692066329
-
-
-
-SELECT *
---FROM a5020301  
---from a2990700
-from a2000163 -- Facturacion 
-where num_pol1 = (select * 
---and num_factura = 1 
---1500068147808 0 1 
----12964	-92597
-
-select *
-from a2990700
-where  num_secu_pol =
-(select num_secu_pol from a2000030 where num_pol1 = 1500068147808 and cod_cia =3 and cod_secc = 1 and num_end = 0)
-
-
-
-
-
-
-
--- Selecciona columnas relevantes desde la tabla contable a5021900
+-- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
 SELECT 
-    COD_CIA,              -- Código de la compañía
-    FEC_ASIENTO,          -- Fecha del asiento contable
-    COD_OFIC_CONTAB,      -- Oficina contable
-    COD_OFIC_CIAL,        -- Oficina comercial
-    NUM_ASIENTO,          -- Número de asiento
-    NUM_OPER_ASIENTO,     -- Número de operación del asiento
-    TIPO_ACTU,            -- Tipo de actuación (ej. CB = comprobante bancario)
-    COD_CAUSA_ANU,        -- Código de causa de anulación
-    FECHA_VALOR,          -- Fecha valor de la operación
-    NUM_ORD_CRUCE,        -- Número de orden de cruce
-    DESC_MOVIM,           -- Descripción del movimiento
-    NUM_POL1,             -- Número de póliza
-    COD_SECC,             -- Código de sección (debe estar presente)
-    COD_RAMO,             -- Código del ramo
-    COD_PROD,             -- Código del producto
-    IMP_MON_PAIS,         -- Importe en moneda local (COP)
-    MCA_DEBE_HABER,       -- Indicador de débito o crédito (D = Débito)
-    IMP_MON_EXT,          -- Importe en moneda extranjera (debe estar presente)
-    TC,
-    COD_MON,              -- Código de la moneda
-    FECHA_CAPTURA,        -- Fecha de captura del asiento
-    COD_BENEF,            -- Código del beneficiario
-    COD_ACT_BENEF,        -- Código actividad del beneficiario
-    COD_PAGO,             -- Código de pago
-    NOMBRE_ENTIDAD_TALON, -- Nombre de la entidad del talón
-    NUMERO_TALON,         -- Número del talón
-    NUM_ENTIDAD,          -- Número de la entidad
-    NUMERO_CUENTA         -- Número de cuenta
+    m1.COD_CIA,              -- Compañía
+    m1.FEC_ASIENTO,          -- Fecha del asiento
+    m1.RECIBO,               -- Número de recibo
+    m1.COD_OFIC_CONTAB,      -- Oficina contable
+    m1.COD_PAGO,             -- Código de tipo de pago
+    m1.COD_OFIC_CIAL,        -- Oficina comercial
+    m1.NUM_ASIENTO,          -- Número de asiento
+    m1.NUM_OPER_ASIENTO,     -- Número de operación del asiento
+    m1.TIPO_ACTU,            -- Tipo de actuación contable
+    m1.COD_CAUSA_ANU,        -- Código de causa de anulación
+    m1.FECHA_VALOR,          -- Fecha valor
+    m1.NUM_ORD_CRUCE,        -- Número de orden de cruce
+    m1.DESC_MOVIM,           -- Descripción del movimiento
+    m1.NUM_POL1,             -- Número de póliza
+    m1.COD_SECC,             -- Código de sección
+    m1.COD_RAMO,             -- Código de ramo
+    m1.COD_PROD,             -- Código de producto
+    m1.IMP_MON_PAIS,         -- Importe en moneda nacional
+    m1.MCA_DEBE_HABER,       -- Marca de debe/haber
+    m1.IMP_MON_EXT,          -- Importe en moneda extranjera
+    m1.COD_MON,              -- Código de moneda
+    m1.FECHA_CAPTURA,        -- Fecha de captura
+    m1.COD_BENEF,            -- Código de beneficiario
+    m1.COD_ACT_BENEF,        -- Código del acto del beneficiario
+    m1.COD_PAGO,             -- Código de tipo de pago
+    m1.NOMBRE_ENTIDAD_TALON,-- Nombre entidad
+    m1.NUMERO_TALON,         -- Número de talonario
+    m1.NUM_ENTIDAD,          -- Número de entidad
+    m1.NUMERO_CUENTA,        -- Número de cuenta
+    
+    -- Variable derivada: tipo de pago legible
+    CASE 
+        WHEN m1.COD_PAGO = 1 THEN 'CHEQUE'
+        WHEN m1.COD_PAGO = 2 THEN 'EFECTIVO'
+        WHEN m1.COD_PAGO = 3 THEN 'GIRO'
+        WHEN m1.COD_PAGO = 5 THEN 'TARJETA CREDITO'
+        WHEN m1.COD_PAGO = 6 THEN 'FINANCIACION'
+        WHEN m1.COD_PAGO = 8 THEN 'TARJETA DEBITO'
+        ELSE NULL
+    END AS TIPO_PAGO
+
 FROM 
-    a5021900
+    a5021900 m1
+
+-- Filtro por fechas de asiento contable en junio de 2025
 WHERE 
-    FEC_ASIENTO >= '16/01/25'       -- Fecha del asiento mayor o igual al 25 de enero de 2016
-    AND TIPO_ACTU = 'CB'            -- Solo registros con tipo de actuación CB
-   --- AND IMP_MON_PAIS = 33410877    -- Solo importes iguales o superiores a 10 millones en moneda local
-    AND MCA_DEBE_HABER = 'D'        -- Solo registros en débito
-    AND COD_SECC IS NOT NULL        -- Filtra solo registros con sección válida
-    AND DESC_MOVIM LIKE '%9132063%'  -- Busca esa cadena dentro de la descripción del movimiento
+    m1.FEC_ASIENTO BETWEEN '01/06/25' AND '30/06/25'
 
+-- Tipo de actuación CB (Compensación bancaria, posiblemente)
+    AND m1.TIPO_ACTU = 'CB'
 
+-- Valor igual o superior a 10 millones
+    AND m1.IMP_MON_PAIS >= 10000000
 
-#### 
+-- Solo registros en el debe
+    AND m1.MCA_DEBE_HABER = 'D'
 
+-- Que tenga sección definida
+    AND m1.COD_SECC IS NOT NULL
 
-HATA EL MOMENTO EL MEJOR CODIGO 
-
-select COD_CIA, FEC_ASIENTO, RECIBO,COD_OFIC_CONTAB, COD_OFIC_CIAL, NUM_ASIENTO, NUM_OPER_ASIENTO, TIPO_ACTU, COD_CAUSA_ANU, FECHA_VALOR, NUM_ORD_CRUCE, DESC_MOVIM, NUM_POL1, COD_SECC, COD_RAMO, COD_PROD, IMP_MON_PAIS, MCA_DEBE_HABER, IMP_MON_EXT, COD_MON, FECHA_CAPTURA, COD_BENEF, COD_ACT_BENEF, COD_PAGO, NOMBRE_ENTIDAD_TALON, NUMERO_TALON, NUM_ENTIDAD, NUMERO_CUENTA
-from a5021900
-where fec_asiento >= '01/06/25' AND fec_asiento <= '30/06/25'
-and tipo_actu = 'CB'
-AND IMP_MON_PAIS >= 10000000
-and MCA_DEBE_HABER = 'D'
-and COD_SECC IS NOT NULL
-    AND RECIBO != 9999980
-AND NUMERO_CUENTA  IN (
-  '05300250331',
-  '006069999594',
-  '1081268701',
-  '5300250331',
-  '6069999594',
-  '221816614',
-  '006069999644')
---and  RECIBO  IN (  9999095,9999096, 9999098)  
-and cod_benef != 860034313
---and DESC_MOVIM LIKE '%9269961%'  -- Busca esa cadena dentro de la descripción del movimiento
-AND IMP_MON_PAIS  IN (
-  24322670, 18205635, 10191751, 68607660, 25508176, 12058623, 45959585, 12696100, 20307210, 27272700,
-  12963619, 20069930, 22454737, 38946023, 14297924, 19635000, 11046562, 15000000, 14071840, 38959400,
-  14200000, 32937712, 15076918, 11481869, 10809959, 12299999, 24000000, 27022358, 31631933, 38650000,
-  13491633, 47764659, 25039164, 20745373, 10472179, 26241655, 19665576, 24047567, 10921480, 62719836,
-  30308151, 27885978, 24207155, 15541071, 19561891, 51812273, 18183195, 17893916, 95442525, 28720727,
-  32524370, 11041243, 13678721, 11156811, 16114794, 28013954, 10707923, 30988744, 12810887, 10207384,
-  11986617, 49393995, 12480827, 10929101, 14541109, 15041091, 50933362, 11918207, 33412840, 49702790,
-  16425798, 63760973, 26328864, 121139395, 208418884, 21624170, 141451260, 33270041, 12191006, 76495827,
-  12916172, 42283654, 11749550, 34300000, 20000071, 21933378, 10095513, 25300485, 34267967, 10031263,
-  27997235, 20270000, 11316093, 10700759, 13323664, 10233121, 12187200, 25000000, 16323509, 89272257,
-  14761665, 16853084, 15699910, 24661455, 12169179, 11491528, 13420996, 23958585, 15468810, 17719695,
-  23958585, 15468810, 17719695, 17719695
+-- Excluye un recibo específico
+    AND m1.RECIBO != 9999980 -- Esto es ingresos via web
+    AND m1.RECIBO != 9999996 -- Esto es finanaseguros
+-- Solo para estas cuentas específicas
+    AND m1.NUMERO_CUENTA  IN (
+        '05300250331', '006069999594', '1081268701', '5300250331', 
+        '6069999594', '221816614', '006069999644'
 )
 
-
+-- Excluye un beneficiario específico
+    AND m1.COD_BENEF != 860034313
+    and COD_PAGO = 2
+   and COD_CIA = 2
 
