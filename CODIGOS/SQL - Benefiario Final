@@ -50,3 +50,31 @@ WHERE
     )
     AND c."MARCA_ACTIVO" = 'A'
 
+
+------
+
+Para % de beneficiario final 
+
+
+SELECT 
+    j.NUMERO_DOCUMENTO,
+    j.TIPDOC_CODIGO,
+    c.NUMERO_DOCUMENTO as NUM_DOCUMENTO_CONTACTO,        
+    c."TIPDOC_CODIGO",    
+    c."PORCENTAJE_PARTICIPACION",
+    c."FECHA_MODIFICACION" AS "FECHA_MODIFICACION_CONTACTO",
+    c."MARCA_ACTIVO"
+FROM 
+    contactos c
+JOIN 
+    juridicos j ON j."SECUENCIA" = c."JUR_SECUENCIA"
+WHERE  
+    c."PORCENTAJE_PARTICIPACION" IS NOT NULL
+    AND c."SECUENCIA" = (
+        SELECT MAX(c1."SECUENCIA")
+        FROM contactos c1
+        WHERE c1."JUR_SECUENCIA" = c."JUR_SECUENCIA"
+        AND c1."NUMERO_DOCUMENTO" = c."NUMERO_DOCUMENTO"
+        AND c1."TIPDOC_CODIGO" = c."TIPDOC_CODIGO"
+    )
+    AND c."MARCA_ACTIVO" = 'A'
