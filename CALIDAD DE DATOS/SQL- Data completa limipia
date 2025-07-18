@@ -186,4 +186,3 @@ WHERE
     m.exrf_cod_cia IN (1, 2)
     OR (m.exrf_cod_cia = 3 AND p.COD_RAMO IS NOT NULL)
   );
-dime por compañia y tipo de personas cuantos registros hay, tipo groupby
