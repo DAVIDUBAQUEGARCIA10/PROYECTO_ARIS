@@ -27,3 +27,54 @@ where n.numero_documento = j.numero_documento_representante
   and  tmcj.secuencia     = mcj.tipmedcom_codigo
   and (tmcn.descripcion like '%EMAIL%' OR tmcj.descripcion like '%EMAIL%')
   and  j.numero_documento = 901169698
+
+
+
+-------CORREO AMBAS BASES EN UNION 
+
+SELECT DISTINCT
+    j.numero_documento                  AS numero_documento,
+    j.tipdoc_codigo                     AS tipo_documento,
+    j.razon_social                      AS razon_social,
+        
+    -- Columna única que muestra solo el correo electrónico
+    CASE 
+        WHEN mcj.descripcion LIKE '%@%' THEN mcj.descripcion
+        WHEN mcn.descripcion LIKE '%@%' THEN mcn.descripcion
+        ELSE NULL
+    END AS correo_unificado
+
+FROM juridicos j
+JOIN naturales n ON n.numero_documento = j.numero_documento_representante
+                AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
+JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
+JOIN medios_comunicacion mcj ON mcj.jur_secuencia = j.secuencia
+JOIN tipos_medios_comunicacion tmcj ON tmcj.secuencia = mcj.tipmedcom_codigo
+WHERE j.numero_documento = 901169698
+  AND (tmcn.descripcion LIKE '%EMAIL%' OR tmcj.descripcion LIKE '%EMAIL%')
+
+
+UNION ALL 
+
+SELECT DISTINCT
+    n.numero_documento                      AS numero_documento,
+    n.tipdoc_codigo                         AS tipo_documento,
+    
+    -- Concatenación del nombre completo
+    n.primer_nombre || ' ' || 
+    n.segundo_nombre || ' ' || 
+    n.primer_apellido || 
+    n.segundo_apellido                     AS nombres,
+    
+    -- Correo unificado (solo EMAILs válidos)
+    CASE 
+        WHEN mcn.descripcion LIKE '%@%' THEN mcn.descripcion
+        ELSE NULL
+    END AS correo_unificado
+
+FROM naturales n
+JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
+JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
+WHERE tmcn.descripcion LIKE '%EMAIL%'
+and  n.numero_documento  = '1000796179'
