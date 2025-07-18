@@ -111,7 +111,12 @@ BASE_DATOS AS (
     m.exrf_cod_cia AS codigo_compania,
     m.exrf_num_id_cliente AS num_id,
     REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', '') AS nombre,
-    TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy') AS fecha_nacimiento,
+    CASE 
+      WHEN TRUNC(m.exrf_fecha_nacim) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      ELSE TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy')
+    END AS fecha_nacimiento,
+
+
     CASE 
       WHEN cu2.celular_unificado IS NOT NULL THEN cu2.celular_unificado
       ELSE TRIM(m.exrf_telefono_residencia)
@@ -170,6 +175,7 @@ INDICADORES_VALIDEZ AS (
 
 SELECT 
   codigo_compania,
+  total_registros AS cantidad,  -- Columna añadida
   ROUND(doc_validos * 1.0 / total_registros, 3) AS validez_documento,
   ROUND(nombre_validos * 1.0 / total_registros, 3) AS validez_nombre,
   ROUND(telefono_validos * 1.0 / total_registros, 3) AS validez_telefono,
