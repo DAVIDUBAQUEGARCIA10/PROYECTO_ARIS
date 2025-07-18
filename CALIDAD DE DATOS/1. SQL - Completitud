@@ -110,10 +110,10 @@ BASE AS (
 
     REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', '') AS nombre,
 
-    TO_CHAR(
-      NVL(m.exrf_fecha_nacim, TO_DATE('01/01/1900','dd/mm/yyyy')), 
-      'dd/mm/yyyy'
-    ) AS fecha_nacimiento,
+    CASE 
+      WHEN TRUNC(m.exrf_fecha_nacim) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      ELSE TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy')
+    END AS fecha_nacimiento,
 
     CASE 
       WHEN cu2.celular_unificado IS NOT NULL THEN cu2.celular_unificado
