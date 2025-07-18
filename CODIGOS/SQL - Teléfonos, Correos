@@ -78,3 +78,53 @@ JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
 JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
 WHERE tmcn.descripcion LIKE '%EMAIL%'
 and  n.numero_documento  = '1000796179'
+
+
+
+----TELEFONO AMBAS BASES 
+
+SELECT DISTINCT 
+  j.numero_documento            AS numero_documento_juridico,
+  j.tipdoc_codigo               AS tipo_documento_juridico,  
+  -- Celular unificado con prioridad: representante > jurídico
+  CASE
+    WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN mcn.descripcion
+    WHEN REGEXP_LIKE(TRIM(mcj.descripcion), '^[0-9]{10}$') THEN mcj.descripcion
+    ELSE NULL
+  END AS celular_unificado
+
+FROM juridicos j
+JOIN naturales n
+  ON n.numero_documento = j.numero_documento_representante
+ AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+JOIN medios_comunicacion mcn
+  ON mcn.nat_secuencia = n.secuencia
+JOIN tipos_medios_comunicacion tmcn
+  ON tmcn.secuencia = mcn.tipmedcom_codigo
+JOIN medios_comunicacion mcj
+  ON mcj.jur_secuencia = j.secuencia
+JOIN tipos_medios_comunicacion tmcj
+  ON tmcj.secuencia = mcj.tipmedcom_codigo
+
+WHERE (tmcn.descripcion LIKE '%CELULAR%' OR tmcj.descripcion LIKE '%CELULAR%')
+  AND j.numero_documento = 901169698
+  
+  UNION ALL 
+  
+
+SELECT DISTINCT
+    n.numero_documento                      AS numero_documento,
+    n.tipdoc_codigo                         AS tipo_documento,
+        
+    -- Correo unificado (solo EMAILs válidos)
+    CASE 
+        WHEN mcn.descripcion NOT LIKE '%@%' THEN mcn.descripcion
+        ELSE NULL
+    END AS correo_unificado
+FROM naturales n
+JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
+JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
+WHERE n.numero_documento  = '1014282242' AND
+mcn.descripcion NOT LIKE '%@%'  
+  
+
