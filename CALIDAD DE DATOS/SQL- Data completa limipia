@@ -113,8 +113,8 @@ SELECT
   m.exrf_cod_tip_doc AS cod_tipo_doc,  
   m.exrf_num_id_cliente AS num_id,
 
-  NULLIF(TRIM(m.exrf_nombre_cli_razon_social), '') AS nombre,
-  
+  NULLIF(REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', ''), '') AS nombre,
+ 
   TO_CHAR(
     NVL(m.exrf_fecha_nacim, TO_DATE('01/01/1900','dd/mm/yyyy')), 
     'dd/mm/yyyy'
