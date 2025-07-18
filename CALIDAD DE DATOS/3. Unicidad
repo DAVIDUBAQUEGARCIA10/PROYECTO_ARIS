@@ -1,0 +1,141 @@
+-- Subconsulta de correos unificados 
+WITH CORREOS_UNIFICADOS AS (
+  -- Correos de personas naturales
+  SELECT 
+    n.numero_documento AS numero_documento,
+    n.tipdoc_codigo AS tipo_documento,
+    MIN(mcn.descripcion) AS correo_unificado
+  FROM naturales n
+  JOIN medios_comunicacion mcn 
+    ON mcn.nat_secuencia = n.secuencia
+  JOIN tipos_medios_comunicacion tmcn 
+    ON tmcn.secuencia = mcn.tipmedcom_codigo
+  WHERE tmcn.descripcion LIKE '%EMAIL%'
+    AND mcn.descripcion LIKE '%@%'
+  GROUP BY n.numero_documento, n.tipdoc_codigo
+
+  UNION
+
+  -- Correos de personas jurídicas
+  SELECT 
+    j.numero_documento AS numero_documento,
+    j.tipdoc_codigo AS tipo_documento,
+    MIN(mcj.descripcion) AS correo_unificado
+  FROM juridicos j
+  JOIN medios_comunicacion mcj 
+    ON mcj.jur_secuencia = j.secuencia
+  JOIN tipos_medios_comunicacion tmcj 
+    ON tmcj.secuencia = mcj.tipmedcom_codigo
+  WHERE tmcj.descripcion LIKE '%EMAIL%'
+    AND mcj.descripcion LIKE '%@%'
+  GROUP BY j.numero_documento, j.tipdoc_codigo
+),
+
+-- Subconsulta de celulares unificados
+CELULAR_UNIFICADO AS (
+  SELECT *
+  FROM (
+    -- Persona jurídica con prioridad al celular del representante
+    SELECT 
+      j.numero_documento AS numero_documento,
+      j.tipdoc_codigo AS tipo_documento,
+      CASE
+        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
+        WHEN REGEXP_LIKE(TRIM(mcj.descripcion), '^[0-9]{10}$') THEN TRIM(mcj.descripcion)
+        ELSE NULL
+      END AS celular_unificado,
+      ROW_NUMBER() OVER (
+        PARTITION BY j.tipdoc_codigo, j.numero_documento
+        ORDER BY j.numero_documento
+      ) AS rn
+    FROM juridicos j
+    JOIN naturales n
+      ON n.numero_documento = j.numero_documento_representante
+     AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+    JOIN medios_comunicacion mcn
+      ON mcn.nat_secuencia = n.secuencia
+    JOIN tipos_medios_comunicacion tmcn
+      ON tmcn.secuencia = mcn.tipmedcom_codigo
+    JOIN medios_comunicacion mcj
+      ON mcj.jur_secuencia = j.secuencia
+    JOIN tipos_medios_comunicacion tmcj
+      ON tmcj.secuencia = mcj.tipmedcom_codigo
+    WHERE (tmcn.descripcion LIKE '%CELULAR%' OR tmcj.descripcion LIKE '%CELULAR%')
+
+    UNION ALL
+
+    -- Persona natural
+    SELECT 
+      n.numero_documento,
+      n.tipdoc_codigo,
+      CASE 
+        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
+        ELSE NULL
+      END AS celular_unificado,
+      ROW_NUMBER() OVER (
+        PARTITION BY n.tipdoc_codigo, n.numero_documento
+        ORDER BY n.numero_documento
+      ) AS rn
+    FROM naturales n
+    JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
+    JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
+    WHERE tmcn.descripcion LIKE '%CELULAR%'
+  )
+  WHERE rn = 1
+),
+
+-- Consolidación base
+BASE_UNICIDAD AS (
+  SELECT 
+    m.exrf_cod_cia AS codigo_compania,
+    m.exrf_num_id_cliente AS num_id,
+    NULLIF(REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', ''), '') AS nombre,
+    CASE 
+      WHEN cu2.celular_unificado IS NOT NULL THEN cu2.celular_unificado
+      ELSE NULLIF(TRIM(m.exrf_telefono_residencia), '')
+    END AS telefono_contacto,
+    NULLIF(TRIM(cu.correo_unificado), '') AS correo
+  FROM dc_ext_revisoria_fiscal m
+  LEFT JOIN CORREOS_UNIFICADOS cu 
+    ON cu.numero_documento = m.exrf_num_id_cliente
+   AND cu.tipo_documento = m.exrf_cod_tip_doc
+  LEFT JOIN CELULAR_UNIFICADO cu2
+    ON cu2.numero_documento = m.exrf_num_id_cliente
+   AND cu2.tipo_documento = m.exrf_cod_tip_doc
+  WHERE m.exrf_cod_tipo_persona IS NOT NULL
+    AND m.exrf_cod_tip_doc IS NOT NULL
+    AND m.exrf_cod_cia IN (1, 2, 3)
+),
+
+-- Cálculo de unicidad
+UNIDAD_CALCULO AS (
+  SELECT 
+    codigo_compania,
+    COUNT(*) AS total_registros,
+    
+    COUNT(num_id) AS cantidad_num_id,
+    COUNT(DISTINCT num_id) AS unicos_num_id,
+    
+    COUNT(nombre) AS cantidad_nombre,
+    COUNT(DISTINCT nombre) AS unicos_nombre,
+    
+    COUNT(telefono_contacto) AS cantidad_celular,
+    COUNT(DISTINCT telefono_contacto) AS unicos_celular,
+    
+    COUNT(correo) AS cantidad_correo,
+    COUNT(DISTINCT correo) AS unicos_correo
+
+  FROM BASE_UNICIDAD
+  GROUP BY codigo_compania
+)
+
+-- Resultado final
+SELECT 
+  codigo_compania,
+  total_registros AS cantidad,  -- Columna añadida
+  ROUND(unicos_num_id * 1.0 / cantidad_num_id, 3) AS unicidad_num_id,
+  ROUND(unicos_nombre * 1.0 / cantidad_nombre, 3) AS unicidad_nombre,
+  ROUND(unicos_celular * 1.0 / cantidad_celular, 3) AS unicidad_celular,
+  ROUND(unicos_correo * 1.0 / cantidad_correo, 3) AS unicidad_correo
+
+FROM UNIDAD_CALCULO;
