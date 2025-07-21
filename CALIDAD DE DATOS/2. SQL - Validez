@@ -173,6 +173,7 @@ INDICADORES_VALIDEZ AS (
     SUM(CASE WHEN vlr_egresos IS NOT NULL THEN 1 ELSE 0 END) AS vlr_egresos_validos
   FROM BASE_DATOS
   GROUP BY codigo_compania,tipo_persona
+    ORDER BY codigo_compania,tipo_persona
 )
 
 SELECT 
@@ -189,4 +190,5 @@ SELECT
   ROUND(vlr_pasivos_validos * 1.0 / total_registros, 3) AS validez_vlr_pasivos,
   ROUND(vlr_ingresos_validos * 1.0 / total_registros, 3) AS validez_vlr_ingresos,
   ROUND(vlr_egresos_validos * 1.0 / total_registros, 3) AS validez_vlr_egresos
-FROM INDICADORES_VALIDEZ;
+FROM INDICADORES_VALIDEZ
+  ORDER BY codigo_compania,tipo_persona;
