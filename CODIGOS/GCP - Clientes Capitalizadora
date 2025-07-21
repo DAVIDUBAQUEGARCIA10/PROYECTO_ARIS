@@ -1,1 +1,16 @@
-t_clientes_capitalizadora 
+-- Consulta para obtener registros correspondientes a la fecha de corte más reciente
+SELECT 
+  fecha_corte,
+  tipo_documento,
+  key_id,
+  titulo,
+  tiene_saldo,
+  titulos_al_dia
+FROM 
+  `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+WHERE 
+  fecha_corte = (
+    -- Subconsulta que obtiene la fecha de corte más reciente en la tabla
+    SELECT MAX(fecha_corte)
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+  );
