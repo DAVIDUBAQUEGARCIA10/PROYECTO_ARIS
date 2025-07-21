@@ -183,6 +183,7 @@ BASE AS (
 -- Cálculo de completitud
 SELECT 
   codigo_compania,
+  tipo_persona as Tipo_persona, 
   COUNT(*) AS total_registros,
 
   ROUND(1 - (SUM(CASE WHEN nombre IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_nombre,
@@ -196,5 +197,5 @@ SELECT
   ROUND(1 - (SUM(CASE WHEN fecha_vinculacion_cliente IS NULL OR TRIM(fecha_vinculacion_cliente) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_vinculacion
 
 FROM BASE
-GROUP BY codigo_compania
-ORDER BY codigo_compania;
+GROUP BY codigo_compania,tipo_persona
+ORDER BY codigo_compania,tipo_persona;
