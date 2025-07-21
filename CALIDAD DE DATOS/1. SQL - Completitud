@@ -154,7 +154,14 @@ BASE AS (
     p.NUM_POL1,
     p.cod_ramo AS COD_PROD,
     p.COD_SECC AS COD_RAMO,
-    TO_CHAR(p.FECHA_VENC_POL, 'dd/mm/yyyy') AS fecha_venc_pol
+    TO_CHAR(p.FECHA_VENC_POL, 'dd/mm/yyyy') AS fecha_venc_pol,
+
+    -- Fecha nacimiento alternativa desde naturales o juridicos
+    CASE 
+      WHEN TRUNC(n2.fecha_nacimiento) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      WHEN TRUNC(j2.fecha_nacimiento) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      ELSE TO_CHAR(COALESCE(n2.fecha_nacimiento, j2.fecha_nacimiento), 'dd/mm/yyyy')
+    END AS fecha_nacimiento_2
 
   FROM dc_ext_revisoria_fiscal m
 
@@ -170,6 +177,14 @@ BASE AS (
   LEFT JOIN CELULAR_UNIFICADO cu2
     ON cu2.numero_documento = m.exrf_num_id_cliente
    AND cu2.tipo_documento = m.exrf_cod_tip_doc
+
+  LEFT JOIN naturales n2 
+    ON n2.numero_documento = m.exrf_num_id_cliente
+   AND n2.tipdoc_codigo = m.exrf_cod_tip_doc
+
+  LEFT JOIN juridicos j2 
+    ON j2.numero_documento = m.exrf_num_id_cliente
+   AND j2.tipdoc_codigo = m.exrf_cod_tip_doc
 
   WHERE 
     m.exrf_cod_tipo_persona IS NOT NULL
@@ -187,7 +202,7 @@ SELECT
   COUNT(*) AS total_registros,
 
   ROUND(1 - (SUM(CASE WHEN nombre IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_nombre,
-  ROUND(1 - (SUM(CASE WHEN fecha_nacimiento IS NULL OR TRIM(fecha_nacimiento) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_nacimiento,
+  ROUND(1 - (SUM(CASE WHEN fecha_nacimiento_2 IS NULL OR TRIM(fecha_nacimiento_2) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_nacimiento,
   ROUND(1 - (SUM(CASE WHEN telefono_contacto IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_telefono,
   ROUND(1 - (SUM(CASE WHEN correo IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_correo,
   ROUND(1 - (SUM(CASE WHEN vlr_activos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_vlr_activos,
@@ -197,5 +212,5 @@ SELECT
   ROUND(1 - (SUM(CASE WHEN fecha_vinculacion_cliente IS NULL OR TRIM(fecha_vinculacion_cliente) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_vinculacion
 
 FROM BASE
-GROUP BY codigo_compania,tipo_persona
-ORDER BY codigo_compania,tipo_persona;
+GROUP BY codigo_compania, tipo_persona
+ORDER BY codigo_compania, tipo_persona;
