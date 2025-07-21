@@ -1,4 +1,4 @@
--- Subconsulta de correos unificados 
+-- Subconsulta de correos unificados
 WITH CORREOS_UNIFICADOS AS (
   -- Correos de personas naturales
   SELECT 
@@ -29,6 +29,28 @@ WITH CORREOS_UNIFICADOS AS (
   WHERE tmcj.descripcion LIKE '%EMAIL%'
     AND mcj.descripcion LIKE '%@%'
   GROUP BY j.numero_documento, j.tipdoc_codigo
+),
+
+-- Subconsulta para obtener UNA póliza por persona
+POLIZA_UNICA AS (
+  SELECT *
+  FROM (
+    SELECT 
+      a.COD_CIA,
+      a.tdoc_tercero,
+      a.nro_documto,
+      a.NUM_POL1,
+      a.cod_ramo,
+      a.COD_SECC,
+      a.FECHA_VENC_POL,
+      ROW_NUMBER() OVER (
+        PARTITION BY a.COD_CIA, a.tdoc_tercero, a.nro_documto 
+        ORDER BY a.FECHA_VENC_POL ASC NULLS LAST
+      ) AS rn
+    FROM A2000030 a
+    WHERE a.FECHA_VENC_POL >= SYSDATE
+  )
+  WHERE rn = 1 AND COD_RAMO != 315
 ),
 
 -- Subconsulta de celulares unificados
@@ -84,17 +106,40 @@ CELULAR_UNIFICADO AS (
   WHERE rn = 1
 ),
 
--- Consolidación base
-BASE_UNICIDAD AS (
+BASE_DATOS AS (
   SELECT 
     m.exrf_cod_cia AS codigo_compania,
+    m.exrf_cod_tipo_persona AS tipo_persona,
     m.exrf_num_id_cliente AS num_id,
-    NULLIF(REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', ''), '') AS nombre,
+    REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', '') AS nombre,
+    CASE 
+      WHEN TRUNC(m.exrf_fecha_nacim) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      ELSE TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy')
+    END AS fecha_nacimiento,
+
+
     CASE 
       WHEN cu2.celular_unificado IS NOT NULL THEN cu2.celular_unificado
-      ELSE NULLIF(TRIM(m.exrf_telefono_residencia), '')
+      ELSE TRIM(m.exrf_telefono_residencia)
     END AS telefono_contacto,
-    NULLIF(TRIM(cu.correo_unificado), '') AS correo
+    TRIM(cu.correo_unificado) AS correo,
+    CASE 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
+      ELSE m.exrf_vlr_activos 
+    END AS vlr_activos,
+    CASE 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
+      ELSE m.exrf_vlr_pasivos 
+    END AS vlr_pasivos,
+    CASE 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
+      ELSE m.exrf_vlr_ingresos 
+    END AS vlr_ingresos,
+    CASE 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
+      ELSE m.exrf_vlr_egresos 
+    END AS vlr_egresos,
+    TO_CHAR(m.exrf_fecha_creacion_terc, 'dd/mm/yyyy') AS fecha_vinculacion
   FROM dc_ext_revisoria_fiscal m
   LEFT JOIN CORREOS_UNIFICADOS cu 
     ON cu.numero_documento = m.exrf_num_id_cliente
@@ -102,40 +147,39 @@ BASE_UNICIDAD AS (
   LEFT JOIN CELULAR_UNIFICADO cu2
     ON cu2.numero_documento = m.exrf_num_id_cliente
    AND cu2.tipo_documento = m.exrf_cod_tip_doc
-  WHERE m.exrf_cod_tipo_persona IS NOT NULL
+  WHERE 
+    m.exrf_cod_tipo_persona IS NOT NULL
     AND m.exrf_cod_tip_doc IS NOT NULL
-    AND m.exrf_cod_cia IN (1, 2, 3)
-),
-
--- Cálculo de unicidad
-UNIDAD_CALCULO AS (
+    AND (m.exrf_cod_cia IN (1, 2) OR (m.exrf_cod_cia = 3 AND EXISTS (
+      SELECT 1 FROM POLIZA_UNICA p 
+      WHERE p.COD_CIA = m.exrf_cod_cia AND p.tdoc_tercero = m.exrf_cod_tip_doc AND p.nro_documto = m.exrf_num_id_cliente
+    )))
+)-- Cálculo de UNICIDAD para las variables de interés
+, INDICADORES_UNICIDAD AS (
   SELECT 
     codigo_compania,
+    tipo_persona,
     COUNT(*) AS total_registros,
-    
-    COUNT(num_id) AS cantidad_num_id,
-    COUNT(DISTINCT num_id) AS unicos_num_id,
-    
-    COUNT(nombre) AS cantidad_nombre,
-    COUNT(DISTINCT nombre) AS unicos_nombre,
-    
-    COUNT(telefono_contacto) AS cantidad_celular,
-    COUNT(DISTINCT telefono_contacto) AS unicos_celular,
-    
-    COUNT(correo) AS cantidad_correo,
-    COUNT(DISTINCT correo) AS unicos_correo
 
-  FROM BASE_UNICIDAD
-  GROUP BY codigo_compania
+    COUNT(*) - COUNT(DISTINCT num_id) AS doc_duplicados,
+    COUNT(*) - COUNT(DISTINCT nombre) AS nombre_duplicados,
+    COUNT(*) - COUNT(DISTINCT telefono_contacto) AS telefono_duplicados,
+    COUNT(*) - COUNT(DISTINCT correo) AS correo_duplicados
+  FROM BASE_DATOS
+  GROUP BY codigo_compania, tipo_persona
 )
 
--- Resultado final
+-- Selección final solo con indicadores de UNICIDAD
 SELECT 
-  codigo_compania,
-  total_registros AS cantidad,  -- Columna añadida
-  ROUND(unicos_num_id * 1.0 / cantidad_num_id, 3) AS unicidad_num_id,
-  ROUND(unicos_nombre * 1.0 / cantidad_nombre, 3) AS unicidad_nombre,
-  ROUND(unicos_celular * 1.0 / cantidad_celular, 3) AS unicidad_celular,
-  ROUND(unicos_correo * 1.0 / cantidad_correo, 3) AS unicidad_correo
+  u.codigo_compania,
+  u.tipo_persona,
+  u.total_registros AS cantidad,
 
-FROM UNIDAD_CALCULO;
+  -- Índices de unicidad (entre 0 y 1)
+  ROUND(1 - (u.doc_duplicados * 1.0 / u.total_registros), 3) AS unicidad_documento,
+  ROUND(1 - (u.nombre_duplicados * 1.0 / u.total_registros), 3) AS unicidad_nombre,
+  ROUND(1 - (u.telefono_duplicados * 1.0 / u.total_registros), 3) AS unicidad_telefono,
+  ROUND(1 - (u.correo_duplicados * 1.0 / u.total_registros), 3) AS unicidad_correo
+
+FROM INDICADORES_UNICIDAD u
+ORDER BY u.codigo_compania, u.tipo_persona;
