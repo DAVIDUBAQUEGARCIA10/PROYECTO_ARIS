@@ -186,17 +186,20 @@ BASE_DATOS AS (
 INDICADORES_PRECISION AS (
   SELECT 
     codigo_compania,
+    tipo_persona,
     COUNT(*) AS total_registros,
     SUM(CASE WHEN vlr_ingresos = 0 THEN 1 ELSE 0 END) AS ingresos_cero,
     SUM(CASE WHEN vlr_egresos = 0 THEN 1 ELSE 0 END) AS egresos_cero,
     SUM(CASE WHEN vlr_ingresos < vlr_egresos THEN 1 ELSE 0 END) AS ingresos_menores_que_egresos
   FROM BASE_DATOS
-  GROUP BY codigo_compania
+  GROUP BY codigo_compania,tipo_persona
+
 )
 
 -- Resultado final
 SELECT 
   codigo_compania,
+  tipo_persona
   total_registros,
 
   -- Precisión ingresos
@@ -211,4 +214,5 @@ SELECT
     (1 - ingresos_menores_que_egresos * 1.0 / total_registros)
   ) / 2, 3) AS precision_egresos
 
-FROM INDICADORES_PRECISION;
+FROM INDICADORES_PRECISION
+ORDER BY codigo_compania, tipo_persona;
