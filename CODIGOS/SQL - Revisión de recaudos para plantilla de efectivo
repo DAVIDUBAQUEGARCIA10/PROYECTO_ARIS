@@ -1,3 +1,5 @@
+-----------------ASOBANCARIAS
+
 -- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
 SELECT 
     m1.COD_CIA,              -- Compañía
@@ -58,19 +60,21 @@ WHERE
     AND m1.MCA_DEBE_HABER = 'D'
 
 -- Que tenga sección definida
-    AND m1.COD_SECC IS NOT NULL
+    AND m1.COD_RAMO IS NOT NULL
 
 -- Excluye un recibo específico
-    AND m1.RECIBO != 9999980 -- Esto es ingresos via web
-    AND m1.RECIBO != 9999996 -- Esto es finanaseguros
+  AND m1.RECIBO != 9999095 -- Esto es ingresos barras 4000000207411440
+   AND m1.RECIBO != 9999996 -- Esto es finanaseguros
 -- Solo para estas cuentas específicas
-    AND m1.NUMERO_CUENTA  IN (
-        '05300250331', '006069999594', '1081268701', '5300250331', 
-        '6069999594', '221816614', '006069999644'
-)
-
+    AND m1.NUMERO_CUENTA  IN ( '6069999594', '006069999594',
+    '05300250331', '5300250331', 
+    '221816614', '006069999644','1081268701')
+ and m1.RECIBO IN (9999985, 9999096, 9999980 )
 -- Excluye un beneficiario específico
     AND m1.COD_BENEF != 860034313
     and COD_PAGO = 2
    and COD_CIA = 2
-
+-- Solo talonarios con longitud entre 2 y 4 caracteres (inclusive)
+   AND m1.NUMERO_TALON >= 100 AND m1.NUMERO_TALON < 10000
+   and m1.nombre_entidad_talon = 'BANCA DAVIVIENDA'
+   
