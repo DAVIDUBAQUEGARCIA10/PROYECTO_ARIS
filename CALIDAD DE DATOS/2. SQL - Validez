@@ -162,7 +162,7 @@ INDICADORES_VALIDEZ AS (
     tipo_persona,
     COUNT(*) AS total_registros,
     SUM(CASE WHEN num_id NOT LIKE '% %' THEN 1 ELSE 0 END) AS doc_validos,
-    SUM(CASE WHEN REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+$') THEN 1 ELSE 0 END) AS nombre_validos,
+    SUM(CASE WHEN REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .-]+$') THEN 1 ELSE 0 END) AS nombre_validos,
     SUM(CASE WHEN REGEXP_LIKE(telefono_contacto, '^\d{10}$') THEN 1 ELSE 0 END) AS telefono_validos,
     SUM(CASE WHEN REGEXP_LIKE(fecha_nacimiento, '^\d{2}/\d{2}/\d{4}$') THEN 1 ELSE 0 END) AS fecha_nacimiento_validos,
     SUM(CASE WHEN REGEXP_LIKE(correo, '^[^@]+@[^@]+\.[^@]+$') THEN 1 ELSE 0 END) AS correo_validos,
