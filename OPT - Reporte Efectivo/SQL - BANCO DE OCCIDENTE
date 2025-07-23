@@ -1,0 +1,66 @@
+-----------------BANCO DE OCCIDENTE
+
+-- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
+SELECT 
+    m1.COD_CIA,              -- Compañía
+    m1.FEC_ASIENTO,          -- Fecha del asiento
+    m1.RECIBO,               -- Número de recibo
+    m1.COD_OFIC_CONTAB,      -- Oficina contable
+    m1.COD_PAGO,             -- Código de tipo de pago
+    m1.COD_OFIC_CIAL,        -- Oficina comercial
+    m1.NUM_ASIENTO,          -- Número de asiento
+    m1.NUM_OPER_ASIENTO,     -- Número de operación del asiento
+    m1.TIPO_ACTU,            -- Tipo de actuación contable
+    m1.COD_CAUSA_ANU,        -- Código de causa de anulación
+    m1.FECHA_VALOR,          -- Fecha valor
+    m1.NUM_ORD_CRUCE,        -- Número de orden de cruce
+    m1.DESC_MOVIM,           -- Descripción del movimiento
+    m1.NUM_POL1,             -- Número de póliza
+    m1.COD_SECC,             -- Código de sección
+    m1.COD_RAMO,             -- Código de ramo
+    m1.COD_PROD,             -- Código de producto
+    m1.IMP_MON_PAIS,         -- Importe en moneda nacional
+    m1.MCA_DEBE_HABER,       -- Marca de debe/haber
+    m1.IMP_MON_EXT,          -- Importe en moneda extranjera
+    m1.COD_MON,              -- Código de moneda
+    m1.FECHA_CAPTURA,        -- Fecha de captura
+    m1.COD_BENEF,            -- Código de beneficiario
+    m1.COD_ACT_BENEF,        -- Código del acto del beneficiario
+    m1.COD_PAGO,             -- Código de tipo de pago
+    m1.NOMBRE_ENTIDAD_TALON,-- Nombre entidad
+    m1.NUMERO_TALON,         -- Número de talonario
+    m1.NUM_ENTIDAD,          -- Número de entidad
+    m1.NUMERO_CUENTA,        -- Número de cuenta
+    
+    -- Variable derivada: tipo de pago legible
+    CASE 
+        WHEN m1.COD_PAGO = 1 THEN 'CHEQUE'
+        WHEN m1.COD_PAGO = 2 THEN 'EFECTIVO'
+        WHEN m1.COD_PAGO = 3 THEN 'GIRO'
+        WHEN m1.COD_PAGO = 5 THEN 'TARJETA CREDITO'
+        WHEN m1.COD_PAGO = 6 THEN 'FINANCIACION'
+        WHEN m1.COD_PAGO = 8 THEN 'TARJETA DEBITO'
+        ELSE NULL
+    END AS TIPO_PAGO
+
+FROM 
+    a5021900 m1
+WHERE 
+    m1.FEC_ASIENTO >= '01/06/25' 
+    AND m1.TIPO_ACTU = 'CB'
+    AND m1.IMP_MON_PAIS >= 10000000
+    AND m1.MCA_DEBE_HABER = 'D'
+    AND m1.COD_RAMO IS NOT NULL
+    AND m1.RECIBO != 9999095 -- Esto es ingresos barras 4000000207411440 Libranzas 
+    AND m1.RECIBO != 9999996 -- Esto es finanaseguros
+    AND m1.NUMERO_CUENTA  IN ( '6069999594', '006069999594',
+    '05300250331', '5300250331', 
+    '221816614', '006069999644','1081268701')
+    and m1.RECIBO IN (9999985, 9999096, 9999980 )
+    AND m1.COD_BENEF != 860034313
+    and COD_PAGO = 2
+    and COD_CIA = 2
+    and m1.nombre_entidad_talon = 'BANCO DE OCCIDENTE'
+
+
+   
