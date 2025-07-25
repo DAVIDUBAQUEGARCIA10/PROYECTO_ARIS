@@ -1,6 +1,6 @@
--- Subconsulta de correos unificados
-WITH CORREOS_UNIFICADOS AS (
-  -- Correos de personas naturales
+-- Encapsulamos toda tu consulta principal en una CTE llamada BASE
+WITH 
+CORREOS_UNIFICADOS AS (
   SELECT 
     n.numero_documento AS numero_documento,
     n.tipdoc_codigo AS tipo_documento,
@@ -16,7 +16,6 @@ WITH CORREOS_UNIFICADOS AS (
 
   UNION
 
-  -- Correos de personas jurídicas
   SELECT 
     j.numero_documento AS numero_documento,
     j.tipdoc_codigo AS tipo_documento,
@@ -31,7 +30,6 @@ WITH CORREOS_UNIFICADOS AS (
   GROUP BY j.numero_documento, j.tipdoc_codigo
 ),
 
--- Subconsulta para obtener UNA póliza por persona
 POLIZA_UNICA AS (
   SELECT *
   FROM (
@@ -53,11 +51,9 @@ POLIZA_UNICA AS (
   WHERE rn = 1 AND COD_RAMO != 315
 ),
 
--- Subconsulta de celulares unificados
 CELULAR_UNIFICADO AS (
   SELECT *
   FROM (
-    -- Persona jurídica con prioridad al celular del representante
     SELECT 
       j.numero_documento AS numero_documento,
       j.tipdoc_codigo AS tipo_documento,
@@ -86,7 +82,6 @@ CELULAR_UNIFICADO AS (
 
     UNION ALL
 
-    -- Persona natural
     SELECT 
       n.numero_documento,
       n.tipdoc_codigo,
@@ -106,54 +101,98 @@ CELULAR_UNIFICADO AS (
   WHERE rn = 1
 ),
 
-BASE_DATOS AS (
+BASE AS (
   SELECT 
     m.exrf_cod_cia AS codigo_compania,
     m.exrf_cod_tipo_persona AS tipo_persona,
+    m.exrf_cod_tip_doc AS cod_tipo_doc,  
     m.exrf_num_id_cliente AS num_id,
+
     REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', '') AS nombre,
+
     CASE 
       WHEN TRUNC(m.exrf_fecha_nacim) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
       ELSE TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy')
     END AS fecha_nacimiento,
 
-
     CASE 
       WHEN cu2.celular_unificado IS NOT NULL THEN cu2.celular_unificado
-      ELSE TRIM(m.exrf_telefono_residencia)
+      ELSE NULLIF(TRIM(m.exrf_telefono_residencia), '')
     END AS telefono_contacto,
-    TRIM(cu.correo_unificado) AS correo,
+
+    NULLIF(TRIM(cu.correo_unificado), '') AS correo,
+
     CASE 
-      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
-      ELSE m.exrf_vlr_activos 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+           AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+      THEN NULL ELSE m.exrf_vlr_activos 
     END AS vlr_activos,
+
     CASE 
-      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
-      ELSE m.exrf_vlr_pasivos 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+           AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+      THEN NULL ELSE m.exrf_vlr_pasivos 
     END AS vlr_pasivos,
+
     CASE 
-      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
-      ELSE m.exrf_vlr_ingresos 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+           AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+      THEN NULL ELSE m.exrf_vlr_ingresos 
     END AS vlr_ingresos,
+
     CASE 
-      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 THEN NULL
-      ELSE m.exrf_vlr_egresos 
+      WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+           AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+      THEN NULL ELSE m.exrf_vlr_egresos 
     END AS vlr_egresos,
-    TO_CHAR(m.exrf_fecha_creacion_terc, 'dd/mm/yyyy') AS fecha_vinculacion
+
+    TO_CHAR(
+      NVL(m.exrf_fecha_creacion_terc, TO_DATE('01/01/1900','dd/mm/yyyy')), 
+      'dd/mm/yyyy'
+    ) AS fecha_vinculacion_cliente,
+
+    p.NUM_POL1,
+    p.cod_ramo AS COD_PROD,
+    p.COD_SECC AS COD_RAMO,
+    TO_CHAR(p.FECHA_VENC_POL, 'dd/mm/yyyy') AS fecha_venc_pol,
+
+    -- Fecha nacimiento alternativa desde naturales o juridicos
+    CASE 
+      WHEN TRUNC(n2.fecha_nacimiento) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      WHEN TRUNC(j2.fecha_nacimiento) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+      ELSE TO_CHAR(COALESCE(n2.fecha_nacimiento, j2.fecha_nacimiento), 'dd/mm/yyyy')
+    END AS fecha_nacimiento_2
+
   FROM dc_ext_revisoria_fiscal m
+
   LEFT JOIN CORREOS_UNIFICADOS cu 
     ON cu.numero_documento = m.exrf_num_id_cliente
    AND cu.tipo_documento = m.exrf_cod_tip_doc
+
+  LEFT JOIN POLIZA_UNICA p
+    ON p.COD_CIA = m.exrf_cod_cia
+   AND p.tdoc_tercero = m.exrf_cod_tip_doc
+   AND p.nro_documto = m.exrf_num_id_cliente
+
   LEFT JOIN CELULAR_UNIFICADO cu2
     ON cu2.numero_documento = m.exrf_num_id_cliente
    AND cu2.tipo_documento = m.exrf_cod_tip_doc
+
+  LEFT JOIN naturales n2 
+    ON n2.numero_documento = m.exrf_num_id_cliente
+   AND n2.tipdoc_codigo = m.exrf_cod_tip_doc
+
+  LEFT JOIN juridicos j2 
+    ON j2.numero_documento = m.exrf_num_id_cliente
+   AND j2.tipdoc_codigo = m.exrf_cod_tip_doc
+
   WHERE 
     m.exrf_cod_tipo_persona IS NOT NULL
     AND m.exrf_cod_tip_doc IS NOT NULL
-    AND (m.exrf_cod_cia IN (1, 2) OR (m.exrf_cod_cia = 3 AND EXISTS (
-      SELECT 1 FROM POLIZA_UNICA p 
-      WHERE p.COD_CIA = m.exrf_cod_cia AND p.tdoc_tercero = m.exrf_cod_tip_doc AND p.nro_documto = m.exrf_num_id_cliente
-    )))
+    AND (
+      m.exrf_cod_cia IN (1, 2)
+      OR (m.exrf_cod_cia = 3 AND p.COD_RAMO IS NOT NULL)
+    )
 ),
 
 INDICADORES_VALIDEZ AS (
@@ -164,22 +203,21 @@ INDICADORES_VALIDEZ AS (
     SUM(CASE WHEN num_id NOT LIKE '% %' THEN 1 ELSE 0 END) AS doc_validos,
     SUM(CASE WHEN REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .-]+$') THEN 1 ELSE 0 END) AS nombre_validos,
     SUM(CASE WHEN REGEXP_LIKE(telefono_contacto, '^\d{10}$') THEN 1 ELSE 0 END) AS telefono_validos,
-    SUM(CASE WHEN REGEXP_LIKE(fecha_nacimiento, '^\d{2}/\d{2}/\d{4}$') THEN 1 ELSE 0 END) AS fecha_nacimiento_validos,
+    SUM(CASE WHEN REGEXP_LIKE(fecha_nacimiento_2, '^\d{2}/\d{2}/\d{4}$') THEN 1 ELSE 0 END) AS fecha_nacimiento_validos,
     SUM(CASE WHEN REGEXP_LIKE(correo, '^[^@]+@[^@]+\.[^@]+$') THEN 1 ELSE 0 END) AS correo_validos,
-    SUM(CASE WHEN REGEXP_LIKE(fecha_vinculacion, '^\d{2}/\d{2}/\d{4}$') THEN 1 ELSE 0 END) AS fecha_vinc_validos,
+    SUM(CASE WHEN REGEXP_LIKE(fecha_vinculacion_cliente, '^\d{2}/\d{2}/\d{4}$') THEN 1 ELSE 0 END) AS fecha_vinc_validos,
     SUM(CASE WHEN vlr_activos IS NOT NULL THEN 1 ELSE 0 END) AS vlr_activos_validos,
     SUM(CASE WHEN vlr_pasivos IS NOT NULL THEN 1 ELSE 0 END) AS vlr_pasivos_validos,
     SUM(CASE WHEN vlr_ingresos IS NOT NULL THEN 1 ELSE 0 END) AS vlr_ingresos_validos,
     SUM(CASE WHEN vlr_egresos IS NOT NULL THEN 1 ELSE 0 END) AS vlr_egresos_validos
-  FROM BASE_DATOS
-  GROUP BY codigo_compania,tipo_persona
-    ORDER BY codigo_compania,tipo_persona
+  FROM BASE
+  GROUP BY codigo_compania, tipo_persona
 )
 
 SELECT 
   codigo_compania,
   tipo_persona,
-  total_registros AS cantidad,  -- Columna añadida
+  total_registros AS cantidad,
   ROUND(doc_validos * 1.0 / total_registros, 3) AS validez_documento,
   ROUND(nombre_validos * 1.0 / total_registros, 3) AS validez_nombre,
   ROUND(telefono_validos * 1.0 / total_registros, 3) AS validez_telefono,
@@ -191,4 +229,4 @@ SELECT
   ROUND(vlr_ingresos_validos * 1.0 / total_registros, 3) AS validez_vlr_ingresos,
   ROUND(vlr_egresos_validos * 1.0 / total_registros, 3) AS validez_vlr_egresos
 FROM INDICADORES_VALIDEZ
-  ORDER BY codigo_compania,tipo_persona;
+ORDER BY codigo_compania, tipo_persona;
