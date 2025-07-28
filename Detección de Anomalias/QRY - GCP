@@ -1,0 +1,192 @@
+-- Crea o reemplaza la tabla final que consolida las métricas mensuales por cliente
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Modelo_isolate_forest AS
+
+-- CTE BASE: construye la base de transacciones enriquecida con pólizas
+WITH BASE AS (
+  SELECT 
+    -- Fecha de la operación financiera
+    B.FECHA_OPERACION,
+
+    -- Monto transado en pesos colombianos
+    B.VALOR_PESOS_COLOMBIANOS,
+
+    -- Descripción de la operación (ej. consignación, retiro)
+    B.DESCRIPCION_MOVIMIENTO,
+
+    -- Tipo de pago (puede incluir terceros, efectivo, etc.)
+    B.TIPO_PAGO,
+
+    -- Código del producto financiero relacionado
+    B.CODIGO_PRODUCTO,
+
+    -- Tipo de documento del tomador (CC, NIT, etc.)
+    P.TIPO_DOCUMENTO_TOMADOR,
+
+    -- Identificador único del tomador
+    P.KEY_ID_TOMADOR,
+
+    -- Canal por el cual se realizó la operación (oficina, app, corresponsal, etc.)
+    P.NOMBRE_CANAL,
+
+    -- Compañía aseguradora relacionada
+    P.CODIGO_COMPANIA,
+
+    -- Año y mes en formato AAAAMM (ej: 202407)
+    EXTRACT(YEAR FROM B.FECHA_OPERACION)*100 + EXTRACT(MONTH FROM B.FECHA_OPERACION) AS ANO_MES,
+
+    -- Día del mes de la transacción (1 a 31)
+    EXTRACT(DAY FROM B.FECHA_OPERACION) AS DIA,
+
+    -- Hora (0 a 23) de la transacción
+    EXTRACT(HOUR FROM B.FECHA_OPERACION) AS HORA,
+
+    -- Indicador si el valor es redondo (múltiplo de 1M o 5M)
+    CASE 
+      WHEN MOD(B.VALOR_PESOS_COLOMBIANOS, 1000000) = 0 
+        OR MOD(B.VALOR_PESOS_COLOMBIANOS, 5000000) = 0 
+      THEN 1 ELSE 0 
+    END AS ES_VALOR_REDONDO,
+
+    -- Indicador si ocurrió en horario nocturno (antes de 6 am o después de 8 pm)
+    CASE 
+      WHEN EXTRACT(HOUR FROM B.FECHA_OPERACION) < 6 
+        OR EXTRACT(HOUR FROM B.FECHA_OPERACION) >= 20 
+      THEN 1 ELSE 0
+    END AS ES_NOCTURNA
+
+  -- Fuente principal: movimientos contables
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf` B
+
+  -- Enlace con datos del tomador y póliza
+  LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` P
+    ON B.NUMERO_POLIZA = P.NUMERO_POLIZA
+
+  -- Filtro para mantener solo los últimos 12 meses de transacciones
+  WHERE DATE(B.FECHA_OPERACION) >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+),
+
+-- CTE AGG: cálculo de métricas agregadas por cliente, compañía y mes
+AGG AS (
+  SELECT 
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_COMPANIA,
+    ANO_MES,
+
+    -- 1. Número total de transacciones en el mes
+    COUNT(*) AS N_TRANSACCIONES_MES,
+
+    -- 2. Monto total del mes
+    SUM(VALOR_PESOS_COLOMBIANOS) AS MONTO_TOTAL_MES,
+
+    -- 3. Promedio de transacciones
+    AVG(VALOR_PESOS_COLOMBIANOS) AS MONTO_PROMEDIO_MES,
+
+    -- 4. Transacción más alta
+    MAX(VALOR_PESOS_COLOMBIANOS) AS MONTO_MAXIMO_MES,
+
+    -- 5. Transacción más baja
+    MIN(VALOR_PESOS_COLOMBIANOS) AS MONTO_MINIMO_MES,
+
+    -- 6. Mediana del valor transaccional
+    APPROX_QUANTILES(VALOR_PESOS_COLOMBIANOS, 2)[OFFSET(1)] AS MONTO_MEDIANA_MES,
+
+    -- 7. Desviación estándar del valor transaccional
+    STDDEV(VALOR_PESOS_COLOMBIANOS) AS MONTO_DESVIACION_STD_MES,
+
+    -- 8. Días únicos en que se transó
+    COUNT(DISTINCT DIA) AS DIAS_ACTIVO_MES,
+
+    -- 9. Fecha de la primera transacción
+    MIN(FECHA_OPERACION) AS PRIMERA_FECHA_OPERACION_MES,
+
+    -- 10. Fecha de la última transacción
+    MAX(FECHA_OPERACION) AS ULTIMA_FECHA_OPERACION_MES,
+
+    -- 11. Rango promedio de días entre transacciones
+    IF(COUNT(DISTINCT DATE(FECHA_OPERACION)) > 1,
+       SAFE_DIVIDE(
+         DATE_DIFF(MAX(DATE(FECHA_OPERACION)), MIN(DATE(FECHA_OPERACION)), DAY),
+         COUNT(DISTINCT DATE(FECHA_OPERACION)) - 1
+       ),
+       NULL) AS RANGO_DIAS_ENTRE_TRANSACCIONES,
+
+    -- 12. Tipos distintos de operación
+    COUNT(DISTINCT DESCRIPCION_MOVIMIENTO) AS CANTIDAD_TIPOS_OPERACION,
+
+    -- 13. Tipos distintos de canal utilizados
+    COUNT(DISTINCT NOMBRE_CANAL) AS CANTIDAD_TIPOS_CANAL,
+
+    -- 18. Número de operaciones con terceros
+    SUM(CASE WHEN TIPO_PAGO = 'TERCERO' THEN 1 ELSE 0 END) AS TRANSACCIONES_TERCEROS,
+
+    -- 19. Número de transacciones nocturnas
+    SUM(ES_NOCTURNA) AS TRANS_NOCTURNAS,
+
+    -- 20. Porcentaje de transacciones en horario no habitual
+    SAFE_DIVIDE(SUM(ES_NOCTURNA), COUNT(*)) AS FRECUENCIA_HORARIO_NO_HABITUAL,
+
+    -- 21. Frecuencia de valores redondos
+    SAFE_DIVIDE(SUM(ES_VALOR_REDONDO), COUNT(*)) AS FRECUENCIA_VALORES_REDONDOS,
+
+    -- 22. Frecuencia de transacciones repetidas (mismo valor)
+    COUNT(*) - COUNT(DISTINCT VALOR_PESOS_COLOMBIANOS) AS FRECUENCIA_TRANS_REPETIDAS,
+
+    -- 23. Número de productos financieros distintos usados
+    COUNT(DISTINCT CODIGO_PRODUCTO) AS NUM_PRODUCTOS_USADOS_MES
+
+  FROM BASE
+  GROUP BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR, CODIGO_COMPANIA, ANO_MES
+),
+
+-- CTE CANAL_FRECUENCIA: identifica el canal más frecuente de uso por cliente y mes
+CANAL_FRECUENCIA AS (
+  SELECT 
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_COMPANIA,
+    ANO_MES,
+    NOMBRE_CANAL,
+
+    -- Frecuencia del canal
+    COUNT(*) AS FRECUENCIA_CANAL,
+
+    -- Orden de prioridad para determinar el canal dominante
+    ROW_NUMBER() OVER (
+      PARTITION BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR, CODIGO_COMPANIA, ANO_MES 
+      ORDER BY COUNT(*) DESC
+    ) AS RN
+  FROM BASE
+  GROUP BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR, CODIGO_COMPANIA, ANO_MES, NOMBRE_CANAL
+),
+
+-- CTE AGG_FINAL: une métricas agregadas con el canal dominante
+AGG_FINAL AS (
+  SELECT 
+    A.*,
+
+    -- 14. Canal más utilizado
+    CF.NOMBRE_CANAL AS CANAL_MAS_FRECUENTE,
+
+    -- 15. Porcentaje de transacciones realizadas por el canal dominante
+    SAFE_DIVIDE(CF.FRECUENCIA_CANAL, A.N_TRANSACCIONES_MES) AS FRECUENCIA_CANAL_DOMINANTE
+
+  FROM AGG A
+  LEFT JOIN CANAL_FRECUENCIA CF
+    ON A.TIPO_DOCUMENTO_TOMADOR = CF.TIPO_DOCUMENTO_TOMADOR
+   AND A.KEY_ID_TOMADOR = CF.KEY_ID_TOMADOR
+   AND A.CODIGO_COMPANIA = CF.CODIGO_COMPANIA
+   AND A.ANO_MES = CF.ANO_MES
+   AND CF.RN = 1  -- Solo el canal con mayor frecuencia
+)
+
+-- Consulta final: añade el indicador de cambio brusco mensual (24)
+SELECT *,
+  -- 24. Indicador binario si hay un cambio brusco de patrón respecto al mes anterior
+  CASE 
+    WHEN LAG(MONTO_TOTAL_MES) OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY ANO_MES) IS NOT NULL
+     AND ABS(MONTO_TOTAL_MES - LAG(MONTO_TOTAL_MES) OVER (PARTITION BY KEY_ID_TOMADOR ORDER BY ANO_MES)) > 3 * MONTO_DESVIACION_STD_MES
+    THEN 1 ELSE 0
+  END AS INDICADOR_CAMBIO_PATRON
+
+FROM AGG_FINAL;
