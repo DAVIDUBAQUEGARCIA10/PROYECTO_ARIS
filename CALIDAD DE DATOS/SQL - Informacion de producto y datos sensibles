@@ -133,9 +133,10 @@ SELECT
   p.NUM_POL1,
   p.cod_ramo AS COD_PROD,
   p.COD_SECC AS COD_RAMO,
-  TO_CHAR(p.FECHA_VENC_POL, 'dd/mm/yyyy') AS fecha_venc_pol
----   TO_CHAR(m.exrf_fecha_act_financiera, 'dd/mm/yyyy') AS fecha_venc_pol,
----    TO_CHAR(m.exrf_fecha_ultimo_formato, 'dd/mm/yyyy') AS fecha_venc_pol
+  TO_CHAR(p.FECHA_VENC_POL, 'dd/mm/yyyy') AS fecha_venc_pol,
+  TO_CHAR(TO_DATE(m.exrf_fecha_act_financiera, 'dd/mm/yy'), 'dd/mm/yyyy') AS fecha_act_financiera,
+  TO_CHAR(TO_DATE(m.exrf_fecha_ultimo_formato, 'yyyy/mm/dd'), 'dd/mm/yyyy') AS fecha_ultimo_formato,
+  TO_CHAR(COALESCE(n.fecha_modificacion, j.fecha_modificacion), 'dd/mm/yyyy') AS fecha_modificacion
 
 FROM dc_ext_revisoria_fiscal m
 
@@ -151,6 +152,14 @@ LEFT JOIN POLIZA_UNICA p
 LEFT JOIN CELULAR_UNIFICADO cu2
   ON cu2.numero_documento = m.exrf_num_id_cliente
  AND cu2.tipo_documento = m.exrf_cod_tip_doc
+
+LEFT JOIN naturales n 
+  ON n.numero_documento = m.exrf_num_id_cliente
+ AND n.tipdoc_codigo = m.exrf_cod_tip_doc
+
+LEFT JOIN juridicos j 
+  ON j.numero_documento = m.exrf_num_id_cliente
+ AND j.tipdoc_codigo = m.exrf_cod_tip_doc
 
 WHERE 
   m.exrf_cod_tipo_persona IS NOT NULL
