@@ -1,0 +1,186 @@
+-- Subconsulta de correos unificados
+WITH CORREOS_UNIFICADOS AS (
+  -- Correos de personas naturales
+  SELECT 
+    n.numero_documento AS numero_documento,
+    n.tipdoc_codigo AS tipo_documento,
+    MIN(mcn.descripcion) AS correo_unificado
+  FROM naturales n
+  JOIN medios_comunicacion mcn 
+    ON mcn.nat_secuencia = n.secuencia
+  JOIN tipos_medios_comunicacion tmcn 
+    ON tmcn.secuencia = mcn.tipmedcom_codigo
+  WHERE tmcn.descripcion LIKE '%EMAIL%'
+    AND mcn.descripcion LIKE '%@%'
+  GROUP BY n.numero_documento, n.tipdoc_codigo
+
+  UNION
+
+  -- Correos de personas jurídicas
+  SELECT 
+    j.numero_documento AS numero_documento,
+    j.tipdoc_codigo AS tipo_documento,
+    MIN(mcj.descripcion) AS correo_unificado
+  FROM juridicos j
+  JOIN medios_comunicacion mcj 
+    ON mcj.jur_secuencia = j.secuencia
+  JOIN tipos_medios_comunicacion tmcj 
+    ON tmcj.secuencia = mcj.tipmedcom_codigo
+  WHERE tmcj.descripcion LIKE '%EMAIL%'
+    AND mcj.descripcion LIKE '%@%'
+  GROUP BY j.numero_documento, j.tipdoc_codigo
+),
+
+-- Subconsulta para obtener UNA póliza por persona
+POLIZA_UNICA AS (
+  SELECT *
+  FROM (
+    SELECT 
+      a.COD_CIA,
+      a.tdoc_tercero,
+      a.nro_documto,
+      a.NUM_POL1,
+      a.cod_ramo,
+      a.COD_SECC,
+      a.FECHA_VENC_POL,
+      ROW_NUMBER() OVER (
+        PARTITION BY a.COD_CIA, a.tdoc_tercero, a.nro_documto 
+        ORDER BY a.FECHA_VENC_POL ASC NULLS LAST
+      ) AS rn
+    FROM A2000030 a
+    WHERE a.FECHA_VENC_POL >= SYSDATE
+  )
+  WHERE rn = 1 AND COD_RAMO != 315
+),
+
+-- Subconsulta de celulares unificados
+CELULAR_UNIFICADO AS (
+  SELECT *
+  FROM (
+    -- Persona jurídica con prioridad al celular del representante
+    SELECT 
+      j.numero_documento AS numero_documento,
+      j.tipdoc_codigo AS tipo_documento,
+      CASE
+        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
+        WHEN REGEXP_LIKE(TRIM(mcj.descripcion), '^[0-9]{10}$') THEN TRIM(mcj.descripcion)
+        ELSE NULL
+      END AS celular_unificado,
+      ROW_NUMBER() OVER (
+        PARTITION BY j.tipdoc_codigo, j.numero_documento
+        ORDER BY j.numero_documento
+      ) AS rn
+    FROM juridicos j
+    JOIN naturales n
+      ON n.numero_documento = j.numero_documento_representante
+     AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+    JOIN medios_comunicacion mcn
+      ON mcn.nat_secuencia = n.secuencia
+    JOIN tipos_medios_comunicacion tmcn
+      ON tmcn.secuencia = mcn.tipmedcom_codigo
+    JOIN medios_comunicacion mcj
+      ON mcj.jur_secuencia = j.secuencia
+    JOIN tipos_medios_comunicacion tmcj
+      ON tmcj.secuencia = mcj.tipmedcom_codigo
+    WHERE (tmcn.descripcion LIKE '%CELULAR%' OR tmcj.descripcion LIKE '%CELULAR%')
+
+    UNION ALL
+
+    -- Persona natural
+    SELECT 
+      n.numero_documento,
+      n.tipdoc_codigo,
+      CASE 
+        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
+        ELSE NULL
+      END AS celular_unificado,
+      ROW_NUMBER() OVER (
+        PARTITION BY n.tipdoc_codigo, n.numero_documento
+        ORDER BY n.numero_documento
+      ) AS rn
+    FROM naturales n
+    JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
+    JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
+    WHERE tmcn.descripcion LIKE '%CELULAR%'
+  )
+  WHERE rn = 1
+)
+
+-- Consulta principal
+SELECT 
+  m.exrf_cod_cia AS codigo_compania,
+  m.exrf_cod_tipo_persona AS tipo_persona,
+  m.exrf_cod_tip_doc AS cod_tipo_doc,  
+  m.exrf_num_id_cliente AS num_id,
+
+  NULLIF(REPLACE(TRIM(m.exrf_nombre_cli_razon_social), '-', ''), '') AS nombre,
+ 
+  -- MODIFICADO: Fecha nacimiento nula si es 01/01/1900
+  CASE 
+    WHEN TRUNC(m.exrf_fecha_nacim) = TO_DATE('01/01/1900','dd/mm/yyyy') THEN NULL
+    ELSE TO_CHAR(m.exrf_fecha_nacim, 'dd/mm/yyyy')
+  END AS fecha_nacimiento,
+
+  -- Variables financieras nulas si las 4 están en 0
+  CASE 
+    WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+         AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+    THEN NULL ELSE m.exrf_vlr_activos 
+  END AS vlr_activos,
+
+  CASE 
+    WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+         AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+    THEN NULL ELSE m.exrf_vlr_pasivos 
+  END AS vlr_pasivos,
+
+  CASE 
+    WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+         AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+    THEN NULL ELSE m.exrf_vlr_ingresos 
+  END AS vlr_ingresos,
+
+  CASE 
+    WHEN m.exrf_vlr_activos = 0 AND m.exrf_vlr_pasivos = 0 
+         AND m.exrf_vlr_ingresos = 0 AND m.exrf_vlr_egresos = 0 
+    THEN NULL ELSE m.exrf_vlr_egresos 
+  END AS vlr_egresos,
+
+  TO_CHAR(
+    NVL(m.exrf_fecha_creacion_terc, TO_DATE('01/01/1900','dd/mm/yyyy')), 
+    'dd/mm/yyyy'
+  ) AS fecha_vinculacion_cliente,
+  
+  TO_CHAR(
+    NVL(m.exrf_fecha_act_financiera, TO_DATE('01/01/1900','dd/mm/yyyy')), 
+    'dd/mm/yyyy'
+  ) AS fecha_Actualizacion_financiera,
+
+  TO_CHAR(
+    NVL(m.exrf_fecha_ultimo_formato, TO_DATE('01/01/1900','dd/mm/yyyy')), 
+    'dd/mm/yyyy'
+  ) AS fecha_ultimo_formato
+
+  
+FROM dc_ext_revisoria_fiscal m
+
+LEFT JOIN CORREOS_UNIFICADOS cu 
+  ON cu.numero_documento = m.exrf_num_id_cliente
+ AND cu.tipo_documento = m.exrf_cod_tip_doc
+
+LEFT JOIN POLIZA_UNICA p
+  ON p.COD_CIA = m.exrf_cod_cia
+ AND p.tdoc_tercero = m.exrf_cod_tip_doc
+ AND p.nro_documto = m.exrf_num_id_cliente
+
+LEFT JOIN CELULAR_UNIFICADO cu2
+  ON cu2.numero_documento = m.exrf_num_id_cliente
+ AND cu2.tipo_documento = m.exrf_cod_tip_doc
+
+WHERE 
+  m.exrf_cod_tipo_persona IS NOT NULL
+  AND m.exrf_cod_tip_doc IS NOT NULL
+  AND (
+    m.exrf_cod_cia IN (1, 2)
+    OR (m.exrf_cod_cia = 3 AND p.COD_RAMO IS NOT NULL)
+  );
