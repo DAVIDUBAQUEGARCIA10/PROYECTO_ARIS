@@ -183,4 +183,4 @@ BASE AS (
       OR (m.exrf_cod_cia = 3 AND p.COD_RAMO IS NOT NULL))
 )
 SELECT *
-FROM BASE;
+FROM BASE; 
