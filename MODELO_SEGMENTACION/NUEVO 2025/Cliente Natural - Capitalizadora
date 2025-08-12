@@ -4,12 +4,27 @@ WITH movimientos_12m AS (
         pol.KEY_ID_BENEFICIARIO,
 
         -- Recaudos (SIGNO +)
-        SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN mov.VALOR_TRANSACCION ELSE 0 END) AS SUMA_RECAUDOS,
-        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN 1 ELSE NULL END) AS CANTIDAD_RECAUDOS,
+        -- Usamos REGEXP_CONTAINS con flag (?i) para búsqueda sin distinción de mayúsculas/minúsculas
+        SUM(
+        CASE 
+            WHEN mov.SIGNO_MOVIMIENTO = '+'
+            AND REGEXP_CONTAINS(mov.DESCRIPCION_TIPO_MOVIMIENTO, r'(?i)rec')
+            THEN mov.VALOR_TRANSACCION
+            ELSE 0
+        END
+        ) AS SUMA_RECAUDOS,
+
+        -- Conteo de eventos de recaudo con signo positivo
+        -- COUNTIF es más limpio que COUNT(CASE WHEN ... THEN 1 END)
+        COUNTIF(
+        mov.SIGNO_MOVIMIENTO = '+'
+        AND REGEXP_CONTAINS(mov.DESCRIPCION_TIPO_MOVIMIENTO, r'(?i)rec')
+        ) AS CANTIDAD_RECAUDOS,
+
 
         -- Pagos o sorteos (SIGNO -)
-        abs(SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN mov.VALOR_TRANSACCION ELSE 0 END)) AS SUMA_PAGOS_SORTEOS,
-        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN 1 ELSE NULL END) AS CANTIDAD_PAGOS_SORTEOS
+        abs(SUM(CASE WHEN mov.DESCRIPCION_TIPO_MOVIMIENTO = 'PAGO SORTEO' THEN mov.VALOR_TRANSACCION ELSE 0 END)) AS SUMA_PAGOS_SORTEOS,
+        COUNT(CASE WHEN mov.DESCRIPCION_TIPO_MOVIMIENTO = 'PAGO SORTEO' THEN 1 ELSE NULL END) AS CANTIDAD_PAGOS_SORTEOS
 
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` mov
     INNER JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` pol
