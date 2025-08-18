@@ -5,7 +5,6 @@ where cod_campo in ( 'COD_BENEF', 'BENEFICIARIO' )
 
 
 ---
-
 SELECT DISTINCT 
     a.COD_CIA,
     a.TDOC_TERCERO,
@@ -25,7 +24,7 @@ FROM A2000030 a
 INNER JOIN A2000020 b 
     ON a.NUM_SECU_POL = b.NUM_SECU_POL
 WHERE 
-    a.FECHA_VENC_POL >= TO_DATE('20/02/25', 'DD/MM/YY') 
+    a.FECHA_VENC_POL >= TO_DATE('17/08/25', 'DD/MM/YY') 
     AND b.COD_CAMPO IN ('COD_BENEF', 'BENEFICIARIO')
     AND a.MCA_ANU_POL != 'S'
-    AND a.NRO_DOCUMTO != b.valor_campo;  -- Exclusión de registros
+    AND a.NRO_DOCUMTO != b.valor_campo
