@@ -8,15 +8,16 @@
     a.FECHA_EMI,
     a.FECHA_EMI_END,
     a.FECHA_VENC_POL,
-    a.NUM_SECU_POL,
     a.COD_PROD,
-    a.MCA_ANU_POL,
     b.*
 FROM A2000030 a
 JOIN A2001000 b 
     ON  a.NUM_SECU_POL = b.NUM_SECU_POL
-WHERE a.FECHA_VENC_POL >= '20/02/25'
-2070039487022
+WHERE a.FECHA_VENC_POL >= '10/08/25'
+and MCA_ANU_POL != 'S'
+and NRO_DOCUMTO = 40369772 
+
+https://mail.google.com/mail/u/0/#chat/dm/gVTbEMAAAAE/jc_bbqrXnCk/jc_bbqrXnCk
 
 
 
