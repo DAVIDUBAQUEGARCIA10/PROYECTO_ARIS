@@ -1,0 +1,89 @@
+/* -----------------------------------------------------------------------------
+   Objetivo
+   - Normalizar RAZON_SOCIAL desde JURIDICOS para generar un slug y URL.
+   - Traer únicamente productos vigentes desde A2000030.
+   - Unir por NUMERO_DOCUMENTO (JURIDICOS) = NRO_DOCUMTO (A2000030).
+
+   Notas de negocio
+   - Vigencia: FECHA_VENC_POL >= fecha de corte (ejemplo: 20/09/2024).
+   - Opcional: excluir anuladas por bandera MCA_ANU_POL si aplica tu modelo.
+
+   Motor: Oracle (usa TO_DATE, ROWNUM, REGEXP_REPLACE)
+----------------------------------------------------------------------------- */
+WITH base AS (
+  SELECT
+    NUMERO_DOCUMENTO,
+    RAZON_SOCIAL,
+    UPPER(RAZON_SOCIAL) AS RS_UP
+  FROM JURIDICOS
+),
+soc AS (  -- Normaliza formas societarias
+  SELECT
+    NUMERO_DOCUMENTO,
+    RAZON_SOCIAL,
+    /* Reglas:
+       1) S.A.S / S A S / S.A.S. -> SAS
+       2) S.A  / S A  / S.A.     -> SA
+       Se aplica la 1ra y luego se colapsa S.A en SA, sin afectar el "SAS". */
+    REGEXP_REPLACE(
+      REGEXP_REPLACE(RS_UP, 'S[[:space:].]*A[[:space:].]*S', 'SAS'),
+      'S[[:space:].]*A', 'SA'
+    ) AS RS_SOC
+  FROM base
+),
+clean AS ( -- Reemplaza & por " y " y remueve puntuación básica
+  SELECT
+    NUMERO_DOCUMENTO,
+    RAZON_SOCIAL,
+    REPLACE(
+      REPLACE(
+        REGEXP_REPLACE(RS_SOC, '&', ' y '), -- & -> y
+        '.', ''                             -- quita puntos
+      ),
+      ',', ''                               -- quita comas
+    ) AS RS_NOPUNCT
+  FROM soc
+),
+slug AS ( -- Espacios a guiones, colapsa guiones, recorta extremos
+  SELECT
+    NUMERO_DOCUMENTO,
+    RAZON_SOCIAL,
+    REGEXP_REPLACE(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(RS_NOPUNCT, '[[:space:]]+', '-'), -- espacios -> -
+        '-{2,}', '-'                                     -- múltiples - a uno
+      ),
+      '(^-+|-+$)', ''                                    -- quita - al inicio/fin
+    ) AS RS_SLUG_UPPER
+  FROM clean
+),
+polizas_vigentes AS ( -- Filtra cartera vigente
+  SELECT DISTINCT
+    COD_CIA,
+    TDOC_TERCERO,
+    NRO_DOCUMTO,
+    NUM_POL1,
+    COD_RAMO,
+    FECHA_EMI,
+    FECHA_EMI_END,
+    FECHA_VENC_POL,
+    NUM_SECU_POL,
+    COD_PROD,
+    MCA_ANU_POL,
+    ROWNUM AS RN
+  FROM A2000030
+  WHERE FECHA_VENC_POL >= TO_DATE('20/09/24','DD/MM/RR')
+    -- Opcional si tu bandera de anulación aplica: descomentar según valor real
+    -- AND NVL(MCA_ANU_POL, 'N') <> 'S'
+)
+SELECT distinct
+  s.NUMERO_DOCUMENTO,
+  s.RAZON_SOCIAL,
+  LOWER(s.RS_SLUG_UPPER) AS RAZON_SOCIAL_NORMALIZADO,
+  'https://www.datacreditoempresas.com.co/directorio/' ||
+  LOWER(s.RS_SLUG_UPPER) || '.html' AS URL
+FROM slug s
+JOIN polizas_vigentes pv
+  /* Cast defensivo: si NRO_DOCUMTO es numérico y NUMERO_DOCUMENTO es texto,
+     usamos TO_CHAR para alinear la llave de emparejamiento. */
+  ON TRIM(s.NUMERO_DOCUMENTO) = TRIM(TO_CHAR(pv.NRO_DOCUMTO));
