@@ -1,155 +1,190 @@
-CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_pj_cliente` AS 
+-- =====================================================================
+-- Tabla final: segmentacion_seguros_bolivar_pj_cliente
+-- Alcance:
+--   - Integra variables de cliente jurídico, score, siniestros y recaudos (12M)
+--   - Normaliza llaves (compañía, tipo doc, key_id) para evitar no-matches
+--   - Expone métricas agregadas y percentiles (con opción de apagar filtro)
+-- =====================================================================
 
- WITH datos_agregados AS (
-SELECT DISTINCT
-    -- Identificadores
-    --p.CODIGO_COMPANIA,
+CREATE OR REPLACE TABLE
+  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_seguros_bolivar_pj_cliente` AS
+
+-- -------------------------
+-- 0) Parámetros de ventana
+-- -------------------------
+WITH limites AS (
+  SELECT
+    DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH) AS f_ini_12m,
+    DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)    AS f_fin_12m
+),
+
+-- ---------------------------------------
+-- 1) Pólizas base (PJ activas y no anuladas)
+-- ---------------------------------------
+polizas AS (
+  SELECT DISTINCT
+    SAFE_CAST(p.CODIGO_COMPANIA AS INT64)  AS CODIGO_COMPANIA,
+    TRIM(UPPER(p.TIPO_DOCUMENTO_TOMADOR)) AS TIPO_DOCUMENTO_TOMADOR,
+    TRIM(CAST(p.KEY_ID_TOMADOR AS STRING)) AS KEY_ID_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+  WHERE DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.MARCA_ANULACION != 'S'
+    AND SAFE_CAST(p.CODIGO_COMPANIA AS INT64) = 2
+    AND p.CODIGO_RAMO_EMISION != 310
+    AND UPPER(p.TIPO_DOCUMENTO_TOMADOR) IN ("NE","NT") -- Jurídicos
+),
+
+-- ----------------------------
+-- 2) Clientes jurídicos
+-- ----------------------------
+clientes AS (
+  SELECT
+    TRIM(UPPER(c.TIPO_DOCUMENTO))        AS TIPO_DOCUMENTO_TOMADOR,
+    TRIM(CAST(c.KEY_ID AS STRING))       AS KEY_ID_TOMADOR,
+    c.SECTOR_ECONOMICO,
+    c.TIPO_EMPRESA,
+    IFNULL(c.VALOR_INGRESOS, 0)          AS VALOR_INGRESOS,
+    IFNULL(c.VALOR_EGRESOS, 0)           AS VALOR_EGRESOS,
+    IFNULL(c.VALOR_ACTIVO, 0)            AS VALOR_ACTIVO,
+    IFNULL(c.VALOR_PASIVO, 0)            AS VALOR_PASIVO,
+    IFNULL(c.MANEJA_MONEDA_EXTRANJERA,'N') AS MANEJA_MONEDA_EXTRANJERA,
+    IFNULL(c.PUBLICAMENTE_EXPUESTA,'N')  AS PUBLICAMENTE_EXPUESTA,
+    IFNULL(c.VINCULO_PERSONA_RECONOCIDA,'N') AS VINCULO_PERSONA_RECONOCIDA,
+    IFNULL(c.OPERACIONES_INTERNACIONALES,'N') AS OPERACIONES_INTERNACIONALES,
+    CASE WHEN c.TIPO_DOCUMENTO = 'NE' THEN 0 ELSE 1 END AS NACIONAL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
+),
+
+-- ----------------------------
+-- 3) Score de riesgo
+-- ----------------------------
+score AS (
+  SELECT
+    SAFE_CAST(s.CODIGO_COMPANIA AS INT64) AS CODIGO_COMPANIA,
+    TRIM(UPPER(s.TIPO_DOCUMENTO))         AS TIPO_DOCUMENTO_TOMADOR,
+    TRIM(CAST(s.KEY_ID AS STRING))        AS KEY_ID_TOMADOR,
+    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
+),
+
+-- -----------------------------------------------------
+-- 4) Siniestros últimos 12 meses
+-- -----------------------------------------------------
+siniestros_12m AS (
+  SELECT
+    SAFE_CAST(t.CODIGO_COMPANIA AS INT64)  AS CODIGO_COMPANIA,
+    TRIM(UPPER(t.TIPO_DOCUMENTO_TOMADOR))  AS TIPO_DOCUMENTO_TOMADOR,
+    TRIM(CAST(t.KEY_ID_TOMADOR AS STRING)) AS KEY_ID_TOMADOR,
+    COUNT(*)                               AS CANTIDAD_REGISTROS,
+    SUM(t.LIQUIDADO_BOLIVAR)               AS SUMATORIA_LIQUIDADO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` t
+  CROSS JOIN limites l
+  WHERE DATE(COALESCE(t.FECHA_ORDEN_PAGO, t.FECHA_MOVIMIENTO))
+        BETWEEN l.f_ini_12m AND l.f_fin_12m
+    AND SAFE_CAST(t.CODIGO_COMPANIA AS INT64) = 2
+    AND t.CODIGO_RAMO_EMISION != 310
+    AND IFNULL(t.LIQUIDADO_BOLIVAR,0) > 0
+  GROUP BY 1,2,3
+),
+
+-- ----------------------------------------------------
+-- 5) Recaudos últimos 12 meses
+-- ----------------------------------------------------
+recaudos_12m AS (
+  SELECT
+    SAFE_CAST(r.CODIGO_COMPANIA AS INT64)   AS CODIGO_COMPANIA,
+    TRIM(UPPER(r.TIPO_DOCUMENTO_TOMADOR))   AS TIPO_DOCUMENTO_TOMADOR,
+    TRIM(CAST(r.KEY_ID_TOMADOR AS STRING))  AS KEY_ID_TOMADOR,
+    COUNT(*)                                AS CANTIDAD_REGISTROS,
+    SUM(SAFE_CAST(r.VALOR_RECAUDO_MES AS NUMERIC)) AS SUMATORIA_RECAUDO
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` r
+  CROSS JOIN limites l
+  WHERE DATE(r.FECHA_RECAUDO) BETWEEN l.f_ini_12m AND l.f_fin_12m
+    AND r.CODIGO_RAMO_EMISION != 310
+    AND SAFE_CAST(r.CODIGO_COMPANIA AS INT64) = 2
+    AND IFNULL(r.VALOR_RECAUDO_MES,0) > 0
+  GROUP BY 1,2,3
+),
+
+-- ---------------------------------------------------------
+-- 6) Integración
+-- ---------------------------------------------------------
+datos_agregados AS (
+  SELECT DISTINCT
     p.TIPO_DOCUMENTO_TOMADOR,
     p.KEY_ID_TOMADOR,
 
-    -- Datos del cliente jurídico
-    --c.TIPO_DOCUMENTO,
+    -- Cliente jurídico
     c.SECTOR_ECONOMICO,
     c.TIPO_EMPRESA,
-    IFNULL(c.VALOR_INGRESOS, 0) AS VALOR_INGRESOS,
-    IFNULL(c.VALOR_EGRESOS, 0) AS VALOR_EGRESOS,
-    IFNULL(c.VALOR_ACTIVO, 0) AS VALOR_ACTIVO,
-    IFNULL(c.VALOR_PASIVO, 0) AS VALOR_PASIVO,
-    IFNULL(c.MANEJA_MONEDA_EXTRANJERA, 'N') AS MANEJA_MONEDA_EXTRANJERA,
-    IFNULL(c.PUBLICAMENTE_EXPUESTA, 'N') AS PUBLICAMENTE_EXPUESTA,
-    IFNULL(c.VINCULO_PERSONA_RECONOCIDA, 'N') AS VINCULO_PERSONA_RECONOCIDA,
-    IFNULL(c.OPERACIONES_INTERNACIONALES, 'N') AS OPERACIONES_INTERNACIONALES,
+    c.VALOR_INGRESOS,
+    c.VALOR_EGRESOS,
+    c.VALOR_ACTIVO,
+    c.VALOR_PASIVO,
+    c.MANEJA_MONEDA_EXTRANJERA,
+    c.PUBLICAMENTE_EXPUESTA,
+    c.VINCULO_PERSONA_RECONOCIDA,
+    c.OPERACIONES_INTERNACIONALES,
+    c.NACIONAL,
 
+    -- Score
+    s.NIVEL_DE_RIESGO,
 
-    -- Nacionalidad del cliente
+    -- Categoría empresa
     CASE 
-        WHEN c.TIPO_DOCUMENTO = 'NE' THEN 0
-        ELSE 1
-    END AS NACIONAL,
-
-    -- Nivel de riesgo
-    IFNULL(s.NIVEL_DE_RIESGO, 'Sin Nivel Riesgo') AS NIVEL_DE_RIESGO,
-
-   
-    CASE 
-    WHEN TIPO_EMPRESA = 1 THEN 'Privada'
-    WHEN TIPO_EMPRESA = 2 THEN 'Publica'
-    ELSE 'Sin categoria'
+      WHEN c.TIPO_EMPRESA = 1 THEN 'Privada'
+      WHEN c.TIPO_EMPRESA = 2 THEN 'Publica'
+      ELSE 'Sin categoria'
     END AS TIPO_EMPRESA_CATEGORIZADA,
 
-    -- Datos agregados de siniestros
-    IFNULL(sin.CANTIDAD_REGISTROS, 0) AS CANTIDAD_SINIESTROS_ULT_12_MESES,
-    IFNULL(sin.SUMATORIA_LIQUIDADO, 0) AS VALOR_SINIESTROS_ULT_12_MESES,
+    -- Siniestros
+    IFNULL(sin.CANTIDAD_REGISTROS, 0)   AS CANTIDAD_SINIESTROS_ULT_12_MESES,
+    IFNULL(sin.SUMATORIA_LIQUIDADO, 0)  AS VALOR_SINIESTROS_ULT_12_MESES,
 
-    -- Datos agregados de recaudo
-    IFNULL(rec.CANTIDAD_REGISTROS, 0) AS CANTIDAD_RECAUDOS_ULT_12_MESES,
-    IFNULL(rec.SUMATORIA_RECAUDO, 0) AS VALOR_RECAUDO_ULT_12_MESES
+    -- Recaudos
+    IFNULL(r.CANTIDAD_REGISTROS, 0)     AS CANTIDAD_RECAUDOS_ULT_12_MESES,
+    IFNULL(r.SUMATORIA_RECAUDO, 0)      AS VALOR_RECAUDO_ULT_12_MESES
 
-FROM 
-    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos p
-
-LEFT JOIN  
-    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
-    ON p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = c.KEY_ID
-
-LEFT JOIN 
-    `sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_C` s
-    ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
-    AND p.TIPO_DOCUMENTO_TOMADOR = s.TIPO_DOCUMENTO
-    AND p.KEY_ID_TOMADOR = s.KEY_ID
-
--- LEFT JOIN con siniestros agregados
-LEFT JOIN (
-    SELECT
-        CODIGO_COMPANIA,
-        TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_TOMADOR,
-        COUNT(*) AS CANTIDAD_REGISTROS,
-        SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
-    FROM
-        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
-    WHERE
-        DATE(FECHA_ORDEN_PAGO) BETWEEN 
-            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-    GROUP BY
-        CODIGO_COMPANIA,
-        TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_TOMADOR
-) sin
-    ON p.CODIGO_COMPANIA = sin.CODIGO_COMPANIA
-    AND p.TIPO_DOCUMENTO_TOMADOR = sin.TIPO_DOCUMENTO_TOMADOR
-    AND p.KEY_ID_TOMADOR = sin.KEY_ID_TOMADOR
-
--- LEFT JOIN con recaudo agregado
-LEFT JOIN (
-    SELECT
-        CODIGO_COMPANIA,
-        TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_TOMADOR,
-        COUNT(*) AS CANTIDAD_REGISTROS,
-        SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
-    FROM
-        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-    WHERE
-        DATE(FECHA_RECAUDO) BETWEEN 
-            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
-            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
-    GROUP BY
-        CODIGO_COMPANIA,
-        TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_TOMADOR
-) rec
-    ON p.CODIGO_COMPANIA = rec.CODIGO_COMPANIA
-    AND p.TIPO_DOCUMENTO_TOMADOR = rec.TIPO_DOCUMENTO_TOMADOR
-    AND p.KEY_ID_TOMADOR = rec.KEY_ID_TOMADOR
-
--- Filtro de pólizas vigentes y documentos tipo NE o NT
-WHERE 
-    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
-    AND MARCA_ANULACION != 'S'
-     AND p.CODIGO_COMPANIA = 2
-     AND  CODIGO_RAMO_EMISION != 310
-     AND  p.TIPO_DOCUMENTO_TOMADOR in ("NE","NT")
-     
+  FROM polizas p
+  LEFT JOIN clientes c USING (TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR)
+  LEFT JOIN score s ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
+                   AND p.TIPO_DOCUMENTO_TOMADOR = s.TIPO_DOCUMENTO_TOMADOR
+                   AND p.KEY_ID_TOMADOR        = s.KEY_ID_TOMADOR
+  LEFT JOIN siniestros_12m sin ON p.CODIGO_COMPANIA = sin.CODIGO_COMPANIA
+                               AND p.TIPO_DOCUMENTO_TOMADOR = sin.TIPO_DOCUMENTO_TOMADOR
+                               AND p.KEY_ID_TOMADOR        = sin.KEY_ID_TOMADOR
+  LEFT JOIN recaudos_12m r ON p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
+                           AND p.TIPO_DOCUMENTO_TOMADOR = r.TIPO_DOCUMENTO_TOMADOR
+                           AND p.KEY_ID_TOMADOR        = r.KEY_ID_TOMADOR
 )
 
-SELECT  
+-- -------------------------------------------------
+-- 7) SELECT final
+-- -------------------------------------------------
+SELECT
   TIPO_DOCUMENTO_TOMADOR,
   KEY_ID_TOMADOR,
-    IFNULL(SECTOR_ECONOMICO, 'SIN SECTOR') AS SECTOR_ECONOMICO,
-    IFNULL(SAFE_DIVIDE(VALOR_ACTIVO,VALOR_PASIVO ), 0) AS PASIVO_ACTIVO,
-    IFNULL(SAFE_DIVIDE(VALOR_INGRESOS, VALOR_EGRESOS ), 0) AS EGRESOS_INGRESOS,
-    CANTIDAD_SINIESTROS_ULT_12_MESES,
-    VALOR_SINIESTROS_ULT_12_MESES,
-    CANTIDAD_RECAUDOS_ULT_12_MESES,
-    VALOR_RECAUDO_ULT_12_MESES,
-    MANEJA_MONEDA_EXTRANJERA,
-    PUBLICAMENTE_EXPUESTA,
-    VINCULO_PERSONA_RECONOCIDA,
-    OPERACIONES_INTERNACIONALES,
-    NACIONAL,
-    TIPO_EMPRESA_CATEGORIZADA,
-    NIVEL_DE_RIESGO
-
-FROM (
-  SELECT *,
-         NTILE(100) OVER (ORDER BY VALOR_RECAUDO_ULT_12_MESES) AS percentil_rank_r,
-         NTILE(100) OVER (ORDER BY VALOR_SINIESTROS_ULT_12_MESES) AS percentil_rank_s
-  FROM datos_agregados
-)
-WHERE 
-   VALOR_RECAUDO_ULT_12_MESES >= 0 
-  --AND percentil_rank_r < 90
- -- AND percentil_rank_s < 90
+  IFNULL(SECTOR_ECONOMICO, 'SIN SECTOR') AS SECTOR_ECONOMICO,
+  IFNULL(SAFE_DIVIDE(VALOR_ACTIVO, NULLIF(VALOR_PASIVO,0)), 0) AS PASIVO_ACTIVO,
+  IFNULL(SAFE_DIVIDE(VALOR_INGRESOS, NULLIF(VALOR_EGRESOS,0)), 0) AS EGRESOS_INGRESOS,
+  CANTIDAD_SINIESTROS_ULT_12_MESES,
+  VALOR_SINIESTROS_ULT_12_MESES,
+  CANTIDAD_RECAUDOS_ULT_12_MESES,
+  VALOR_RECAUDO_ULT_12_MESES,
+  MANEJA_MONEDA_EXTRANJERA,
+  PUBLICAMENTE_EXPUESTA,
+  VINCULO_PERSONA_RECONOCIDA,
+  OPERACIONES_INTERNACIONALES,
+  NACIONAL,
+  TIPO_EMPRESA_CATEGORIZADA,
+  NIVEL_DE_RIESGO,
+  -- Percentiles
+  NTILE(100) OVER (ORDER BY VALOR_RECAUDO_ULT_12_MESES)  AS percentil_rank_r,
+  NTILE(100) OVER (ORDER BY VALOR_SINIESTROS_ULT_12_MESES) AS percentil_rank_s
+FROM datos_agregados
+WHERE VALOR_RECAUDO_ULT_12_MESES   >= 0
   AND VALOR_SINIESTROS_ULT_12_MESES >= 0
-  --AND VALOR_SINIESTROS_ULT_12_MESES <= 5000000
- -- AND VALOR_RECAUDO_ULT_12_MESES <= 7000000 
-
- ---TIPO_DOCUMENTO_TOMADOR
----KEY_ID_TOMADOR
----CANTIDAD_SINIESTROS_ULT_12_MESES
-----CANTIDAD_RECAUDOS_ULT_12_MESES
----MANEJA_MONEDA_EXTRANJERA
----VINCULO_PERSONA_RECONOCIDA
+-- Opcional: activar filtros de percentiles
+-- AND percentil_rank_r < 90
+-- AND percentil_rank_s < 90
+;
