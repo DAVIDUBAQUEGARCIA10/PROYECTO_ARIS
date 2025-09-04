@@ -3,3 +3,92 @@ FROM ROLES_TERCERO rt
 JOIN NATURALES n ON rt.secuencia = n.secuencia
 JOIN ROLES r ON rt.ROL_CODIGO = r.CODIGO
 WHERE r.CODIGO IN (74, 94, 95);
+
+
+
+
+
+
+
+
+WITH base AS (
+    /* -------- Naturales -------- */
+    SELECT
+        r.codigo            AS rol,
+        r.descripcion       AS rol_descripcion,
+        n.tipdoc_codigo     AS tipdoc_codigo,
+        n.numero_documento  AS numero_documento,
+        (n.primer_nombre || ' ' || n.primer_apellido) AS nombres,
+        s.numero            AS numero_sucursal,
+        s.descripcion       AS nombre_sucursal,
+        s.fecha_creacion    AS fecha_crea_sucursal,
+        s.usuario_creacion  AS usuario_crea_sucursal
+    FROM roles r
+    JOIN roles_tercero rt
+      ON r.codigo = rt.rol_codigo
+    JOIN naturales n
+      ON rt.nat_secuencia = n.secuencia
+    LEFT JOIN sucursales s
+      ON s.nat_secuencia = n.secuencia
+    WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+      AND rt.marca_activo = 'A'
+
+    UNION ALL
+
+    /* -------- Jurídicos -------- */
+    SELECT
+        r.codigo            AS rol,
+        r.descripcion       AS rol_descripcion,
+        j.tipdoc_codigo     AS tipdoc_codigo,
+        j.numero_documento  AS numero_documento,
+        j.razon_social      AS nombres,
+        s.numero            AS numero_sucursal,
+        s.descripcion       AS nombre_sucursal,
+        s.fecha_creacion    AS fecha_crea_sucursal,
+        s.usuario_creacion  AS usuario_crea_sucursal
+    FROM roles r
+    JOIN roles_tercero rt
+      ON r.codigo = rt.rol_codigo
+    JOIN juridicos j
+      ON rt.jur_secuencia = j.secuencia
+    LEFT JOIN sucursales s
+      ON s.jur_secuencia = j.secuencia
+    WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+      AND rt.marca_activo = 'A'
+)
+SELECT
+    /* ROL concatenado por documento */
+    RTRIM(
+        REPLACE(REPLACE(
+            XMLAGG( XMLELEMENT(e, TO_CHAR(rol) || ', ') 
+                ORDER BY rol ).getClobVal(),
+        '</E>',''), '<E>','')
+    , ', ') AS rol,
+
+    /* DESCRIPCION concatenada por documento */
+    RTRIM(
+        REPLACE(REPLACE(
+            XMLAGG( XMLELEMENT(e, rol_descripcion || ', ') 
+                ORDER BY rol_descripcion ).getClobVal(),
+        '</E>',''), '<E>','')
+    , ', ') AS descripcion,
+
+    /* Todas las demás columnas sin agrupar */
+    tipdoc_codigo,
+    numero_documento,
+    nombres,
+    numero_sucursal,
+    nombre_sucursal,
+    fecha_crea_sucursal,
+    usuario_crea_sucursal
+FROM base
+GROUP BY
+    tipdoc_codigo,
+    numero_documento,
+    nombres,
+    numero_sucursal,
+    nombre_sucursal,
+    fecha_crea_sucursal,
+    usuario_crea_sucursal
+ORDER BY
+    tipdoc_codigo, numero_documento;
