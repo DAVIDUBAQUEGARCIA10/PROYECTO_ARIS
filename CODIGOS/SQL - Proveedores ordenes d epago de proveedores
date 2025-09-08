@@ -1,0 +1,103 @@
+--TRANSACCIONES DE PROVEEDORES ROL Y ORDENES DE PAGO 
+
+/* ===========================================================
+   1) CTE base: misma lógica tuya para armar el universo de proveedores
+   =========================================================== */
+WITH base AS (
+    /* -------- Naturales -------- */
+    SELECT
+        r.codigo            AS rol,
+        r.descripcion       AS rol_descripcion,
+        n.tipdoc_codigo     AS tipdoc_codigo,
+        n.numero_documento  AS numero_documento,
+        (n.primer_nombre || ' ' || n.primer_apellido) AS nombres,
+        s.numero            AS numero_sucursal,
+        s.descripcion       AS nombre_sucursal,
+        s.fecha_creacion    AS fecha_crea_sucursal,
+        s.usuario_creacion  AS usuario_crea_sucursal
+    FROM roles r
+    JOIN roles_tercero rt
+      ON r.codigo = rt.rol_codigo
+    JOIN naturales n
+      ON rt.nat_secuencia = n.secuencia
+    LEFT JOIN sucursales s
+      ON s.nat_secuencia = n.secuencia
+    WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+      AND rt.marca_activo = 'A'
+
+    UNION ALL
+
+    /* -------- Jurídicos -------- */
+    SELECT
+        r.codigo            AS rol,
+        r.descripcion       AS rol_descripcion,
+        j.tipdoc_codigo     AS tipdoc_codigo,
+        j.numero_documento  AS numero_documento,
+        j.razon_social      AS nombres,
+        s.numero            AS numero_sucursal,
+        s.descripcion       AS nombre_sucursal,
+        s.fecha_creacion    AS fecha_crea_sucursal,
+        s.usuario_creacion  AS usuario_crea_sucursal
+    FROM roles r
+    JOIN roles_tercero rt
+      ON r.codigo = rt.rol_codigo
+    JOIN juridicos j
+      ON rt.jur_secuencia = j.secuencia
+    LEFT JOIN sucursales s
+      ON s.jur_secuencia = j.secuencia
+    WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+      AND rt.marca_activo = 'A'
+),
+
+/* ===========================================================
+   2) Proveedores únicos por (tipdoc_codigo, numero_documento)
+      (evitamos duplicados para el cruce)
+   =========================================================== */
+proveedores AS (
+    SELECT DISTINCT
+        tipdoc_codigo,
+        numero_documento
+    FROM base
+),
+
+/* ===========================================================
+   3) Transacciones filtradas desde 2024-01-01 en adelante
+      Usamos fecha de pago y, si viene nula, caemos a fec_asiento
+   =========================================================== */
+transacciones_filtradas AS (
+    SELECT
+        t.COD_CIA, t.COD_AGEN_PAGO, t.NUM_ORD_PAGO, t.IMP_MON_PAIS, t.IMP_MON_EXT,
+        t.COD_MON, t.TC, t.COD_BENEF, t.COD_CAJERO, t.FEC_ASIENTO, t.NUM_ASIENTO,
+        t.MCA_EST_PAGO, t.COD_BANCO, t.NUM_CHEQUE, t.COD_FORMATO, t.COD_ACT_BENEF,
+        t.MCA_TIPO_ORD, t.NOMBENEF, t.FECHA_PAGO, t.AUTORIZANTE, t.CLAVE, t.MCA_TEXTO,
+        t.NUM_OPER_ASIENTO, t.SOLICITADA, t.FECHA_ANU, t.FOR_PAGO, t.CAUSAL_RECHAZO,
+        t.SUB_TIPO_ORD, t.FECHA_ESTADO, t.TDOC_TERCERO, t.USR_CREACION,
+        /* Normalizamos una fecha de referencia para filtrar */
+        TRUNC(COALESCE(t.FECHA_PAGO, t.FEC_ASIENTO)) AS FECHA_REF
+    FROM a5021604 t
+    WHERE TRUNC(COALESCE(t.FECHA_PAGO, t.FEC_ASIENTO)) >= DATE 
+
+
+)
+
+/* ===========================================================
+   4) Resultado: solo transacciones cuyo tercero exista en proveedores
+   Join por tipo y número de documento
+   =========================================================== */
+SELECT
+    /* Claves del proveedor */
+    p.tipdoc_codigo,
+    p.numero_documento,
+
+    /* Datos de la transacción */
+    tf.COD_CIA, tf.COD_AGEN_PAGO, tf.NUM_ORD_PAGO, tf.IMP_MON_PAIS, tf.IMP_MON_EXT,
+    tf.COD_BENEF, tf.COD_CAJERO, tf.FEC_ASIENTO, 
+    tf.MCA_EST_PAGO, tf.NOMBENEF, tf.FECHA_PAGO, tf.AUTORIZANTE, tf.CLAVE, tf.MCA_TEXTO,
+    tf.NUM_OPER_ASIENTO, tf.SOLICITADA, tf.FECHA_ANU, tf.FOR_PAGO, tf.CAUSAL_RECHAZO,
+    tf.SUB_TIPO_ORD, tf.FECHA_ESTADO, tf.TDOC_TERCERO, tf.USR_CREACION
+FROM proveedores p
+JOIN transacciones_filtradas tf
+  ON tf.TDOC_TERCERO = p.tipdoc_codigo
+ AND  tf.COD_BENEF = p.numero_documento
+ORDER BY
+    p.tipdoc_codigo, p.numero_documento, tf.FECHA_REF, tf.NUM_ORD_PAGO;
