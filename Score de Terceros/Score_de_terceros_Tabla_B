@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Tabla_B AS
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_final AS
 WITH RankedScores AS (
     SELECT 
         *,
