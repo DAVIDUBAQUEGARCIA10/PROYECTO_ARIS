@@ -1,0 +1,242 @@
+-- StandardSQL
+-- ===========================================================
+-- Condición:
+--  Cliente aporta a más de dos títulos (>=3) y presenta
+--  alta frecuencia de aportes (>=2) dentro de los 90 días
+--  posteriores a la apertura del producto (título).
+--
+-- Notas:
+--  - "Aporte": se detecta por regex en DESCRIPCION/ABREVIATURA con 'APORT'
+--    (se incluyen 'PAGO'/'ABONO' como respaldo).
+--  - "Apertura" del título = primera FECHA_TRANSACCION del título.
+--  - Ventana = 90 días post-apertura (incluyente).
+--  - Se filtran movimientos con VALOR_TRANSACCION > 0 desde 2025-01-01.
+--  - Se evita subquery correlacionada usando CTEs + JOIN para 'titulos_muestra'.
+-- ===========================================================
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0011_VISOR_REPO` AS
+
+-- 0) Parámetros de la regla (ajustables)
+WITH param AS (
+  SELECT
+    3  AS min_titulos_aporte,   -- "más de dos títulos" => 3 o más
+    90 AS window_days,          -- ventana post-apertura en días
+    2  AS min_aportes_window    -- "alta frecuencia": >= 2 aportes en la ventana
+),
+
+-- 1) Base: movimientos + cliente por título
+base AS (
+  SELECT
+    p.CODIGO_COMPANIA,
+    p.NUMERO_TITULO,
+    DATE(p.FECHA_TRANSACCION) AS FECHA_TRANSACCION,
+    p.CODIGO_TIPO_MOVIMIENTO,
+    p.NUMERO_TRANSACCION,
+    p.VALOR_TRANSACCION,
+    p.CODIGO_AGENCIA,
+    p.AGRUPAMIENTO_CODIGO,
+    p.SIGNO_MOVIMIENTO,
+    p.DESCRIPCION_TIPO_MOVIMIENTO,
+    p.ABREVIATURA_TIPO_MOVIMIENTO,
+    ctit.KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR,   -- homologado a "tomador"
+    ctit.TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` p
+  LEFT JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` ctit
+    ON p.NUMERO_TITULO = ctit.TITULO
+  WHERE DATE(p.FECHA_TRANSACCION) >= DATE '2025-01-01'
+    AND p.VALOR_TRANSACCION > 0
+    AND ctit.KEY_ID_BENEFICIARIO IS NOT NULL
+    AND ctit.TIPO_DOCUMENTO IS NOT NULL
+),
+
+-- 2) Flag de "aporte" por regex
+movs_con_flag_aporte AS (
+  SELECT
+    b.*,
+    IF(
+      REGEXP_CONTAINS(UPPER(COALESCE(b.DESCRIPCION_TIPO_MOVIMIENTO, '')), r'(APORT|APORTE|APORTES|PAGO|ABONO)')
+      OR REGEXP_CONTAINS(UPPER(COALESCE(b.ABREVIATURA_TIPO_MOVIMIENTO, '')), r'(APOR|APO|PAG|ABO)'),
+      TRUE, FALSE
+    ) AS es_aporte
+  FROM base b
+),
+
+-- 3) # de títulos distintos con aportes por cliente
+aportes_distintos_titulos AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    COUNT(DISTINCT IF(es_aporte, NUMERO_TITULO, NULL)) AS titulos_aporte_distintos
+  FROM movs_con_flag_aporte
+  GROUP BY 1,2
+),
+
+-- 4) Fecha de apertura por título (primera transacción)
+apertura_por_titulo AS (
+  SELECT
+    NUMERO_TITULO,
+    MIN(FECHA_TRANSACCION) AS fecha_apertura
+  FROM base
+  GROUP BY 1
+),
+
+-- 5) Aportes por (cliente, título) dentro de la ventana post-apertura
+aportes_post_apertura AS (
+  SELECT
+    m.KEY_ID_TOMADOR,
+    m.TIPO_DOCUMENTO,
+    m.NUMERO_TITULO,
+    -- cuenta SOLO aportes en [0, window_days] días desde apertura
+    SUM(
+      IF(
+        m.es_aporte
+        AND DATE_DIFF(m.FECHA_TRANSACCION, a.fecha_apertura, DAY) BETWEEN 0 AND p.window_days,
+        1, 0
+      )
+    ) AS aportes_en_ventana
+  FROM movs_con_flag_aporte m
+  JOIN apertura_por_titulo a USING (NUMERO_TITULO)
+  CROSS JOIN param p
+  GROUP BY 1,2,3
+),
+
+-- 6) Títulos con alta frecuencia (>= 2 aportes en la ventana)
+titulos_alta_freq AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    NUMERO_TITULO,
+    aportes_en_ventana
+  FROM aportes_post_apertura
+  CROSS JOIN param p
+  WHERE aportes_en_ventana >= p.min_aportes_window
+),
+
+-- 7) Agregados por cliente
+conteo_alta_freq_cliente AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    COUNT(DISTINCT NUMERO_TITULO) AS titulos_alta_frecuencia
+  FROM titulos_alta_freq
+  GROUP BY 1,2
+),
+aportes_stats_cliente AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    MAX(aportes_en_ventana) AS aportes_ventana_max
+  FROM aportes_post_apertura
+  GROUP BY 1,2
+),
+compania_por_cliente AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    MIN(CODIGO_COMPANIA) AS CODIGO_COMPANIA  -- si hay varias, toma la mínima
+  FROM base
+  GROUP BY 1,2
+),
+apertura_cliente AS (
+  SELECT
+    b.KEY_ID_TOMADOR,
+    b.TIPO_DOCUMENTO,
+    MIN(a.fecha_apertura) AS fecha_apertura_primer_titulo
+  FROM apertura_por_titulo a
+  JOIN base b USING (NUMERO_TITULO)
+  GROUP BY 1,2
+),
+ult_mov_cliente AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    MAX(FECHA_TRANSACCION) AS fecha_ultimo_mov
+  FROM base
+  GROUP BY 1,2
+),
+
+-- 8) (Nuevo) Muestra de títulos sin subquery correlacionada
+--     8.1) Títulos con aportes + su primera fecha (por cliente)
+titulos_aporte_cliente AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    NUMERO_TITULO,
+    MIN(FECHA_TRANSACCION) AS primera_fecha_titulo
+  FROM movs_con_flag_aporte
+  WHERE es_aporte
+  GROUP BY 1,2,3
+),
+--     8.2) Enumerar títulos por cliente para cortar a 5
+titulos_muestra_ranked AS (
+  SELECT
+    t.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY t.KEY_ID_TOMADOR, t.TIPO_DOCUMENTO
+      ORDER BY t.primera_fecha_titulo, t.NUMERO_TITULO
+    ) AS rn
+  FROM titulos_aporte_cliente t
+),
+--     8.3) Concatenar hasta 5 títulos por cliente
+titulos_muestra AS (
+  SELECT
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO,
+    STRING_AGG(CAST(NUMERO_TITULO AS STRING), ', ' ORDER BY primera_fecha_titulo, NUMERO_TITULO) AS titulos_muestra
+  FROM titulos_muestra_ranked
+  WHERE rn <= 5
+  GROUP BY 1,2
+),
+
+-- 9) Resultado: clientes que cumplen ambos criterios
+resultado AS (
+  SELECT
+    c.CODIGO_COMPANIA,
+    p.TIPO_DOCUMENTO,
+    p.KEY_ID_TOMADOR,
+    p.titulos_aporte_distintos,                                 -- >= 3
+    COALESCE(af.titulos_alta_frecuencia, 0) AS titulos_alta_frecuencia, -- >= 1 título con alta frecuencia
+    asf.aportes_ventana_max,
+    ac.fecha_apertura_primer_titulo,
+    um.fecha_ultimo_mov,
+    COALESCE(tm.titulos_muestra, '') AS titulos_muestra,        -- muestra (hasta 5)
+    -- Parámetros aplicados
+    pr.min_titulos_aporte   AS umbral_min_titulos_aporte,
+    pr.window_days          AS umbral_window_days,
+    pr.min_aportes_window   AS umbral_min_aportes_window
+  FROM aportes_distintos_titulos p
+  JOIN compania_por_cliente c
+    ON c.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND c.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  LEFT JOIN conteo_alta_freq_cliente af
+    ON af.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND af.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  LEFT JOIN aportes_stats_cliente asf
+    ON asf.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND asf.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  LEFT JOIN apertura_cliente ac
+    ON ac.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND ac.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  LEFT JOIN ult_mov_cliente um
+    ON um.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND um.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  LEFT JOIN titulos_muestra tm
+    ON tm.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR AND tm.TIPO_DOCUMENTO = p.TIPO_DOCUMENTO
+  CROSS JOIN param pr
+  WHERE p.titulos_aporte_distintos >= pr.min_titulos_aporte     -- > 2 títulos con aportes
+    AND COALESCE(af.titulos_alta_frecuencia, 0) >= 1            -- al menos 1 título con alta frecuencia
+)
+
+-- 10) Proyección final (con marcas de alerta)
+SELECT
+  r.CODIGO_COMPANIA,
+  r.TIPO_DOCUMENTO,
+  r.KEY_ID_TOMADOR,
+  r.titulos_aporte_distintos,
+  r.titulos_alta_frecuencia,
+  r.aportes_ventana_max,
+  r.fecha_apertura_primer_titulo,
+  r.fecha_ultimo_mov,
+  r.titulos_muestra,
+  r.umbral_min_titulos_aporte,
+  r.umbral_window_days,
+  r.umbral_min_aportes_window,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE()                       AS FECHA_ALERTA
+FROM resultado r
+;
