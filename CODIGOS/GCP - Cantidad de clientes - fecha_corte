@@ -1,0 +1,74 @@
+-- ============================================================
+-- Conteo de personas por rol: solo tomadores, solo asegurados,
+-- y quienes son ambos (tomadores y asegurados) en la misma fecha_corte.
+-- Fecha de corte: 2025-08-01
+-- Vigentes: FECHA_FIN_POLIZA >= fecha_corte
+-- ============================================================
+
+-- 1) Sets normalizados por rol
+WITH tomadores AS (
+  SELECT DISTINCT
+    UPPER(TRIM(TIPO_DOCUMENTO_TOMADOR)) AS tipo_doc,
+    TRIM(KEY_ID_TOMADOR)                AS key_id
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes`
+  WHERE fecha_corte = '2025-08-01'
+    AND DATE(FECHA_FIN_POLIZA) >= DATE(fecha_corte)
+    AND TIPO_DOCUMENTO_TOMADOR IS NOT NULL
+    AND KEY_ID_TOMADOR IS NOT NULL
+),
+asegurados AS (
+  SELECT DISTINCT
+    UPPER(TRIM(TIPO_DOCUMENTO_ASEGURADO)) AS tipo_doc,
+    TRIM(KEY_ID_ASEGURADO)                AS key_id
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes`
+  WHERE fecha_corte = '2025-08-01'
+    AND DATE(FECHA_FIN_POLIZA) >= DATE(fecha_corte)
+    AND TIPO_DOCUMENTO_ASEGURADO IS NOT NULL
+    AND KEY_ID_ASEGURADO IS NOT NULL
+),
+
+-- 2) Rol por persona (puede aparecer en ambos)
+roles AS (
+  SELECT tipo_doc, key_id, 'TOM' AS rol FROM tomadores
+  UNION ALL
+  SELECT tipo_doc, key_id, 'ASE' AS rol FROM asegurados
+),
+
+-- 3) Pivot de flags por persona
+personas AS (
+  SELECT
+    tipo_doc,
+    key_id,
+    COUNTIF(rol = 'TOM') > 0 AS es_tomador,
+    COUNTIF(rol = 'ASE') > 0 AS es_asegurado
+  FROM roles
+  GROUP BY tipo_doc, key_id
+)
+
+-- 4) Conteo final por categorías
+SELECT
+  COUNTIF(es_tomador AND NOT es_asegurado) AS solo_tomadores,
+  COUNTIF(es_asegurado AND NOT es_tomador) AS solo_asegurados,
+  COUNTIF(es_tomador AND es_asegurado)     AS tomadores_y_asegurados,
+  COUNT(*)                                  AS total_personas_unicas
+FROM personas;
+
+
+
+
+
+
+---------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+
+select COUNT(DISTINCT concat(tipo_doc, key_id))
+from
+(select distinct TIPO_DOCUMENTO_TOMADOR as tipo_doc, KEY_ID_TOMADOR as key_id
+from  sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes 
+where fecha_corte='2025-06-01'
+union distinct 
+select distinct TIPO_DOCUMENTO_ASEGURADO as tipo_doc, KEY_ID_ASEGURADO as key_id
+from  sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes 
+where fecha_corte='2025-06-01')base
+
