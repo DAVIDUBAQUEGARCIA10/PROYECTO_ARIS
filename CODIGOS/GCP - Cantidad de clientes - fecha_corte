@@ -72,3 +72,95 @@ select distinct TIPO_DOCUMENTO_ASEGURADO as tipo_doc, KEY_ID_ASEGURADO as key_id
 from  sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes 
 where fecha_corte='2025-06-01')base
 
+
+
+--------------------------------------
+
+---------------------------------
+
+
+----------------
+
+
+-- ============================================================
+-- Conteo de personas por rol (solo TOM / solo ASE / TOM&ASE)
+-- discriminado por compañía y tipo de persona (PN / PJ).
+--
+-- Regla de tipo de persona:
+--   - Si TIPO_DOCUMENTO ∈ { 'NT', 'NE' }  => Persona Jurídica (PJ)
+--   - En cualquier otro caso              => Persona Natural (PN)
+--
+-- Fecha de corte: 2025-08-01
+-- Vigentes: FECHA_FIN_POLIZA >= fecha_corte
+-- ============================================================
+
+-- 1) Sets normalizados por rol y compañía, con tipo_persona derivado
+WITH tomadores AS (
+  SELECT DISTINCT
+    CODIGO_COMPANIA,
+    UPPER(TRIM(TIPO_DOCUMENTO_TOMADOR)) AS tipo_doc,
+    TRIM(KEY_ID_TOMADOR)                AS key_id,
+    -- Regla PN/PJ basada en TIPO_DOCUMENTO_TOMADOR
+    CASE
+      WHEN UPPER(TRIM(TIPO_DOCUMENTO_TOMADOR)) IN ('NT','NE') THEN 'PJ'
+      ELSE 'PN'
+    END AS tipo_persona
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes`
+  WHERE fecha_corte = '2025-08-01'
+    AND DATE(FECHA_FIN_POLIZA) >= DATE(fecha_corte)
+    AND TIPO_DOCUMENTO_TOMADOR IS NOT NULL
+    AND KEY_ID_TOMADOR IS NOT NULL
+),
+asegurados AS (
+  SELECT DISTINCT
+    CODIGO_COMPANIA,
+    UPPER(TRIM(TIPO_DOCUMENTO_ASEGURADO)) AS tipo_doc,
+    TRIM(KEY_ID_ASEGURADO)                AS key_id,
+    -- Misma regla aplicada para asegurados para clasificar casos "solo ASE"
+    CASE
+      WHEN UPPER(TRIM(TIPO_DOCUMENTO_ASEGURADO)) IN ('NT','NE') THEN 'PJ'
+      ELSE 'PN'
+    END AS tipo_persona
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes`
+  WHERE fecha_corte = '2025-08-01'
+    AND DATE(FECHA_FIN_POLIZA) >= DATE(fecha_corte)
+    AND TIPO_DOCUMENTO_ASEGURADO IS NOT NULL
+    AND KEY_ID_ASEGURADO IS NOT NULL
+),
+
+-- 2) Rol por persona y compañía (consolidamos TOM/ASE)
+roles AS (
+  SELECT CODIGO_COMPANIA, tipo_doc, key_id, tipo_persona, 'TOM' AS rol FROM tomadores
+  UNION ALL
+  SELECT CODIGO_COMPANIA, tipo_doc, key_id, tipo_persona, 'ASE' AS rol FROM asegurados
+),
+
+-- 3) Consolidación por persona: flags de rol y tipo_persona final
+--    - Si aparece como PJ en algún rol => PJ; en caso contrario => PN
+personas AS (
+  SELECT
+    CODIGO_COMPANIA,
+    -- Unificamos por identidad; tipo_doc queda como referencia del último, pero no afecta la agregación
+    ANY_VALUE(tipo_doc) AS tipo_doc_ref,
+    key_id,
+    COUNTIF(rol = 'TOM') > 0 AS es_tomador,
+    COUNTIF(rol = 'ASE') > 0 AS es_asegurado,
+    CASE
+      WHEN COUNTIF(tipo_persona = 'PJ') > 0 THEN 'PJ'
+      ELSE 'PN'
+    END AS tipo_persona
+  FROM roles
+  GROUP BY CODIGO_COMPANIA, key_id
+)
+
+-- 4) Conteo final por categorías, compañía y tipo_persona
+SELECT
+  CODIGO_COMPANIA,
+  tipo_persona,
+  COUNTIF(es_tomador AND NOT es_asegurado) AS solo_tomadores,
+  COUNTIF(es_asegurado AND NOT es_tomador) AS solo_asegurados,
+  COUNTIF(es_tomador AND es_asegurado)     AS tomadores_y_asegurados,
+  COUNT(*)                                 AS total_personas_unicas
+FROM personas
+GROUP BY CODIGO_COMPANIA, tipo_persona
+ORDER BY CODIGO_COMPANIA, tipo_persona;
