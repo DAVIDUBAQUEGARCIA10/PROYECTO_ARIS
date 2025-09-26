@@ -1,0 +1,130 @@
+------Proveedores que aparezcan en listas restrictivas y vinculantes cuyo códigos es de riesgo alto o especial (1, 2, 3, 5, 9, 24, 25, 26, 27, 23, 20), 
+------con órdenes de pagos aprobadas (Desde el 01 de enero del 2024).Incluidos PEPS nacionales o extranjeros
+
+
+
+
+-- =========================================================================================
+-- Proveedores cruzados con Terceros Restringidos (última restricción activa por KEY_ID)
+-- Fuentes:
+--   - sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_proveedores_serv_inver_cupa   (proveedores)
+--   - sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes                            (mapa a KEY_ID)
+--   - sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos                     (restricciones)
+--
+-- Resultado:
+--   Una fila por proveedor x (KEY_ID, CODIGO_RESTRICCION) con la restricción ACTIVA más reciente.
+--   Si quieres ver TODOS (incluyendo sin restricción), comenta el WHERE final (ES_RESTRINGIDO_ACTIVO = TRUE).
+-- =========================================================================================
+
+WITH
+-- 1) Proveedores: normaliza tipos/ids y campos de texto
+proveedores AS (
+  SELECT
+    SAFE_CAST(p.COMPA__IA AS INT64)                                       AS CODIGO_COMPANIA,
+    DATE(p.FECHA)                                                         AS FECHA,
+    UPPER(TRIM(CAST(p.TIPO_ID AS STRING)))                                AS TIPO_DOCUMENTO,
+    REGEXP_REPLACE(TRIM(CAST(p.ID AS STRING)), r'[^0-9A-Za-z]', '')       AS NUMERO_DOCUMENTO,
+    TRIM(CAST(p.NOMBRE AS STRING))                                        AS NOMBRE_PROVEEDOR,
+    SAFE_CAST(p.VALOR AS NUMERIC)                                         AS VALOR,
+    TRIM(CAST(p.DESCRIPCION AS STRING))                                   AS DESCRIPCION,
+    TRIM(CAST(p.FUENTE AS STRING))                                        AS FUENTE
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_proveedores_serv_inver_cupa` p
+),
+
+-- 2) Mapa a KEY_ID cifrado
+mapa_keyid AS (
+  SELECT DISTINCT
+    UPPER(TRIM(CAST(TIPO_DOCUMENTO AS STRING)))                            AS TIPO_DOCUMENTO,
+    REGEXP_REPLACE(TRIM(CAST(NUMERO_DOCUMENTO AS STRING)), r'[^0-9A-Za-z]', '') AS NUMERO_DOCUMENTO,
+    TRIM(CAST(KEY_ID AS STRING))                                           AS KEY_ID
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+  WHERE KEY_ID IS NOT NULL
+),
+
+-- 3) Restricciones: normaliza y selecciona la última ACTIVA por (KEY_ID, CODIGO_RESTRICCION)
+restricciones_norm AS (
+  SELECT
+    UPPER(TRIM(CAST(r.TIPO_DOCUMENTO_TERCERO AS STRING)))                 AS TIPO_DOCUMENTO_TERCERO,
+    TRIM(CAST(r.KEY_ID AS STRING))                                        AS KEY_ID,
+    TRIM(CAST(r.CODIGO_RESTRICCION AS STRING))                            AS CODIGO_RESTRICCION,
+    TRIM(CAST(r.DESCRIPCION AS STRING))                                   AS DESCRIPCION_RESTRICCION,
+    SAFE_CAST(r.FECHA_BAJA AS DATE)                                       AS FECHA_BAJA,
+    SAFE_CAST(r.FECHA_CREACION AS DATETIME)                               AS FECHA_CREACION,
+    SAFE_CAST(r.FECHA_MODIFICACION AS DATETIME)                           AS FECHA_MODIFICACION,
+    SAFE_CAST(r.VALOR_RIESGO AS NUMERIC)                                  AS VALOR_RIESGO,
+    UPPER(TRIM(CAST(r.NIVEL_ALERTA AS STRING)))                           AS NIVEL_ALERTA,
+    UPPER(TRIM(CAST(r.MARCA_ACTIVO AS STRING)))                           AS MARCA_ACTIVO_TXT,
+    -- Normaliza marca activo a booleano
+    CASE
+      WHEN UPPER(TRIM(CAST(r.MARCA_ACTIVO AS STRING))) IN ('S','SI','Y','YES','1','ACTIVO','TRUE') THEN TRUE
+      ELSE FALSE
+    END AS ES_ACTIVO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+),
+-- Si hay múltiples filas por KEY_ID + CODIGO_RESTRICCION, priorizamos la más reciente (modificación, luego creación)
+restricciones_ultimas AS (
+  SELECT *
+  FROM (
+    SELECT
+      rn.*,
+      ROW_NUMBER() OVER (
+        PARTITION BY rn.KEY_ID, rn.CODIGO_RESTRICCION
+        ORDER BY rn.ES_ACTIVO DESC, rn.FECHA_MODIFICACION DESC NULLS LAST, rn.FECHA_CREACION DESC NULLS LAST
+      ) AS rn_ord
+    FROM restricciones_norm rn
+  )
+  WHERE rn_ord = 1
+),
+
+-- 4) Une proveedores + KEY_ID + restricción (LEFT JOIN para no perder proveedores)
+proveedores_con_restriccion AS (
+  SELECT
+    pr.CODIGO_COMPANIA,
+    pr.FECHA,
+    pr.TIPO_DOCUMENTO,
+    pr.NUMERO_DOCUMENTO,
+    mk.KEY_ID,                                  -- ID cifrado
+    pr.NOMBRE_PROVEEDOR,
+    pr.VALOR,
+    pr.DESCRIPCION,
+    pr.FUENTE,
+
+    -- Datos de restricción (si aplica)
+    ru.CODIGO_RESTRICCION,
+    ru.DESCRIPCION_RESTRICCION,
+    ru.NIVEL_ALERTA,
+    ru.VALOR_RIESGO,
+    ru.FECHA_CREACION,
+    ru.FECHA_MODIFICACION,
+    ru.FECHA_BAJA,
+    ru.MARCA_ACTIVO_TXT,
+    ru.ES_ACTIVO,
+
+    -- Flag fácil de consumir en ARIS
+    CASE WHEN ru.KEY_ID IS NOT NULL AND ru.ES_ACTIVO THEN TRUE ELSE FALSE END AS ES_RESTRINGIDO_ACTIVO
+  FROM proveedores pr
+  LEFT JOIN mapa_keyid mk
+    ON pr.TIPO_DOCUMENTO   = mk.TIPO_DOCUMENTO
+   AND pr.NUMERO_DOCUMENTO = mk.NUMERO_DOCUMENTO
+  LEFT JOIN restricciones_ultimas ru
+    ON mk.KEY_ID = ru.KEY_ID
+)
+
+-- 5) Salida: por defecto, solo los que SÍ están restringidos activos.
+SELECT
+  CODIGO_COMPANIA,
+  FECHA,
+  TIPO_DOCUMENTO,
+  NUMERO_DOCUMENTO,
+  KEY_ID,
+  NOMBRE_PROVEEDOR,
+  VALOR,
+  DESCRIPCION,
+  FUENTE,
+
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION,
+
+FROM proveedores_con_restriccion
+where CODIGO_RESTRICCION in ('1', '2', '3', '5', '9', '24', '25', '26', '27', '23', '20')
+ORDER BY FECHA DESC, VALOR DESC;
