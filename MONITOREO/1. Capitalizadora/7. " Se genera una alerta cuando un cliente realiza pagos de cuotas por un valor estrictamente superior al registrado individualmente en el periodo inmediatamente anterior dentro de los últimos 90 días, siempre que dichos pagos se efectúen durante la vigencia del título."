@@ -1,26 +1,12 @@
--- =======================================================================
--- CAP_0069_VISOR_TRANS
--- Regla: El pago actual es estrictamente mayor a 2× el pago inmediatamente
---        anterior dentro de los últimos 45 días (mes y medio).
---
--- Tablas/joins:
---   - Movimientos: sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora (m)
---   - Clientes por título: sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora (c)
---   - Exposición pública: t_clientes_naturales ∪ t_clientes_juridicos (t2)
---
--- Notas de “vigencia”:
---   - Si existen FECHA_CANCELACION / FECHA_BLOQUEO en movimientos, se usan para
---     asegurar que el pago no sea posterior a dichas fechas.
---   - Si no existieran en el esquema, elimina los checks marcados como [OPCIONAL].
--- =======================================================================
 
---CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS` AS
+
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0012_VISOR_TRANS` AS
 
 -- 0) Parámetros de la regla
 WITH param AS (
   SELECT
     90   AS lookback_dias,  -- ventana "mes y medio"
-    1  AS factor          -- "estrictamente mayor al doble"
+    2  AS factor          -- "estrictamente mayor al doble"
 ),
 
 -- 1) Base con tus joins y filtros de negocio
@@ -204,5 +190,241 @@ WHERE
   AND VALOR_TRANSACCION > p.factor * VALOR_PAGO_ANTERIOR
 
   -- (d) [OPCIONAL] En vigencia (si existen los campos)
-  AND DENTRO_VIGENCIA = TRUE
-;
+  AND DENTRO_VIGENCIA = TRUE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------------------------
+----------------------------------------------------
+
+
+
+-- =======================================================================
+-- INSERT a CAP_0012_VISOR_TRANS
+-- Regla ARIS 0012:
+--   Dispara cuando el pago actual es estrictamente > 2× del pago
+--   inmediatamente anterior dentro de los últimos 90 días.
+--
+-- Nota:
+--   - Se inserta sólo la primera fila por secuencia (rn = 1).
+--   - Se evita insertar registros que ya estén en CAP_0013_VISOR_TRANS.
+-- =======================================================================
+
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0012_VISOR_TRANS` (
+  FECHA_TRANSACCION,
+  NUMERO_TITULO,
+  VALOR_TRANSACCION,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  CODIGO_AGENCIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  PUBLICAMENTE_EXPUESTA,
+  FECHA_PAGO_ANTERIOR,
+  DIAS_DESDE_ANTERIOR,
+  VALOR_PAGO_ANTERIOR,
+  DIFERENCIA_ABS_VS_ANTERIOR,
+  RATIO_VS_ANTERIOR,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  MOTIVO_ALERTA
+)
+WITH param AS (
+  SELECT
+    90   AS lookback_dias,  -- ventana de comparación: 90 días
+    2.0  AS factor          -- estrictamente mayor al doble
+),
+
+-- 1) Base con tus joins y filtros
+base AS (
+  SELECT
+    DATE(m.FECHA_TRANSACCION)              AS FECHA_TRANSACCION,
+    m.NUMERO_TITULO,
+    m.VALOR_TRANSACCION,
+    m.DESCRIPCION_TIPO_MOVIMIENTO,
+    m.CODIGO_AGENCIA,
+    m.CODIGO_COMPANIA,
+    m.NUMERO_TRANSACCION,
+    c.KEY_ID_BENEFICIARIO                  AS KEY_ID,
+    c.TIPO_DOCUMENTO,
+    t2.PUBLICAMENTE_EXPUESTA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE())   AS FECHA_ALERTA_MES,
+    CURRENT_DATE()                         AS FECHA_ALERTA
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` m
+  JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+    ON m.NUMERO_TITULO = c.TITULO
+  LEFT JOIN (
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    UNION ALL
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+  ) AS t2
+    ON c.KEY_ID_BENEFICIARIO = t2.KEY_ID
+   AND c.TIPO_DOCUMENTO      = t2.TIPO_DOCUMENTO
+  WHERE
+    m.DESCRIPCION_TIPO_MOVIMIENTO IN (
+      'N.D. REVERSION SALDO A FAVOR',
+      'REC.REINTE.UNID CJAS.BOLIVAR',
+      'SALDO FAVOR CLIENTE ANULACION SORTEO',
+      'APLIC. RECAUDOS DABUENAVIDA DEPTO TITULO',
+      'REC.CUOT.INIC.TRANSF.DAVIV',
+      'REC.REINTE.UNID CJAS.DAVIVIENDA',
+      'TRASL APLI UNID DE SALD FAVOR',
+      'REC.SOBRANTE EFECT.CAJEROS',
+      'CAUSAC VTO INT DEPOSITO',
+      'N.D. REVERS CTA ADEL PER ACTUAL',
+      'REC.CUOT.INIC.DATAFONOS',
+      'TRASL REVERS CUOT INI APLI',
+      'CORREC. INCONS. REINTEGRO',
+      'APLIC CTAS INIC DE SALD FAVOR',
+      'CORREC. INCONS. CUOTA INICIAL',
+      'CORREC. INCONS. CUOTA POSTER.',
+      'REC. CTAS POST TRANSF DAVIV',
+      'ANULACION DEVOLUCION GASTOS SORTEO',
+      'SALDO FAVOR CLIENTE NOTA DEBITO',
+      'REC. CTAS INIC TRASL AUTOMA',
+      'REC.CUOT.INIC.DEB.CONVENIOS',
+      'REC.CUOT.POST.CJAS.BOLIVAR',
+      'TRASL REVERS POST APLIC CONVEN',
+      'TRASL REVERS POST ADELA CONVEN',
+      'APLIC CTAS POST DE SALD FAVOR',
+      'REC.INIC.BOTON DE PAGOS',
+      'ANULACION RETIRO PARCIAL',
+      'TRASL AUTOM CTAS AL V.N.A.',
+      'REC.CUOT.POST.DEB.AUTOMATICO',
+      'TRASL AUTOM REVERS SALDO',
+      'APLICAC UNID DEPTO TITULOS',
+      'REC.CUOT.POST.CJAS DAVIVIENDA',
+      'TRASLADO REVERS CUOT ADEL AUTOM',
+      'APLICACION CTAS POST DEPTO TITULOS',
+      'REC.CUOT.INIC.DEB.CORPORATIVO',
+      'RECAUDO CUOTAS EXTRAORDINARIAS',
+      'TRASL REVERS CUOT POS APLI',
+      'RECAUDO CUOTAS TELEFONO ROJO',
+      'ANULAC.PAG.SALDO FAV.CLIENTE',
+      'TRASL REVERS CUOT INI ADEL',
+      'REVERSION REINTEGRO DEPTO TITULOS',
+      'REVER CUOTA ADEL A SALDO FAV',
+      'RECAUDO BOTON DE PAGOS',
+      'TRASL APLIC  SALDO A FAVOR',
+      'TRASLADO REVERS SALDO FAVOR',
+      'REC.CUOT.POST.LIBRANZA',
+      'N.D. RETIRO UNIDADES',
+      'DEVOLUCION GASTOS SORTEO',
+      'INCONSISTENCIAS CUOTAS POST CICS',
+      'N.D. REVERS CTA POSTERIOR',
+      'REC. CUOTAS POSTERIORES GANALEASING',
+      'TRASL APLIC  CUOT POST',
+      'TRASL APLIC  CUOT INIC',
+      'APLICACION CTAS INIC DEPTO TITULOS',
+      'APLIC. CUOTA EXTRAORD. DABUENAVIDA TITUL',
+      'TRASL REVERS CUOT POS ADEL',
+      'TRASLADO REVERS INT SALDO',
+      'N.D. REVERS CTA INICIAL',
+      'REC.CUOT.INIC.CJAS.BOLIVAR',
+      'TRASL AUTOM REVERS CTAS ADEL',
+      'REC. CUOTAS INICIALES GANALEASING',
+      'REC INICIALES ESTRAORD',
+      'ANULACION VENCIMIENTOS',
+      'SALDO FAVOR POR ANUL RETIRO',
+      'TRASL REVERS INIC APLIC CONVEN'
+    )
+    AND DATE(m.FECHA_TRANSACCION) >= DATE '2025-01-01'
+    AND m.SIGNO_MOVIMIENTO = '+'
+),
+
+-- 2) Pago anterior inmediato
+con_anterior AS (
+  SELECT
+    b.*,
+    LAG(b.VALOR_TRANSACCION) OVER (
+      PARTITION BY b.CODIGO_COMPANIA, b.KEY_ID, b.NUMERO_TITULO
+      ORDER BY b.FECHA_TRANSACCION, b.NUMERO_TRANSACCION
+    ) AS VALOR_PAGO_ANTERIOR,
+    LAG(b.FECHA_TRANSACCION) OVER (
+      PARTITION BY b.CODIGO_COMPANIA, b.KEY_ID, b.NUMERO_TITULO
+      ORDER BY b.FECHA_TRANSACCION, b.NUMERO_TRANSACCION
+    ) AS FECHA_PAGO_ANTERIOR
+  FROM base b
+),
+
+-- 3) Métricas + días desde anterior
+marcada AS (
+  SELECT
+    ca.*,
+    CASE
+      WHEN ca.FECHA_PAGO_ANTERIOR IS NOT NULL
+      THEN DATE_DIFF(ca.FECHA_TRANSACCION, ca.FECHA_PAGO_ANTERIOR, DAY)
+      ELSE NULL
+    END AS DIAS_DESDE_ANTERIOR,
+    (ca.VALOR_TRANSACCION - ca.VALOR_PAGO_ANTERIOR) AS DIFERENCIA_ABS_VS_ANTERIOR,
+    SAFE_DIVIDE(ca.VALOR_TRANSACCION, NULLIF(ca.VALOR_PAGO_ANTERIOR, 0)) AS RATIO_VS_ANTERIOR
+  FROM con_anterior ca
+),
+
+-- 4) Deduplicación (rn = 1)
+u AS (
+  SELECT
+    m.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY m.CODIGO_COMPANIA, m.KEY_ID, m.NUMERO_TITULO, m.FECHA_TRANSACCION
+      ORDER BY m.NUMERO_TRANSACCION DESC
+    ) AS rn
+  FROM marcada m
+  CROSS JOIN param p
+  WHERE
+    m.FECHA_PAGO_ANTERIOR IS NOT NULL
+    AND m.DIAS_DESDE_ANTERIOR <= p.lookback_dias
+    AND m.VALOR_TRANSACCION > p.factor * m.VALOR_PAGO_ANTERIOR
+)
+
+-- 5) Selección final con anti-dupe contra CAP_0013
+SELECT
+  u.FECHA_TRANSACCION,
+  u.NUMERO_TITULO,
+  u.VALOR_TRANSACCION,
+  u.DESCRIPCION_TIPO_MOVIMIENTO,
+  u.CODIGO_AGENCIA,
+  u.KEY_ID,
+  u.TIPO_DOCUMENTO,
+  u.PUBLICAMENTE_EXPUESTA,
+  u.FECHA_PAGO_ANTERIOR,
+  u.DIAS_DESDE_ANTERIOR,
+  u.VALOR_PAGO_ANTERIOR,
+  u.DIFERENCIA_ABS_VS_ANTERIOR,
+  u.RATIO_VS_ANTERIOR,
+  u.FECHA_ALERTA_MES,
+  u.FECHA_ALERTA,
+  'PAGO_ACTUAL_MAYOR_A_DOBLE_DEL_ANTERIOR_EN_90D' AS MOTIVO_ALERTA
+FROM u
+WHERE u.rn = 1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0012_VISOR_TRANS` t
+    WHERE t.KEY_ID            = u.KEY_ID
+      AND t.FECHA_ALERTA_MES  = u.FECHA_ALERTA_MES
+      AND t.FECHA_TRANSACCION = u.FECHA_TRANSACCION
+  );
+
+
+
+
+
