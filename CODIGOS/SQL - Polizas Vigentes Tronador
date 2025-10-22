@@ -1,4 +1,4 @@
-SELECT * FROM (
+e SELECT * FROM (
     SELECT DISTINCT COD_CIA,tdoc_tercero  ,nro_documto,NUM_POL1, cod_ramo,fecha_Emi, fecha_emi_end, FECHA_VENC_POL,NUM_SECU_POL,COD_PROD, MCA_ANU_POL,ROWNUM AS rn
     FROM A2000030 
     WHERE  FECHA_VENC_POL >= '20/09/24'
