@@ -82,17 +82,8 @@ WHERE
 
 
 ------------------------------------
-Cuantificacion de poblamiento en core de beneficiario final 
+Cuantificacion de poblamiento en core de beneficiario final - y con usuario  
 
-
-
-/* ================================================================
-   TABLA DINÁMICA FINAL: Clasificación × USUARIO_CREACION
-   Reglas:
-   - Mantiene USRDAVIVIENDA, USRINFORMACOLOM, USRSARLAFT
-   - Agrupa nulos o vacíos como OTRO
-   - Solo deja 'N/A' cuando la clasificación es 'SIN ACCIONISTAS'
-   ================================================================ */
 
 WITH
 MAIN AS (
@@ -215,3 +206,104 @@ ORDER BY
     ELSE 5
   END,
   cu.USUARIO_CREACION;
+
+
+
+
+
+-----
+
+
+/* ================================================================
+   RESUMEN: ¿Cuántos NIT únicos caen en cada CLASIFICACION_PARTICIPACION?
+   - Se limita al universo filtrado en MAIN (respeta :P_NIT si lo envías).
+   - Incluye % sobre el total.
+   ================================================================ */
+
+WITH
+/* Reusa EXACTAMENTE tus CTE previas... */
+MAIN AS (
+  SELECT DISTINCT exrf_num_id_cliente AS NIT
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_cod_tipo_persona = 'J'
+    AND exrf_cod_tip_doc IS NOT NULL
+    AND exrf_nombre_cli_razon_social IS NOT NULL
+    AND (:P_NIT IS NULL OR exrf_num_id_cliente = :P_NIT)
+    AND exrf_cod_cia = 2
+),
+CONTACTO_ULTIMO AS (
+  SELECT DISTINCT *
+  FROM (
+    SELECT DISTINCT
+      c."JUR_SECUENCIA",
+      c."TIPDOC_CODIGO",
+      c."NUMERO_DOCUMENTO",
+      c."NOMBRE_CONTACTO",
+      c."CARGO_CONTACTO",
+      c."USUARIO_CREACION",
+      c."FECHA_CREACION",
+      c."USUARIO_MODIFICACION",
+      c."FECHA_MODIFICACION",
+      c."PORCENTAJE_PARTICIPACION",
+      c."PUBLICAMENTE_EXPUESTA",
+      c."COTIZA_BOLSA",
+      c."MARCA_ACTIVO",
+      ROW_NUMBER() OVER (
+        PARTITION BY c."JUR_SECUENCIA", c."TIPDOC_CODIGO", c."NUMERO_DOCUMENTO"
+        ORDER BY c."SECUENCIA" DESC
+      ) AS rn
+    FROM contactos c
+    WHERE c."MARCA_ACTIVO" = 'A'
+      AND c."PORCENTAJE_PARTICIPACION" IS NOT NULL
+  )
+  WHERE rn = 1
+),
+SUM_PARTICIPACION AS (
+  SELECT
+      j.NUMERO_DOCUMENTO,
+      SUM(c."PORCENTAJE_PARTICIPACION")     AS SUMA_RAW,
+      COUNT(c."PORCENTAJE_PARTICIPACION")   AS CNT_CON_PCT,
+      CASE
+          WHEN COUNT(c."PORCENTAJE_PARTICIPACION") = 0
+               THEN 'SIN ACCIONISTAS'
+          WHEN SUM(c."PORCENTAJE_PARTICIPACION") < 80
+               THEN 'Menor a 80%'
+          WHEN SUM(c."PORCENTAJE_PARTICIPACION") BETWEEN 80 AND 100
+               THEN 'Entre 80% y 100%'
+          WHEN SUM(c."PORCENTAJE_PARTICIPACION") > 100
+               THEN 'Mayor a 100%'
+          ELSE 'SIN ACCIONISTAS'
+      END AS CLASIFICACION_PARTICIPACION
+  FROM juridicos j
+  LEFT JOIN CONTACTO_ULTIMO c
+    ON c."JUR_SECUENCIA" = j."SECUENCIA"
+  GROUP BY j.NUMERO_DOCUMENTO
+),
+/* ---- Conteo de NIT únicos por categoría (acotado a MAIN) ---- */
+CLASIF_NIT AS (
+  SELECT
+    s.CLASIFICACION_PARTICIPACION,
+    COUNT(DISTINCT s.NUMERO_DOCUMENTO) AS NITS_UNICOS
+  FROM SUM_PARTICIPACION s
+  JOIN MAIN m
+    ON m.NIT = s.NUMERO_DOCUMENTO
+  GROUP BY s.CLASIFICACION_PARTICIPACION
+),
+TOTAL AS (
+  SELECT SUM(NITS_UNICOS) AS TOTAL_NITS FROM CLASIF_NIT
+)
+SELECT
+  c.CLASIFICACION_PARTICIPACION,
+  c.NITS_UNICOS,
+  ROUND(100 * c.NITS_UNICOS / NULLIF(t.TOTAL_NITS, 0), 2) AS PORCENTAJE_SOBRE_TOTAL
+FROM CLASIF_NIT c
+CROSS JOIN TOTAL t
+ORDER BY
+  CASE c.CLASIFICACION_PARTICIPACION
+    WHEN 'SIN ACCIONISTAS'      THEN 1
+    WHEN 'Menor a 80%'          THEN 2
+    WHEN 'Entre 80% y 100%'     THEN 3
+    WHEN 'Mayor a 100%'         THEN 4
+    ELSE 5
+  END;
+
