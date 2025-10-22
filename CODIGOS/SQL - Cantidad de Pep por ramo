@@ -1,0 +1,75 @@
+/* =============================================================
+   OBJETIVO:
+   - Contar CLIENTES ÚNICOS por (COD_CIA, COD_RAMO)
+   - Un cliente puede contarse en varios ramos (1 vez por ramo),
+     pero NUNCA dos veces dentro del mismo ramo.
+   ESTRATEGIA:
+   - Join MAIN (maestro RF) x POLIZAS (vigentes)
+   - Deduplicar por (COD_CIA, COD_RAMO, CLIENTE) en CTE BASE_DISTINTOS
+   - Contar por (COD_CIA, COD_RAMO)
+   ============================================================= */
+
+WITH
+/* ------------------ 1) TABLA PRINCIPAL (RF) ------------------ */
+MAIN AS (
+  SELECT DISTINCT
+      exrf_nombre_cli_razon_social AS Nombres_Cliente_Razon_Social,
+      exrf_cod_tip_doc             AS Cod_Tipo_Doc,              -- llave 1
+      exrf_desc_tip_doc            AS Tipo_Doc,
+      exrf_num_id_cliente          AS Num_Identificacion_Cliente, -- llave 2
+      exrf_desc_pers_ppubrec       AS Politicamente_Expuesta, 
+      exrf_desc_replegal_pep       AS RepLegal_Politicamente_Expuesta,
+      exrf_desc_replegal_vinc_pep  AS RepLegal_Vinculo_Persona_Politicamente_Expuesta
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_cod_tip_doc IS NOT NULL
+    AND exrf_nombre_cli_razon_social IS NOT NULL 
+    AND exrf_desc_pers_ppubrec  = 'SI'
+),
+
+/* ------------------ 2) POLIZAS VIGENTES ------------------ */
+POLIZAS AS (
+  SELECT DISTINCT
+      tdoc_tercero,
+      nro_documto,
+      num_pol1,
+      num_secu_pol,
+      cod_ramo,
+      cod_prod,
+      fecha_venc_pol,
+      cod_cia,
+      mca_anu_pol
+  FROM A2000030
+  WHERE fecha_venc_pol >= NVL(:P_FECHA_CORTE, TO_DATE('21/10/2025','dd/mm/yyyy'))
+    AND num_pol1 IS NOT NULL
+    -- AND NVL(mca_anu_pol,'N') <> 'S'  -- <- descomenta si quieres excluir anuladas
+),
+
+/* -------- 3) BASE: Join granular de clientes x ramos x compañía -------- */
+BASE AS (
+  SELECT
+    p.cod_cia                   AS Cod_Cia_Poliza,
+    p.cod_ramo                  AS Cod_Ramo_Poliza,
+    m.Num_Identificacion_Cliente
+  FROM MAIN m
+  JOIN POLIZAS p
+    ON p.tdoc_tercero = m.Cod_Tipo_Doc
+   AND p.nro_documto  = m.Num_Identificacion_Cliente
+),
+
+/* -------- 4) DEDUP: un registro por (compañía, ramo, cliente) -------- */
+BASE_DISTINTOS AS (
+  SELECT DISTINCT
+    Cod_Cia_Poliza,
+    Cod_Ramo_Poliza,
+    Num_Identificacion_Cliente
+  FROM BASE
+)
+
+/* -------- 5) CONTEO FINAL: clientes únicos por (compañía, ramo) -------- */
+SELECT
+  Cod_Cia_Poliza,
+  Cod_Ramo_Poliza,
+  COUNT(*) AS CLIENTES_UNICOS   -- cada fila ya es (cia, ramo, cliente) único
+FROM BASE_DISTINTOS
+GROUP BY Cod_Cia_Poliza, Cod_Ramo_Poliza
+ORDER BY Cod_Cia_Poliza, Cod_Ramo_Poliza;
