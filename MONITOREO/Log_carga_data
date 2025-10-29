@@ -1,0 +1,308 @@
+-- Consulta: última fecha disponible por tabla (según columna de “fecha de corte” indicada)
+-- Notas:
+-- - Se usa DATE() para normalizar a tipo DATE cuando la columna sea DATE/DATETIME/TIMESTAMP.
+-- - Si alguna columna llega a ser STRING, ajusta el CAST (ver nota al final).
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.log_carga_data AS
+
+WITH data_max AS (
+
+  -- 1) CLIENTES FINANCIEROS
+  SELECT 'sb-sandbox-usuarios.sandbox_cumplimiento.CLIENTES_FINANCIEROS_UNIFICADO' AS nombre_tabla,
+         MAX(DATE(FECHA_CORTE)) AS ultima_fecha_datos
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CLIENTES_FINANCIEROS_UNIFICADO`
+
+  UNION ALL
+  -- 2) Terceros restringidos
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos',
+         MAX(DATE(FECHA_MODIFICACION))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+
+  UNION ALL
+  -- 3) Siniestros
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros',
+         MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+
+  UNION ALL
+  -- 4) Tomador/Asegurado/Beneficiarios vigentes
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes',
+         MAX(DATE(FECHA_CORTE))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes`
+
+  UNION ALL
+  -- 5) Pólizas, riesgos y endosos
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos',
+         MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+
+  UNION ALL
+  -- 6) Órdenes de pago/retiros vida
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_vida_retiros',
+         MAX(DATE(FECHA_ULT_MODIFICACION))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_vida_retiros`
+
+  UNION ALL
+  -- 7) Clientes naturales
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales',
+         MAX(DATE(FECHA_CREACION))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+
+  UNION ALL
+  -- 8) Clientes jurídicos
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos',
+         MAX(DATE(FECHA_CREACION))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+
+  UNION ALL
+  -- 9) Beneficiarios porcentaje
+  SELECT 'sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje',
+         MAX(DATE(FECHA_EMISION_ENDOSO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje`
+
+  UNION ALL
+  -- 10) Producción y recaudo diario
+  SELECT 'sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario',
+         MAX(DATE(FECHA_RECAUDO))
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+
+  UNION ALL
+  -- 11) Cancelaciones
+  SELECT 'sb-ecosistemaanalitico-lago.datamart.t_cancelaciones',
+         MAX(DATE(FECHA_CORTE))
+  FROM `sb-ecosistemaanalitico-lago.datamart.t_cancelaciones`
+
+  -- ===== CUMPLIMIENTO: SEG_xxxx =====
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0107_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0107_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0105_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0105_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0104_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0104_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103Z_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103Z_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0102B_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0102B_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101B_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101B_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0062_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0062_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0007_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0007_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0005_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0005_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0004_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0004_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0003_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0003_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0002_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0002_prod`
+
+  -- ===== CUMPLIMIENTO: LIST_xxxx / COM_xxxx / CAP_xxxx =====
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0116_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0116_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0115_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0115_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0106_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0106_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0103_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0103_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0102_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0102_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0101_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0101_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0100_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0100_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0072_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0072_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0068_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0068_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0067_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0067_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0066_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0066_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0065_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0065_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0064_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0064_prod`
+
+  UNION ALL
+  -- OJO: en tu lista aparece "com_0063_pro" (sin 'd'). Si la real es "com_0063_prod", usa esta:
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0050_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0050_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0015_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0015_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0012_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0012_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0011_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0011_prod`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0010_prod',
+         MAX(DATE(FECHA_ALERTA))
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0010_prod`
+
+  -- ===== CAPITALIZADORA =====
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora',
+         MAX(DATE(FECHA_MODIFICACION))
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora`
+
+  UNION ALL
+  SELECT 'sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora',
+         MAX(DATE(FECHA_CORTE))
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora`
+)
+
+SELECT
+  nombre_tabla,
+  ultima_fecha_datos
+FROM data_max
+ORDER BY ultima_fecha_datos DESC;
