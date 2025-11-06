@@ -48,57 +48,90 @@ POLIZA_UNICA AS (
     FROM A2000030 a
     WHERE a.FECHA_VENC_POL >= SYSDATE
   )
-  WHERE rn = 1 AND COD_RAMO != 315
+  WHERE rn = 1 
 ),
 
 CELULAR_UNIFICADO AS (
-  SELECT *
+  /* Nivel externo: devuelve un único número por (tipo_documento, numero_documento),
+     priorizando 10 dígitos y luego el valor más grande */
+  SELECT
+    x.tipo_documento,
+    x.numero_documento,
+    x.num_limpio AS celular_unificado,
+    x.rn
   FROM (
-    SELECT 
-      j.numero_documento AS numero_documento,
-      j.tipdoc_codigo AS tipo_documento,
-      CASE
-        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
-        WHEN REGEXP_LIKE(TRIM(mcj.descripcion), '^[0-9]{10}$') THEN TRIM(mcj.descripcion)
-        ELSE NULL
-      END AS celular_unificado,
+    /* Nivel intermedio: calcula prioridad con ROW_NUMBER */
+    SELECT
+      base.tipo_documento,
+      base.numero_documento,
+      base.num_limpio,
       ROW_NUMBER() OVER (
-        PARTITION BY j.tipdoc_codigo, j.numero_documento
-        ORDER BY j.numero_documento
+        PARTITION BY base.tipo_documento, base.numero_documento
+        ORDER BY
+          LENGTH(base.num_limpio) DESC,                -- 10 dígitos sobre 7
+          TO_NUMBER(base.num_limpio) DESC NULLS LAST   -- dentro del mismo largo, el más grande
       ) AS rn
-    FROM juridicos j
-    JOIN naturales n
-      ON n.numero_documento = j.numero_documento_representante
-     AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
-    JOIN medios_comunicacion mcn
-      ON mcn.nat_secuencia = n.secuencia
-    JOIN tipos_medios_comunicacion tmcn
-      ON tmcn.secuencia = mcn.tipmedcom_codigo
-    JOIN medios_comunicacion mcj
-      ON mcj.jur_secuencia = j.secuencia
-    JOIN tipos_medios_comunicacion tmcj
-      ON tmcj.secuencia = mcj.tipmedcom_codigo
-    WHERE (tmcn.descripcion LIKE '%CELULAR%' OR tmcj.descripcion LIKE '%CELULAR%')
+    FROM (
+      /* ===========================
+         Bloque 1: PJ + Representante
+         =========================== */
+      SELECT 
+        j.tipdoc_codigo    AS tipo_documento,
+        j.numero_documento AS numero_documento,
+        CASE
+          /* mcn (representante PN): acepta 10 o 7 */
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
+          /* mcj (PJ): acepta 10 o 7 */
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            THEN REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', '')
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            THEN REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', '')
+          ELSE NULL
+        END AS num_limpio
+      FROM juridicos j
+      JOIN naturales n
+        ON n.numero_documento = j.numero_documento_representante
+       AND n.tipdoc_codigo    = j.tipdoc_codigo_identificado_por
+      JOIN medios_comunicacion mcn
+        ON mcn.nat_secuencia  = n.secuencia
+      JOIN tipos_medios_comunicacion tmcn
+        ON tmcn.secuencia     = mcn.tipmedcom_codigo
+      JOIN medios_comunicacion mcj
+        ON mcj.jur_secuencia  = j.secuencia
+      JOIN tipos_medios_comunicacion tmcj
+        ON tmcj.secuencia     = mcj.tipmedcom_codigo
+      WHERE tmcn.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+         OR tmcj.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
 
-    UNION ALL
+      UNION ALL
 
-    SELECT 
-      n.numero_documento,
-      n.tipdoc_codigo,
-      CASE 
-        WHEN REGEXP_LIKE(TRIM(mcn.descripcion), '^[0-9]{10}$') THEN TRIM(mcn.descripcion)
-        ELSE NULL
-      END AS celular_unificado,
-      ROW_NUMBER() OVER (
-        PARTITION BY n.tipdoc_codigo, n.numero_documento
-        ORDER BY n.numero_documento
-      ) AS rn
-    FROM naturales n
-    JOIN medios_comunicacion mcn ON mcn.nat_secuencia = n.secuencia
-    JOIN tipos_medios_comunicacion tmcn ON tmcn.secuencia = mcn.tipmedcom_codigo
-    WHERE tmcn.descripcion LIKE '%CELULAR%'
-  )
-  WHERE rn = 1
+      /* ===========================
+         Bloque 2: PN puro
+         (ahora también acepta 7 dígitos)
+         =========================== */
+      SELECT 
+        n.tipdoc_codigo    AS tipo_documento,
+        n.numero_documento AS numero_documento,
+        CASE 
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
+          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
+          ELSE NULL
+        END AS num_limpio
+      FROM naturales n
+      JOIN medios_comunicacion mcn
+        ON mcn.nat_secuencia  = n.secuencia
+      JOIN tipos_medios_comunicacion tmcn
+        ON tmcn.secuencia     = mcn.tipmedcom_codigo
+      WHERE tmcn.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+    ) base
+    WHERE base.num_limpio IS NOT NULL
+  ) x
+  WHERE x.rn = 1
 ),
 
 BASE AS (
@@ -195,21 +228,23 @@ BASE AS (
     )
 )
 
--- Cálculo de completitud
+
+-- Cálculo de completitud (en porcentaje)
 SELECT 
   codigo_compania,
-  tipo_persona as Tipo_persona, 
+  tipo_persona AS Tipo_persona, 
   COUNT(*) AS total_registros,
 
-  ROUND(1 - (SUM(CASE WHEN nombre IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_nombre,
-  ROUND(1 - (SUM(CASE WHEN fecha_nacimiento_2 IS NULL OR TRIM(fecha_nacimiento_2) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_nacimiento,
-  ROUND(1 - (SUM(CASE WHEN telefono_contacto IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_telefono,
-  ROUND(1 - (SUM(CASE WHEN correo IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_correo,
-  ROUND(1 - (SUM(CASE WHEN vlr_activos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_vlr_activos,
-  ROUND(1 - (SUM(CASE WHEN vlr_pasivos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_vlr_pasivos,
-  ROUND(1 - (SUM(CASE WHEN vlr_ingresos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_vlr_ingresos,
-  ROUND(1 - (SUM(CASE WHEN vlr_egresos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_vlr_egresos,
-  ROUND(1 - (SUM(CASE WHEN fecha_vinculacion_cliente IS NULL OR TRIM(fecha_vinculacion_cliente) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*)), 2) AS completitud_fecha_vinculacion
+  ROUND((1 - (SUM(CASE WHEN nombre IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_nombre,
+  ROUND((1 - (SUM(CASE WHEN fecha_nacimiento_2 IS NULL OR TRIM(fecha_nacimiento_2) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_fecha_nacimiento,
+  ROUND((1 - (SUM(CASE WHEN fecha_vinculacion_cliente IS NULL OR TRIM(fecha_vinculacion_cliente) = '' THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_fecha_vinculacion,
+  ROUND((1 - (SUM(CASE WHEN telefono_contacto IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_telefono,
+  ROUND((1 - (SUM(CASE WHEN correo IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_correo,
+  ROUND((1 - (SUM(CASE WHEN vlr_activos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_vlr_activos,
+  ROUND((1 - (SUM(CASE WHEN vlr_pasivos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_vlr_pasivos,
+  ROUND((1 - (SUM(CASE WHEN vlr_ingresos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_vlr_ingresos,
+  ROUND((1 - (SUM(CASE WHEN vlr_egresos IS NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*))) * 100, 2) AS completitud_vlr_egresos
+
 
 FROM BASE
 GROUP BY codigo_compania, tipo_persona
