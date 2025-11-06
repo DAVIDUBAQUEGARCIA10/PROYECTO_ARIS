@@ -72,62 +72,79 @@ CELULAR_UNIFICADO AS (
           TO_NUMBER(base.num_limpio) DESC NULLS LAST   -- dentro del mismo largo, el más grande
       ) AS rn
     FROM (
-      /* ===========================
-         Bloque 1: PJ + Representante
+    
+          /* ===========================
+         Representante
          =========================== */
-      SELECT 
-        j.tipdoc_codigo    AS tipo_documento,
-        j.numero_documento AS numero_documento,
-        CASE
-          /* mcn (representante PN): acepta 10 o 7 */
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            SELECT
+            j.tipdoc_codigo    AS tipo_documento,
+            j.numero_documento AS numero_documento,
+            CASE
+            /* RL — número de 10 dígitos */
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
             THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            /* RL — número de 7 dígitos */
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
             THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
-          /* mcj (PJ): acepta 10 o 7 */
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            ELSE NULL
+            END AS num_limpio
+            FROM juridicos j
+            JOIN naturales n
+            ON n.numero_documento = j.numero_documento_representante
+            AND n.tipdoc_codigo    = j.tipdoc_codigo_identificado_por
+            LEFT JOIN medios_comunicacion mcn
+            ON mcn.nat_secuencia  = n.secuencia
+            LEFT JOIN tipos_medios_comunicacion tmcn
+            ON tmcn.secuencia     = mcn.tipmedcom_codigo
+            WHERE
+            mcn.tipmedcom_codigo IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+            AND REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7,10}$') 
+    
+       UNION ALL
+      /* ===========================
+         Bloque 1: PJ 
+         =========================== */
+            SELECT
+            j.tipdoc_codigo    AS tipo_documento,
+            j.numero_documento AS numero_documento,
+            CASE
+            /* mcj (PJ): acepta 10 o 7, dejando sólo dígitos */
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
             THEN REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', '')
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
             THEN REGEXP_REPLACE(TRIM(mcj.descripcion), '[^0-9]', '')
-          ELSE NULL
-        END AS num_limpio
-      FROM juridicos j
-      JOIN naturales n
-        ON n.numero_documento = j.numero_documento_representante
-       AND n.tipdoc_codigo    = j.tipdoc_codigo_identificado_por
-      JOIN medios_comunicacion mcn
-        ON mcn.nat_secuencia  = n.secuencia
-      JOIN tipos_medios_comunicacion tmcn
-        ON tmcn.secuencia     = mcn.tipmedcom_codigo
-      JOIN medios_comunicacion mcj
-        ON mcj.jur_secuencia  = j.secuencia
-      JOIN tipos_medios_comunicacion tmcj
-        ON tmcj.secuencia     = mcj.tipmedcom_codigo
-      WHERE tmcn.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
-         OR tmcj.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
-
+            ELSE NULL
+            END AS num_limpio
+            FROM juridicos j
+            LEFT JOIN medios_comunicacion mcj
+            ON mcj.jur_secuencia = j.secuencia
+            LEFT JOIN tipos_medios_comunicacion tmcj
+            ON tmcj.secuencia = mcj.tipmedcom_codigo
+            WHERE tmcj.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+            
       UNION ALL
 
       /* ===========================
          Bloque 2: PN puro
          (ahora también acepta 7 dígitos)
          =========================== */
-      SELECT 
-        n.tipdoc_codigo    AS tipo_documento,
-        n.numero_documento AS numero_documento,
-        CASE 
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
+            SELECT 
+            n.tipdoc_codigo    AS tipo_documento,
+            n.numero_documento AS numero_documento,
+            CASE 
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{10}$')
             THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
-          WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
+            WHEN REGEXP_LIKE(REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', ''), '^[0-9]{7}$')
             THEN REGEXP_REPLACE(TRIM(mcn.descripcion), '[^0-9]', '')
-          ELSE NULL
-        END AS num_limpio
-      FROM naturales n
-      JOIN medios_comunicacion mcn
-        ON mcn.nat_secuencia  = n.secuencia
-      JOIN tipos_medios_comunicacion tmcn
-        ON tmcn.secuencia     = mcn.tipmedcom_codigo
-      WHERE tmcn.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+            ELSE NULL
+            END AS num_limpio
+            FROM naturales n
+            JOIN medios_comunicacion mcn
+            ON mcn.nat_secuencia  = n.secuencia
+            JOIN tipos_medios_comunicacion tmcn
+            ON tmcn.secuencia     = mcn.tipmedcom_codigo
+            WHERE tmcn.secuencia IN (1,2,3,4,5,10,11,13,22,40,41,42,62,65,68,69,71,73,75,78)
+      
     ) base
     WHERE base.num_limpio IS NOT NULL
   ) x
@@ -222,10 +239,6 @@ BASE AS (
   WHERE 
     m.exrf_cod_tipo_persona IS NOT NULL
     AND m.exrf_cod_tip_doc IS NOT NULL
-    AND (
-      m.exrf_cod_cia IN (1, 2)
-      OR (m.exrf_cod_cia = 3 AND p.COD_RAMO IS NOT NULL)
-    )
 )
 
 
