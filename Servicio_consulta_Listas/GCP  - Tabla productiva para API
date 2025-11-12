@@ -1,0 +1,88 @@
+
+WITH RESTRINGIDOS AS (
+  SELECT
+    'RESTRINGIDOS'                             AS SOURCE,
+    CAST(KEY_ID                    AS STRING)  AS KEY_ID,
+    CAST(TIPO_DOCUMENTO_TERCERO    AS STRING)  AS TIPO_DOCUMENTO_TERCERO,
+    ''                                         AS COD_TIPO_IDENTIFICACION,
+    ''                                         AS TIPO_IDENTIFICACION,
+    CAST(CODIGO_RESTRICCION        AS STRING)  AS CODIGO_RESTRICCION,
+    CAST(DESCRIPCION               AS STRING)  AS DESCRIPCION,
+    ''                                         AS COD_AREA_RESTRICCION,
+    ''                                         AS DESCRIPCION_AREA_RESTRICCION,
+    ''                                         AS COD_AREA_REPORTE_RESTRICCION,
+    ''                                         AS AREA_REPORTE_RESTRICCION,
+    ''                                         AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    ''                                         AS FLG_CLIENTE_PEPS,
+    ''                                         AS FLG_PERSONA_POLITICA_EXPUESTA,
+    ''                                         AS FLG_CONTROLA_LAVADO_ACTIVOS,
+    CAST(VALOR_RIESGO              AS STRING)  AS VALOR_RIESGO,
+    CAST(NIVEL_ALERTA              AS STRING)  AS NIVEL_ALERTA,
+    CAST(MARCA_ACTIVO              AS STRING)  AS MARCA_ACTIVO,
+    CAST(FECHA_BAJA                AS STRING)  AS FECHA_BAJA,
+    CAST(FECHA_CREACION            AS STRING)  AS FECHA_CREACION,
+    CAST(FECHA_MODIFICACION        AS STRING)  AS FECHA_MODIFICACION,
+    ''                                         AS FECHA_VINCULACION,
+    ''                                         AS MES_ULTIMA_ACTULIZACION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+),
+PN AS (
+  SELECT
+    'PN_DATOS_BASICOS'                          AS SOURCE,
+    CAST(KEY_ID                       AS STRING) AS KEY_ID,
+    ''                                          AS TIPO_DOCUMENTO_TERCERO,
+    CAST(COD_TIPO_IDENTIFICACION      AS STRING) AS COD_TIPO_IDENTIFICACION,
+    ''                                          AS TIPO_IDENTIFICACION,
+    ''                                          AS CODIGO_RESTRICCION,
+    ''                                          AS DESCRIPCION,
+    CAST(COD_AREA_RESTRICCION         AS STRING) AS COD_AREA_RESTRICCION,
+    CAST(DESCRIPCION_AREA_RESTRICCION AS STRING) AS DESCRIPCION_AREA_RESTRICCION,
+    ''                                          AS COD_AREA_REPORTE_RESTRICCION,
+    ''                                          AS AREA_REPORTE_RESTRICCION,
+    CAST(FLG_CLIENTE_LISTAS_RESTRICTIVAS AS STRING) AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    CAST(FLG_CLIENTE_PEPS             AS STRING) AS FLG_CLIENTE_PEPS,
+    CAST(FLG_PERSONA_POLITICA_EXPUESTA AS STRING) AS FLG_PERSONA_POLITICA_EXPUESTA,
+    ''                                          AS FLG_CONTROLA_LAVADO_ACTIVOS,
+    ''                                          AS VALOR_RIESGO,
+    ''                                          AS NIVEL_ALERTA,
+    ''                                          AS MARCA_ACTIVO,
+    ''                                          AS FECHA_BAJA,
+    ''                                          AS FECHA_CREACION,
+    ''                                          AS FECHA_MODIFICACION,
+    ''                                          AS FECHA_VINCULACION,
+    CAST(MES_ULTIMA_ACTULIZACION      AS STRING) AS MES_ULTIMA_ACTULIZACION
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_pn_datos_basicos`
+),
+PJ AS (
+  SELECT
+    'PJ_DATOS_BASICOS'                          AS SOURCE,
+    CAST(KEY_ID                       AS STRING) AS KEY_ID,
+    ''                                          AS TIPO_DOCUMENTO_TERCERO,
+    CAST(COD_TIPO_IDENTIFICACION      AS STRING) AS COD_TIPO_IDENTIFICACION,
+    CAST(TIPO_IDENTIFICACION          AS STRING) AS TIPO_IDENTIFICACION,
+    ''                                          AS CODIGO_RESTRICCION,
+    ''                                          AS DESCRIPCION,
+    ''                                          AS COD_AREA_RESTRICCION,
+    ''                                          AS DESCRIPCION_AREA_RESTRICCION,
+    CAST(COD_AREA_REPORTE_RESTRICCION AS STRING) AS COD_AREA_REPORTE_RESTRICCION,
+    CAST(AREA_REPORTE_RESTRICCION     AS STRING) AS AREA_REPORTE_RESTRICCION,
+    CAST(FLG_CLIENTE_LISTAS_RESTRICTIVAS AS STRING) AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    ''                                          AS FLG_CLIENTE_PEPS,
+    ''                                          AS FLG_PERSONA_POLITICA_EXPUESTA,
+    CAST(FLG_CONTROLA_LAVADO_ACTIVOS  AS STRING) AS FLG_CONTROLA_LAVADO_ACTIVOS,
+    ''                                          AS VALOR_RIESGO,
+    ''                                          AS NIVEL_ALERTA,
+    ''                                          AS MARCA_ACTIVO,
+    ''                                          AS FECHA_BAJA,
+    ''                                          AS FECHA_CREACION,
+    ''                                          AS FECHA_MODIFICACION,
+    CAST(FECHA_VINCULACION           AS STRING)  AS FECHA_VINCULACION,
+    ''                                          AS MES_ULTIMA_ACTULIZACION
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_pj_datos_basicos`
+)
+
+SELECT * FROM RESTRINGIDOS
+UNION ALL
+SELECT * FROM PN
+UNION ALL
+SELECT * FROM PJ;
