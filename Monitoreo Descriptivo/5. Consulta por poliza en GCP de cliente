@@ -1,0 +1,16 @@
+SELECT DISTINCT
+  e.key_id_tomador,
+  e.numero_poliza,
+  c.TIPO_DOCUMENTO,
+  c.NUMERO_DOCUMENTO,
+  c.NOMBRE,
+FROM
+  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` AS e
+LEFT JOIN
+  `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` AS c
+ON
+  e.key_id_tomador = c.KEY_ID
+    where numero_poliza in (1500154041401,
+2020306330301,
+2060337211602,
+1569550566922,
