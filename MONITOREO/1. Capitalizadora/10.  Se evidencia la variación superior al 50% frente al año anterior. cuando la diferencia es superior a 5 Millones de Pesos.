@@ -1,122 +1,128 @@
--- =====================================================================================
--- INSERT CON DE-DUPE (NOT EXISTS) — BigQuery Standard SQL
--- Regla:
---   - Solo dispara si EXISTE valor previo > 0
---   - AUMENTO > 50% y ΔCOP > $5’000.000 vs periodo previo
---   - Si previo es NULL o 0 => NO dispara
---   - De-dupe por KEY_ID + FECHA_ALERTA_MES en la tabla destino
--- =====================================================================================
+CREATE OR REPLACE TABLE
+  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod` AS
 
-INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0014_VISOR_REPO` (
-  FECHA_CORTE,
-  FECHA_CORTE_PREVIA,
-  TIPO_DOCUMENTO,
-  KEY_ID,
-  VALOR_INGRESOS_PREVIO,
-  VALOR_INGRESOS,
-  DIFERENCIA_COP,
-  VARIACION_PCT,
-  MOTIVO_ALERTA,
-  FECHA_ALERTA_MES,
-  FECHA_ALERTA
+  WITH historico AS (
+  SELECT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FECHA_CREACION,
+    VALOR_INGRESOS,
+    LAG(VALOR_INGRESOS) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS ingreso_anterior,
+    LAG(FECHA_CREACION) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS fecha_anterior
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_historico_estados_financieras`
+),
+
+evaluado AS (
+  SELECT
+    *,
+    (VALOR_INGRESOS - ingreso_anterior) AS diferencia_ingresos,
+    SAFE_DIVIDE(VALOR_INGRESOS - ingreso_anterior, ingreso_anterior) AS variacion_relativa,
+    DATE_DIFF(
+      DATE(FECHA_CREACION),      
+      DATE(fecha_anterior),      
+      YEAR
+    ) AS diferencia_anios
+  FROM historico
+  WHERE ingreso_anterior IS NOT NULL
 )
-WITH
-  -- =====================
-  -- 1) Base financiera
-  -- =====================
-  base AS (
-    SELECT
-      DATE(FECHA_CORTE)                    AS FECHA_CORTE,
-      UPPER(TRIM(TIPO_DOCUMENTO))          AS TIPO_DOCUMENTO,
-      TRIM(KEY_ID)                         AS KEY_ID,
-      SAFE_CAST(VALOR_INGRESOS AS NUMERIC) AS VALOR_INGRESOS
-    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CLIENTES_FINANCIEROS_UNIFICADO`
-    WHERE FECHA_CORTE IS NOT NULL
-      AND TIPO_DOCUMENTO IS NOT NULL
-      AND KEY_ID IS NOT NULL
-  ),
 
-  -- ==========================================
-  -- 2) Periodo inmediatamente anterior
-  -- ==========================================
-  con_prev AS (
-    SELECT
-      b.*,
-      LAG(VALOR_INGRESOS) OVER(
-        PARTITION BY TIPO_DOCUMENTO, KEY_ID
-        ORDER BY FECHA_CORTE
-      ) AS VALOR_INGRESOS_PREVIO,
-      LAG(FECHA_CORTE) OVER(
-        PARTITION BY TIPO_DOCUMENTO, KEY_ID
-        ORDER BY FECHA_CORTE
-      ) AS FECHA_CORTE_PREVIA
-    FROM base b
-  ),
-
-  -- ==========================
-  -- 3) Métricas y condición
-  -- ==========================
-  metricas AS (
-    SELECT
-      FECHA_CORTE,
-      FECHA_CORTE_PREVIA,
-      TIPO_DOCUMENTO,
-      KEY_ID,
-      VALOR_INGRESOS_PREVIO,
-      VALOR_INGRESOS,
-
-      -- Diferencia absoluta (actual - previo)
-      (VALOR_INGRESOS - VALOR_INGRESOS_PREVIO) AS DIFERENCIA_COP,
-
-      -- Variación % (solo cuando previo > 0)
-      CASE
-        WHEN VALOR_INGRESOS_PREVIO > 0
-          THEN SAFE_DIVIDE(VALOR_INGRESOS - VALOR_INGRESOS_PREVIO, VALOR_INGRESOS_PREVIO)
-        ELSE NULL
-      END AS VARIACION_PCT,
-
-      -- Flag de disparo (parámetros embebidos: 50% y $5.000.000)
-      CASE
-        WHEN VALOR_INGRESOS_PREVIO > 0
-         AND (VALOR_INGRESOS - VALOR_INGRESOS_PREVIO) > 5000000
-         AND SAFE_DIVIDE(VALOR_INGRESOS - VALOR_INGRESOS_PREVIO, VALOR_INGRESOS_PREVIO) > 0.50
-          THEN 1
-        ELSE 0
-      END AS DISPARA
-    FROM con_prev
-  )
-
--- ==========================================
--- 4) Insert final + NOT EXISTS para de-dupe
--- ==========================================
 SELECT
-  FECHA_CORTE,
-  FECHA_CORTE_PREVIA,
   TIPO_DOCUMENTO,
   KEY_ID,
-  VALOR_INGRESOS_PREVIO,
+  FECHA_CREACION,
   VALOR_INGRESOS,
-  DIFERENCIA_COP,
-  VARIACION_PCT,
-  CONCAT(
-    'Ingresos suben de ',
-    FORMAT('%\'d', CAST(VALOR_INGRESOS_PREVIO AS INT64)),
-    ' a ',
-    FORMAT('%\'d', CAST(VALOR_INGRESOS AS INT64)),
-    ' (Δ ',
-    FORMAT('%\'d', CAST(DIFERENCIA_COP AS INT64)),
-    ', ',
-    FORMAT('%.1f%%', VARIACION_PCT * 100),
-    ') vs ',
-    CAST(FECHA_CORTE_PREVIA AS STRING)
-  ) AS MOTIVO_ALERTA,
+  ingreso_anterior,
+  diferencia_ingresos,
+  variacion_relativa,
+  diferencia_anios,
   FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
   CURRENT_DATE()                        AS FECHA_ALERTA
-FROM metricas d
-WHERE d.DISPARA = 1
+FROM evaluado
+WHERE diferencia_ingresos > 15000000          -- diferencia > $5M
+  AND variacion_relativa > 0.5               -- incremento > 50%
+  AND diferencia_anios <= 1                  -- periodo reciente (<= 2 años)
+  AND DATE(FECHA_CREACION) > DATE('2025-11-01');   -- evitar alertas viejas
+
+
+
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod` (
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  FECHA_CREACION,
+  VALOR_INGRESOS,
+  ingreso_anterior,
+  diferencia_ingresos,
+  variacion_relativa,
+  diferencia_anios,
+  FECHA_ALERTA_MES
+)
+
+WITH historico AS (
+  SELECT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FECHA_CREACION,
+    VALOR_INGRESOS,
+    LAG(VALOR_INGRESOS) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS ingreso_anterior,
+    LAG(FECHA_CREACION) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS fecha_anterior
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_historico_estados_financieras`
+),
+
+evaluado AS (
+  SELECT
+    *,
+    (VALOR_INGRESOS - ingreso_anterior) AS diferencia_ingresos,
+    SAFE_DIVIDE(VALOR_INGRESOS - ingreso_anterior, ingreso_anterior) AS variacion_relativa,
+    DATE_DIFF(
+      DATE(FECHA_CREACION),
+      DATE(fecha_anterior),
+      YEAR
+    ) AS diferencia_anios
+  FROM historico
+  WHERE ingreso_anterior IS NOT NULL
+)
+
+SELECT
+  d.TIPO_DOCUMENTO,
+  d.KEY_ID,
+  d.FECHA_CREACION,
+  d.VALOR_INGRESOS,
+  d.ingreso_anterior,
+  d.diferencia_ingresos,
+  d.variacion_relativa,
+  d.diferencia_anios,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES
+FROM evaluado d
+WHERE d.diferencia_ingresos > 15000000
+  AND d.variacion_relativa > 0.5
+  AND d.diferencia_anios <= 1
+  AND DATE(d.FECHA_CREACION) > DATE('2025-11-01')
   AND NOT EXISTS (
-    SELECT 1
-    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0014_VISOR_REPO` t
-    WHERE t.KEY_ID           = d.KEY_ID
-      AND t.FECHA_ALERTA_MES = FORMAT_DATE('%Y-%m', CURRENT_DATE())
+      SELECT 1
+      FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod` t
+      WHERE t.KEY_ID           = d.KEY_ID
+        AND t.FECHA_ALERTA_MES = FORMAT_DATE('%Y-%m', CURRENT_DATE())
   );
+
+
+
+
+
+
+
+
+
+
