@@ -1,0 +1,192 @@
+-- =====================================================================
+-- TABLA: t_ubos_relacional
+-- OBJETIVO: Consolidar clientes (PN/PJ) + restricciones + relacionados (UBOs/beneficiarios)
+--           + restricciones del RELACIONADO (nuevo cruce)
+-- =====================================================================
+
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional` AS
+WITH
+-- =====================================================================
+-- 1) UNIVERSO DE CLIENTES (PN + PJ)
+--    OJO: En tu query estabas poniendo KEY_ID como NUMERO_DOCUMENTO.
+--         Mantengo tu lógica TAL CUAL para no romper el linaje.
+-- =====================================================================
+u AS (
+  -- --------------------------
+  -- 1.1 Clientes Persona Natural
+  -- --------------------------
+  SELECT DISTINCT
+    tcn.TIPO_DOCUMENTO AS TIPO_DOCUMENTO,
+    tcn.KEY_ID         AS NUMERO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+
+  UNION ALL
+
+  -- --------------------------
+  -- 1.2 Clientes Persona Jurídica
+  -- --------------------------
+  SELECT DISTINCT
+    tcj.TIPO_DOCUMENTO AS TIPO_DOCUMENTO,
+    tcj.KEY_ID         AS NUMERO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` tcj
+),
+
+-- =====================================================================
+-- 2) RELACIONADOS (UNIÓN DE 2 FUENTES)
+--    - Davivienda: individuos relacionados PN/PJ (titular -> relacionado)
+--    - Seguros: beneficiarios con porcentaje (tomador -> beneficiario)
+-- =====================================================================
+tir AS (
+  -- --------------------------
+  -- 2.1 Davivienda - Relacionados
+  -- --------------------------
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_CLIENTE AS TIPO_DOCUMENTO_TITULAR,
+    CASE
+      WHEN TIPO_DOCUMENTO_CLIENTE = 'NT'
+        THEN LPAD(CAST(KEY_ID_CLIENTE AS STRING), 9, '0')
+      ELSE CAST(KEY_ID_CLIENTE AS STRING)
+    END AS KEY_ID_TITULAR,
+
+    TIPO_DOCUMENTO_RELACIONADO     AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_RELACIONADO             AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION_SOCIO AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "DAVIVIENDA"                   AS LINAJE_BENEFICIARIO,
+    DESCRIPCION_RELACION           AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj`
+
+  UNION ALL
+
+  -- --------------------------
+  -- 2.2 Seguros - Beneficiarios con porcentaje (PJ -> contacto)
+  -- --------------------------
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_PJ              AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID                         AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_CONTACTO        AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_NUMERO_DOCUMENTO_CONTACTO  AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION       AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                     AS LINAJE_BENEFICIARIO,
+    'ACCIONISTAS'                  AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_contacto_beneficiario_final`
+
+  UNION ALL
+
+  -- --------------------------
+  -- 2.3 Seguros - Representante Legal (PJ -> RL)
+  -- --------------------------
+  SELECT DISTINCT
+    TIPO_DOCUMENTO             AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID                     AS KEY_ID_TITULAR,
+    TIP_DOC_REPRESENTANTE_LEGAL AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_REPRESENTANTE_LEGAL  AS KEY_ID_RELACIONADO,
+    0                           AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                  AS LINAJE_BENEFICIARIO,
+    'REPRESENTANTE LEGAL'       AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+
+  UNION ALL
+
+  -- --------------------------
+  -- 2.4 Seguros - Empresa del RL (RL -> Empresa)
+  -- --------------------------
+  SELECT DISTINCT
+    TIP_DOC_REPRESENTANTE_LEGAL AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID_REPRESENTANTE_LEGAL  AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO              AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID                       AS KEY_ID_RELACIONADO,
+    0                            AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                   AS LINAJE_BENEFICIARIO,
+    'EMPRESA DEL RL'             AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+
+  UNION ALL
+
+  -- --------------------------
+  -- 2.5 Seguros - Beneficiarios con porcentaje (contacto -> PJ)
+  -- --------------------------
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_CONTACTO       AS TIPO_DOCUMENTO_TITULAR,
+    KEY_NUMERO_DOCUMENTO_CONTACTO AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_PJ             AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID                        AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION      AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                    AS LINAJE_BENEFICIARIO,
+    'ACCIONISTAS'                 AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_contacto_beneficiario_final`
+
+  UNION ALL
+
+  -- --------------------------
+  -- 2.6 Davivienda - Inverso (relacionado -> cliente)
+  -- --------------------------
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_RELACIONADO AS TIPO_DOCUMENTO_TITULAR,
+    CASE
+      WHEN TIPO_DOCUMENTO_RELACIONADO = 'NT'
+        THEN LPAD(CAST(KEY_ID_RELACIONADO AS STRING), 9, '0')
+      ELSE CAST(KEY_ID_RELACIONADO AS STRING)
+    END AS KEY_ID_TITULAR,
+
+    TIPO_DOCUMENTO_CLIENTE           AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_CLIENTE                   AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION_SOCIO   AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "DAVIVIENDA"                     AS LINAJE_BENEFICIARIO,
+    DESCRIPCION_RELACION             AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj`
+)
+
+-- =====================================================================
+-- 3) SELECT FINAL
+-- =====================================================================
+SELECT DISTINCT
+  -- ============================================================
+  -- CLIENTE
+  -- ============================================================
+  u.TIPO_DOCUMENTO,
+  u.NUMERO_DOCUMENTO,
+
+  -- ============================================================
+  -- RESTRICCIONES DEL CLIENTE (titular)
+  -- ============================================================
+  ttr.CODIGO_RESTRICCION              AS CODIGO_RESTRICCION_TITULAR,
+  ttr.DESCRIPCION                     AS DESCRIPCION_RESTRICCION_TITULAR,
+
+  -- ============================================================
+  -- RELACIONADOS
+  -- ============================================================
+  tir.TIPO_DOCUMENTO_RELACIONADO      AS TIPO_DOCUMENTO_RELACIONADO_DAV,
+  tir.KEY_ID_RELACIONADO              AS KEY_ID_RELACIONADO_DAV,
+  tir.PORCENTAJE_PARTICIPACION_SOCIO  AS PORCENTAJE_RELACIONADO_DAV,
+  tir.LINAJE_BENEFICIARIO,
+  tir.NIVEL,
+
+  -- ============================================================
+  -- RESTRICCIONES DEL RELACIONADO (NUEVO)
+  -- ============================================================
+  ttr_rel.CODIGO_RESTRICCION           AS CODIGO_RESTRICCION_RELACIONADO,
+  ttr_rel.DESCRIPCION                  AS DESCRIPCION_RESTRICCION_RELACIONADO
+
+FROM u
+
+-- ============================================================
+-- JOIN RESTRICCIONES DEL TITULAR (cliente base)
+-- ============================================================
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` ttr
+  ON u.TIPO_DOCUMENTO   = ttr.TIPO_DOCUMENTO_TERCERO
+ AND u.NUMERO_DOCUMENTO = ttr.KEY_ID
+
+-- ============================================================
+-- JOIN RELACIONADOS (titular/tomador contra el cliente u)
+-- ============================================================
+LEFT JOIN tir
+  ON u.TIPO_DOCUMENTO   = tir.TIPO_DOCUMENTO_TITULAR
+ AND u.NUMERO_DOCUMENTO = tir.KEY_ID_TITULAR
+
+-- ============================================================
+-- JOIN RESTRICCIONES DEL RELACIONADO (NUEVO CRUCE)
+-- ============================================================
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` ttr_rel
+  ON tir.TIPO_DOCUMENTO_RELACIONADO = ttr_rel.TIPO_DOCUMENTO_TERCERO
+ AND tir.KEY_ID_RELACIONADO         = ttr_rel.KEY_ID
+;
