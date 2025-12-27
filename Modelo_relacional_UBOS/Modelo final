@@ -1,0 +1,157 @@
+CREATE OR REPLACE TABLE
+`sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional_total` AS
+WITH RECURSIVE
+-- ============================================================
+-- 0) CONFIG
+-- ============================================================
+cfg AS (
+  SELECT 10 AS p_max_niveles
+),
+
+-- ============================================================
+-- 1) BASE NORMALIZADA (evita CAST/CONCAT repetidos)
+--    - key_relacionado_str: para comparar/armar path y joins
+--    - nodo_relacionado: "TIPO:ID" para anti-ciclos
+-- ============================================================
+base AS (
+  SELECT
+    TIPO_DOCUMENTO,
+    NUMERO_DOCUMENTO,
+
+    CODIGO_RESTRICCION_TITULAR,
+    DESCRIPCION_RESTRICCION_TITULAR,
+
+    TIPO_DOCUMENTO_RELACIONADO_DAV,
+    CAST(KEY_ID_RELACIONADO_DAV AS STRING) AS KEY_ID_RELACIONADO_DAV_STR,
+    SAFE_CAST(PORCENTAJE_RELACIONADO_DAV AS NUMERIC) AS PORCENTAJE_RELACIONADO_DAV,
+
+    LINAJE_BENEFICIARIO,
+    NIVEL,
+
+    CODIGO_RESTRICCION_RELACIONADO,
+    DESCRIPCION_RESTRICCION_RELACIONADO,
+
+    -- nodo para anti-ciclos
+    CONCAT(TIPO_DOCUMENTO_RELACIONADO_DAV, ':', CAST(KEY_ID_RELACIONADO_DAV AS STRING)) AS nodo_relacionado
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional`
+  WHERE TIPO_DOCUMENTO IS NOT NULL
+    AND NUMERO_DOCUMENTO IS NOT NULL
+),
+
+-- ============================================================
+-- 2) RAÍCES (FILTRA DESDE EL ARRANQUE)
+--    Si luego lo quieres masivo, quitas el WHERE y listo.
+-- ============================================================
+params AS (
+  SELECT DISTINCT
+    TIPO_DOCUMENTO  AS raiz_tipo_documento,
+    NUMERO_DOCUMENTO AS raiz_numero_documento
+  FROM base
+),
+
+-- ============================================================
+-- 3) FRONTIER (solo nodos/padres, no cargas columnas innecesarias)
+-- ============================================================
+frontier AS (
+  -- ANCLA
+  SELECT
+    p.raiz_tipo_documento,
+    p.raiz_numero_documento,
+    p.raiz_tipo_documento AS padre_tipo_documento,
+    p.raiz_numero_documento AS padre_numero_documento,
+    0 AS nivel_recursivo,
+    [ CONCAT(p.raiz_tipo_documento, ':', p.raiz_numero_documento) ] AS path
+  FROM params p
+
+  UNION ALL
+
+  -- RECURSIVO (expande a NT/NE)
+  SELECT
+    f.raiz_tipo_documento,
+    f.raiz_numero_documento,
+    b.TIPO_DOCUMENTO_RELACIONADO_DAV AS padre_tipo_documento,
+    b.KEY_ID_RELACIONADO_DAV_STR      AS padre_numero_documento,
+    f.nivel_recursivo + 1             AS nivel_recursivo,
+    ARRAY_CONCAT(f.path, [ b.nodo_relacionado ]) AS path
+  FROM frontier f
+  JOIN cfg c ON TRUE
+  JOIN base b
+    ON b.TIPO_DOCUMENTO   = f.padre_tipo_documento
+   AND b.NUMERO_DOCUMENTO = f.padre_numero_documento
+  WHERE
+    f.nivel_recursivo < c.p_max_niveles
+    AND b.TIPO_DOCUMENTO_RELACIONADO_DAV IN ('NT','NE')
+    AND b.KEY_ID_RELACIONADO_DAV_STR IS NOT NULL
+    AND b.KEY_ID_RELACIONADO_DAV_STR <> ''
+    AND NOT b.nodo_relacionado IN UNNEST(f.path) -- anti-ciclos
+),
+
+-- ============================================================
+-- 4) SALIDA (trae relaciones del padre) + DEDUP en una sola pasada
+--    DEDUP por: (raiz_tipo, raiz_numero, tipo_rel, key_rel)
+-- ============================================================
+final AS (
+  SELECT
+    f.raiz_tipo_documento,
+    f.raiz_numero_documento,
+    f.padre_tipo_documento,
+    f.padre_numero_documento,
+    f.nivel_recursivo,
+
+    b.TIPO_DOCUMENTO,
+    b.NUMERO_DOCUMENTO,
+    b.CODIGO_RESTRICCION_TITULAR,
+    b.DESCRIPCION_RESTRICCION_TITULAR,
+    b.TIPO_DOCUMENTO_RELACIONADO_DAV,
+    b.KEY_ID_RELACIONADO_DAV_STR AS KEY_ID_RELACIONADO_DAV,
+    b.PORCENTAJE_RELACIONADO_DAV,
+    b.LINAJE_BENEFICIARIO,
+    b.NIVEL,
+    b.CODIGO_RESTRICCION_RELACIONADO,
+    b.DESCRIPCION_RESTRICCION_RELACIONADO
+  FROM frontier f
+  LEFT JOIN base b
+    ON b.TIPO_DOCUMENTO   = f.padre_tipo_documento
+   AND b.NUMERO_DOCUMENTO = f.padre_numero_documento
+  WHERE b.TIPO_DOCUMENTO_RELACIONADO_DAV IS NOT NULL
+    AND b.KEY_ID_RELACIONADO_DAV_STR IS NOT NULL
+)
+
+SELECT
+  raiz_tipo_documento,
+  raiz_numero_documento,
+  padre_tipo_documento,
+  padre_numero_documento,
+  nivel_recursivo,
+  TIPO_DOCUMENTO,
+  NUMERO_DOCUMENTO,
+  CODIGO_RESTRICCION_TITULAR,
+  DESCRIPCION_RESTRICCION_TITULAR,
+  TIPO_DOCUMENTO_RELACIONADO_DAV,
+  KEY_ID_RELACIONADO_DAV,
+  PORCENTAJE_RELACIONADO_DAV,
+  LINAJE_BENEFICIARIO,
+  NIVEL,
+  CODIGO_RESTRICCION_RELACIONADO,
+  DESCRIPCION_RESTRICCION_RELACIONADO
+FROM final
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY
+    raiz_tipo_documento,
+    raiz_numero_documento,
+    TIPO_DOCUMENTO_RELACIONADO_DAV,
+    KEY_ID_RELACIONADO_DAV
+  ORDER BY
+    nivel_recursivo ASC,
+    PORCENTAJE_RELACIONADO_DAV DESC,
+    padre_tipo_documento,
+    padre_numero_documento
+) = 1
+ORDER BY
+  raiz_tipo_documento,
+  raiz_numero_documento,
+  nivel_recursivo,
+  padre_tipo_documento,
+  padre_numero_documento,
+  TIPO_DOCUMENTO_RELACIONADO_DAV,
+  KEY_ID_RELACIONADO_DAV;
