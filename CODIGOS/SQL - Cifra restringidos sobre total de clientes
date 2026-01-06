@@ -1,0 +1,56 @@
+WITH base_rf AS (
+  SELECT
+    exrf_nombre_cli_razon_social AS Nombre_Cliente,
+    exrf_cod_tip_doc             AS Cod_Tipo_Doc,
+    exrf_desc_tip_doc            AS Tipo_Doc,
+    exrf_num_id_cliente          AS Num_Id,
+    exrf_cod_cia                 AS Cod_Compania,
+    exrf_nom_cia                 AS Compania
+  FROM dc_ext_revisoria_fiscal
+),
+restricciones AS (
+  SELECT
+    cr.TIPDOC_CODIGO    AS Cod_Tipo_Doc,
+    cr.NUMERO_DOCUMENTO AS Num_Id,
+    cr.FUERES_CODIGO    AS Cod_Fuente_Restriccion,
+    fr.DESCRIPCION      AS Fuente_Restriccion,
+    cr.FECHA_BAJA       AS Fecha_Baja
+  FROM clientes_restringidos cr
+  JOIN fuentes_restriccion fr
+    ON cr.FUERES_CODIGO = fr.CODIGO
+  WHERE cr.FECHA_BAJA IS NOT NULL
+),
+base_join AS (
+  SELECT
+    b.Cod_Compania,
+    b.Compania,
+    b.Cod_Tipo_Doc,
+    b.Num_Id,
+    CASE WHEN r.Num_Id IS NOT NULL THEN 1 ELSE 0 END AS flag_restringido
+  FROM base_rf b
+  LEFT JOIN restricciones r
+    ON b.Cod_Tipo_Doc = r.Cod_Tipo_Doc
+   AND b.Num_Id       = r.Num_Id
+),
+resumen AS (
+  SELECT
+    Cod_Compania,
+    Compania,
+    COUNT(DISTINCT Cod_Tipo_Doc || '|' || Num_Id) AS Total_Clientes,
+    COUNT(DISTINCT CASE WHEN flag_restringido = 1 THEN Cod_Tipo_Doc || '|' || Num_Id END) AS Clientes_Con_Restriccion,
+    COUNT(DISTINCT CASE WHEN flag_restringido = 0 THEN Cod_Tipo_Doc || '|' || Num_Id END) AS Clientes_Sin_Restriccion
+  FROM base_join
+  GROUP BY Cod_Compania, Compania
+)
+SELECT
+  Cod_Compania,
+  Compania,
+  Total_Clientes,
+  Clientes_Con_Restriccion,
+  Clientes_Sin_Restriccion,
+
+  /* % clientes restringidos sobre total */
+  ROUND( (Clientes_Con_Restriccion / NULLIF(Total_Clientes, 0)) * 100, 2 ) AS Porc_Clientes_Restringidos
+
+FROM resumen
+ORDER BY Cod_Compania;
