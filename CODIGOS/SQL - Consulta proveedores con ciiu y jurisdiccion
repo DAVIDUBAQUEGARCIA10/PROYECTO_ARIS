@@ -1,0 +1,130 @@
+SELECT
+    r.codigo            AS rol,
+    r.descripcion       AS rol_descripcion,
+    n.tipdoc_codigo     AS tipdoc_codigo,
+    n.numero_documento  AS numero_documento,
+    (n.primer_nombre || ' ' || n.primer_apellido) AS nombres,
+
+    -- ===============================
+    -- DIVPOL (NACIMIENTO) - NATURALES
+    -- ===============================
+    n.DIVPOL_CODIGO_NACIDO_EN      AS DIVPOL_CODIGO_NACIDO_EN,
+    dp_nac.nombre                 AS NOMBRE_NACIDO_EN,
+    dp_nac.nacionalidad           AS NACIONALIDAD_NACIDO_EN,
+    dp_nac.CODIGO_CODAZZI         AS CODIGO_CODAZZI_NACIDO_EN,
+
+    -- ===============================
+    -- DIVPOL (REGISTRO) - NATURALES
+    -- ===============================
+    n.DIVPOL_CODIGO_REGISTRADO_EN  AS DIVPOL_CODIGO_REGISTRADO_EN,
+    dp_reg.nombre                 AS NOMBRE_REGISTRADO_EN,
+    dp_reg.nacionalidad           AS NACIONALIDAD_REGISTRADO_EN,
+    dp_reg.CODIGO_CODAZZI         AS CODIGO_CODAZZI_REGISTRADO_EN,
+
+    s.numero            AS numero_sucursal,
+    s.descripcion       AS nombre_sucursal,
+    s.fecha_creacion    AS fecha_crea_sucursal,
+    s.usuario_creacion  AS usuario_crea_sucursal,
+
+    -- ===============================
+    -- Actividad económica (NATURALES)
+    -- ===============================
+    ae.codigo           AS acteco_codigo,
+    ae.descripcion      AS acteco_descripcion
+
+FROM roles r
+JOIN roles_tercero rt
+  ON r.codigo = rt.rol_codigo
+JOIN naturales n
+  ON rt.nat_secuencia = n.secuencia
+LEFT JOIN sucursales s
+  ON s.nat_secuencia = n.secuencia
+LEFT JOIN acteco_tercero a
+  ON n.secuencia = a.nat_secuencia
+LEFT JOIN actividades_economicas ae
+  ON a.acteco_secuencia = ae.secuencia
+
+-- ===========================================
+-- Cruce DIVPOL nacimiento y registro (NAT)
+-- ===========================================
+LEFT JOIN (
+    SELECT DISTINCT codigo, nombre, nacionalidad, CODIGO_CODAZZI
+    FROM division_politicas
+) dp_nac
+  ON dp_nac.codigo = n.DIVPOL_CODIGO_NACIDO_EN
+
+LEFT JOIN (
+    SELECT DISTINCT codigo, nombre, nacionalidad, CODIGO_CODAZZI
+    FROM division_politicas
+) dp_reg
+  ON dp_reg.codigo = n.DIVPOL_CODIGO_REGISTRADO_EN
+
+WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+  AND rt.marca_activo = 'A'
+
+UNION ALL
+
+/* -------- Jurídicos -------- */
+SELECT
+    r.codigo            AS rol,
+    r.descripcion       AS rol_descripcion,
+    j.tipdoc_codigo     AS tipdoc_codigo,
+    j.numero_documento  AS numero_documento,
+    j.razon_social      AS nombres,
+
+    -- ===============================
+    -- DIVPOL (NACIMIENTO) - JURIDICOS
+    -- ===============================
+    j.DIVPOL_CODIGO_NACIDO_EN      AS DIVPOL_CODIGO_NACIDO_EN,
+    dp_nac.nombre                 AS NOMBRE_NACIDO_EN,
+    dp_nac.nacionalidad           AS NACIONALIDAD_NACIDO_EN,
+    dp_nac.CODIGO_CODAZZI         AS CODIGO_CODAZZI_NACIDO_EN,
+
+    -- ===============================
+    -- DIVPOL (REGISTRO) - JURIDICOS
+    -- ===============================
+    j.DIVPOL_CODIGO               AS DIVPOL_CODIGO_REGISTRADO_EN,
+    dp_reg.nombre                 AS NOMBRE_REGISTRADO_EN,
+    dp_reg.nacionalidad           AS NACIONALIDAD_REGISTRADO_EN,
+    dp_reg.CODIGO_CODAZZI         AS CODIGO_CODAZZI_REGISTRADO_EN,
+
+    s.numero            AS numero_sucursal,
+    s.descripcion       AS nombre_sucursal,
+    s.fecha_creacion    AS fecha_crea_sucursal,
+    s.usuario_creacion  AS usuario_crea_sucursal,
+
+    -- ===============================
+    -- Actividad económica (JURÍDICOS)
+    -- ===============================
+    ae.codigo           AS acteco_codigo,
+    ae.descripcion      AS acteco_descripcion
+
+FROM roles r
+JOIN roles_tercero rt
+  ON r.codigo = rt.rol_codigo
+JOIN juridicos j
+  ON rt.jur_secuencia = j.secuencia
+LEFT JOIN sucursales s
+  ON s.jur_secuencia = j.secuencia
+LEFT JOIN acteco_tercero a
+  ON j.secuencia = a.jur_secuencia
+LEFT JOIN actividades_economicas ae
+  ON a.acteco_secuencia = ae.secuencia
+
+-- ===========================================
+-- Cruce DIVPOL nacimiento y registro (JUR)
+-- ===========================================
+LEFT JOIN (
+    SELECT DISTINCT codigo, nombre, nacionalidad, CODIGO_CODAZZI
+    FROM division_politicas
+) dp_nac
+  ON dp_nac.codigo = j.DIVPOL_CODIGO_NACIDO_EN
+
+LEFT JOIN (
+    SELECT DISTINCT codigo, nombre, nacionalidad, CODIGO_CODAZZI
+    FROM division_politicas
+) dp_reg
+  ON dp_reg.codigo = j.DIVPOL_CODIGO
+
+WHERE rt.rol_codigo IN (7, 8, 17, 21, 32, 37, 38, 41, 62, 92)
+  AND rt.marca_activo = 'A';
