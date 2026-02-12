@@ -19,6 +19,7 @@ SET periodo_max_siniestros = (
 WITH datos_base AS (
   SELECT
     -- Llave de agregación
+    p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
     p.NOMBRE_RAMO_EMISION,
 
@@ -32,126 +33,67 @@ WITH datos_base AS (
     SUM(IFNULL(s.CANTIDAD_SINIESTROS, 0)) AS CANTIDAD_SINIESTROS,
     periodo_max_siniestros AS PERIODO_SINIESTROS,
 
-    -- Exposición LAFT
-    CASE p.CODIGO_RAMO_EMISION
-      -- EXPOSICIÓN BAJA (1)
-        WHEN 1   THEN 1  -- AUTOMOVILES
-        WHEN 3   THEN 1  -- CORRIENTE DEBIL
-        WHEN 4   THEN 1  -- CUMPLIMIENTO
-        WHEN 5   THEN 1  -- INCENDIO
-        WHEN 8   THEN 1  -- ROTURA DE MAQUINARIA
-        WHEN 9   THEN 1  -- NAVEGACION
-        WHEN 10  THEN 1  -- RESPONSABILIDAD CIVIL
-        WHEN 12  THEN 1  -- SUSTRACCION
-        WHEN 14  THEN 1  -- TODO RIESGO
-        WHEN 18  THEN 1  -- ACCIDENTES PERSONALES
-        WHEN 26  THEN 1  -- ACCIDENTES ESCOLARES
-        WHEN 30  THEN 1  -- ACCIDENTES PERSONALES
-        WHEN 34  THEN 1  -- SALUD
-        WHEN 37  THEN 1  -- ARRENDAMIENTO
-        WHEN 39  THEN 1  -- SEGURO AGRICOLA
-        WHEN 56  THEN 1  -- HOTELERO
-        WHEN 66  THEN 1  -- MULTIRRIESGO INDUSTRIAL
-        WHEN 70  THEN 1  -- ADMINISTRADORA DE RIESGOS PROF
-        WHEN 118 THEN 1  -- ACCIDENTES PERSONALES INDIVID.
-        WHEN 310 THEN 1  -- SOAT
-        WHEN 923 THEN 1  -- OFERTAS DE PROTECCION GENERAL
-
-        -- EXPOSICIÓN MEDIA (2)
-        WHEN 7   THEN 2  -- MANEJO
-        WHEN 15  THEN 2  -- TRANSPORTES
-        WHEN 20  THEN 2  -- GRUPO
-        WHEN 21  THEN 2  -- GRUPO PLAN CRECIENTE
-        WHEN 22  THEN 2  -- DEUDORES
-        WHEN 23  THEN 2  -- HOGAR
-        WHEN 24  THEN 2  -- GRUPO EDUCATIVO
-        WHEN 25  THEN 2  -- ULTIMOS GASTOS
-        WHEN 29  THEN 2  -- GRUPO - PLAN NIVELADO
-        WHEN 32  THEN 2  -- GRUPO TRADICIONAL
-        WHEN 33  THEN 2  -- DESEMPLEO
-        WHEN 48  THEN 2  -- VIDA CONJUNTO
-        WHEN 922 THEN 2  -- OFERTAS DE PROTECCION PERSONAS
-
-        -- EXPOSICIÓN ALTA (3)
-        WHEN 40  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 42  THEN 3  -- VIDA INDIVIDUAL BANCASEGUROS
-        WHEN 46  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 47  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 50  THEN 3  -- VIDA INDIVIDUAL MIGRACION
-        WHEN 68  THEN 3  -- RAMOS PREVISIONALES
-        WHEN 69  THEN 3  -- PENSIONES LEY 100
-        WHEN 72  THEN 3  -- RENTAS VOLUNTARIAS
-        WHEN 801 THEN 3  -- TITULOS DE CAPITALIZACION
-        WHEN 140 THEN 3  -- SEGUROS DE VIDA (ANTIGUOS)
-
-        -- NO DOCUMENTADO / CONSERVADOR
-        WHEN 81  THEN 1  -- NO DOCUMENTADO EN LISTADO
-
-        ELSE 1  -- Default conservador: exposición baja
-    END AS EXPOSICION_LAFT,
-
     -- Tipologías Aplicadas
     CASE p.CODIGO_RAMO_EMISION
         -- EXPOSICIÓN BAJA (1)
-        WHEN 1   THEN 0  -- AUTOMOVILES
-        WHEN 3   THEN 0  -- CORRIENTE DEBIL
-        WHEN 4   THEN 1  -- CUMPLIMIENTO
-        WHEN 5   THEN 1  -- INCENDIO
-        WHEN 8   THEN 1  -- ROTURA DE MAQUINARIA
-        WHEN 9   THEN 1  -- NAVEGACION
-        WHEN 10  THEN 1  -- RESPONSABILIDAD CIVIL
-        WHEN 12  THEN 1  -- SUSTRACCION
-        WHEN 14  THEN 1  -- TODO RIESGO
-        WHEN 18  THEN 1  -- ACCIDENTES PERSONALES
-        WHEN 26  THEN 1  -- ACCIDENTES ESCOLARES
-        WHEN 30  THEN 1  -- ACCIDENTES PERSONALES
-        WHEN 34  THEN 0  -- SALUD
-        WHEN 37  THEN 1  -- ARRENDAMIENTO
-        WHEN 39  THEN 1  -- SEGURO AGRICOLA
-        WHEN 56  THEN 1  -- HOTELERO
-        WHEN 66  THEN 1  -- MULTIRRIESGO INDUSTRIAL
-        WHEN 70  THEN 1  -- ADMINISTRADORA DE RIESGOS PROF
-        WHEN 118 THEN 1  -- ACCIDENTES PERSONALES INDIVID.
-        WHEN 310 THEN 1  -- SOAT
-        WHEN 923 THEN 1  -- OFERTAS DE PROTECCION GENERAL
+        WHEN 1   THEN 1  -- AUTOMOVILES - Fraude en siniestros, Uso de testaferros, Cambio por activos de lujo, Empresas fachada, Sobrefacturación
+        WHEN 3   THEN 1  -- CORRIENTE DEBIL - fRAUDE
+        WHEN 4   THEN 1  -- CUMPLIMIENTO - Empresas fachada, Uso de testaferros
+        WHEN 5   THEN 1  -- INCENDIO - Fraude en siniestros, Inversión en bienes raíces, Uso de testaferros
+        WHEN 8   THEN 1  -- ROTURA DE MAQUINARIA - Fraude en siniestros, Empresas fachada
+        WHEN 9   THEN 1  -- NAVEGACION - Fraude en siniestros, Exportaciones ficticias, Uso de testaferros
+        WHEN 10  THEN 1  -- RESPONSABILIDAD CIVIL - Empresas fachada, Fraude en siniestros
+        WHEN 12  THEN 1  -- SUSTRACCION - Fraude en siniestros, Uso de testaferros
+        WHEN 14  THEN 1  -- TODO RIESGO - Fraude en siniestros, Cambio por activos de lujo
+        WHEN 18  THEN 1  -- ACCIDENTES PERSONALES - Fraude en siniestros, Loterías ficticias
+        WHEN 26  THEN 1  -- ACCIDENTES ESCOLARES - Fraude en siniestros
+        WHEN 30  THEN 1  -- ACCIDENTES PERSONALES - Fraude en siniestros, Loterías ficticias
+        WHEN 34  THEN 1  -- SALUD - Fraude
+        WHEN 37  THEN 1  -- ARRENDAMIENTO - Inversión en bienes raíces, Uso de testaferros
+        WHEN 39  THEN 1  -- SEGURO AGRICOLA - Empresas fachada, Fraude en siniestros
+        WHEN 56  THEN 1  -- HOTELERO - Inversión en bienes raíces, Empresas fachada, Fraude en siniestros
+        WHEN 66  THEN 1  -- MULTIRRIESGO INDUSTRIAL - Empresas fachada, Fraude en siniestros
+        WHEN 70  THEN 1  -- ADMINISTRADORA DE RIESGOS PROF - Empresas fachada, Uso de intermediarios
+        WHEN 118 THEN 1  -- ACCIDENTES PERSONALES INDIVID. - Fraude en siniestros, Loterías ficticias
+        WHEN 310 THEN 1  -- SOAT - Fraude en siniestros, Pitufeo
+        WHEN 923 THEN 1  -- OFERTAS DE PROTECCION GENERAL - Fraude en siniestros, Uso de intermediarios
 
         -- EXPOSICIÓN MEDIA (2)
-        WHEN 7   THEN 2  -- MANEJO
-        WHEN 15  THEN 2  -- TRANSPORTES
-        WHEN 20  THEN 2  -- GRUPO
-        WHEN 21  THEN 2  -- GRUPO PLAN CRECIENTE
-        WHEN 22  THEN 2  -- DEUDORES
-        WHEN 23  THEN 2  -- HOGAR
-        WHEN 24  THEN 2  -- GRUPO EDUCATIVO
-        WHEN 25  THEN 2  -- ULTIMOS GASTOS
-        WHEN 29  THEN 2  -- GRUPO - PLAN NIVELADO
-        WHEN 32  THEN 2  -- GRUPO TRADICIONAL
-        WHEN 33  THEN 2  -- DESEMPLEO
-        WHEN 48  THEN 2  -- VIDA CONJUNTO
-        WHEN 922 THEN 2  -- OFERTAS DE PROTECCION PERSONAS
+        WHEN 7   THEN 2  -- MANEJO - Fraude en siniestros, Uso de testaferros, Empresas fachada
+        WHEN 15  THEN 2  -- TRANSPORTES - Fraude en siniestros, Exportaciones ficticias, Sobrefacturación, Empresas fachada
+        WHEN 20  THEN 2  -- GRUPO - Seguros colectivos/masivos, Uso de intermediarios, Pitufeo
+        WHEN 21  THEN 2  -- GRUPO PLAN CRECIENTE - Seguros colectivos/masivos, Rescate anticipado, Uso de intermediarios
+        WHEN 22  THEN 2  -- DEUDORES - Seguros colectivos/masivos, Empresas fachada, Uso de intermediarios
+        WHEN 23  THEN 2  -- HOGAR - Fraude en siniestros, Inversión en bienes raíces, Cambio por activos de lujo
+        WHEN 24  THEN 2  -- GRUPO EDUCATIVO - Seguros colectivos/masivos, Uso de intermediarios
+        WHEN 25  THEN 2  -- ULTIMOS GASTOS - Fraude en siniestros, Loterías ficticias
+        WHEN 29  THEN 2  -- GRUPO - PLAN NIVELADO - Seguros colectivos/masivos, Rescate anticipado, Uso de intermediarios
+        WHEN 32  THEN 2  -- GRUPO TRADICIONAL - Seguros colectivos/masivos, Uso de intermediarios
+        WHEN 33  THEN 2  -- DESEMPLEO - Fraude en siniestros, Loterías ficticias
+        WHEN 48  THEN 2  -- VIDA CONJUNTO - Rescate anticipado, Fraude en siniestros, Uso de testaferros
+        WHEN 922 THEN 2  -- OFERTAS DE PROTECCION PERSONAS - Fraude en siniestros, Uso de intermediarios
 
         -- EXPOSICIÓN ALTA (3)
-        WHEN 40  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 42  THEN 3  -- VIDA INDIVIDUAL BANCASEGUROS
-        WHEN 46  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 47  THEN 3  -- VIDA INDIVIDUAL
-        WHEN 50  THEN 3  -- VIDA INDIVIDUAL MIGRACION
-        WHEN 68  THEN 3  -- RAMOS PREVISIONALES
-        WHEN 69  THEN 3  -- PENSIONES LEY 100
-        WHEN 72  THEN 3  -- RENTAS VOLUNTARIAS
-        WHEN 801 THEN 3  -- TITULOS DE CAPITALIZACION
-        WHEN 140 THEN 3  -- SEGUROS DE VIDA (ANTIGUOS)
+        WHEN 40  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 42  THEN 3  -- VIDA INDIVIDUAL BANCASEGUROS - Compra con recursos ilícitos, Rescate anticipado, Pitufeo, Uso de testaferros, Paraísos fiscales
+        WHEN 46  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 47  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 50  THEN 3  -- VIDA INDIVIDUAL MIGRACION - Compra con recursos ilícitos, Rescate anticipado, Paraísos fiscales, Uso de testaferros
+        WHEN 68  THEN 3  -- RAMOS PREVISIONALES - Compra con recursos ilícitos, Rescate anticipado, Empresas fachada, Uso de testaferros, Fideicomisos
+        WHEN 69  THEN 3  -- PENSIONES LEY 100 - Compra con recursos ilícitos, Rescate anticipado, Empresas fachada, Fideicomisos
+        WHEN 72  THEN 3  -- RENTAS VOLUNTARIAS - Compra con recursos ilícitos, Rescate anticipado, Paraísos fiscales, Empresas fachada
+        WHEN 801 THEN 3  -- TITULOS DE CAPITALIZACION - Compra con recursos ilícitos, Rescate anticipado, Cambio por activos de lujo, Loterías ficticias, Paraísos fiscales
+        WHEN 140 THEN 3  -- SEGUROS DE VIDA (ANTIGUOS) - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Uso de testaferros
 
         -- NO DOCUMENTADO / CONSERVADOR
-        WHEN 81  THEN 1  -- NO DOCUMENTADO EN LISTADO
-
+        WHEN 81  THEN 1  -- NO DOCUMENTADO EN LISTADO - Fraude en siniestros
         ELSE 1  -- Default conservador: exposición baja
-
     END AS TIPOLOGIAS_APLICADAS
 
   FROM (
     -- Subquery de PRIMAS
     SELECT
+      CODIGO_COMPANIA,
       CODIGO_RAMO_EMISION,
       NOMBRE_RAMO_EMISION,
       NUMERO_SECUENCIA_POLIZA,
@@ -165,8 +107,10 @@ WITH datos_base AS (
     WHERE
       DATE(FECHA_PROCESO) = periodo_max_primas
       AND DATE(FECHA_FIN_ENDOSO) >= CURRENT_DATE()
-      AND DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE() and PRIMA_ANUAL > 0
+      AND DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE() 
+      AND PRIMA_ANUAL > 0
     GROUP BY
+      CODIGO_COMPANIA,
       CODIGO_RAMO_EMISION,
       NOMBRE_RAMO_EMISION,
       NUMERO_SECUENCIA_POLIZA,
@@ -178,6 +122,7 @@ WITH datos_base AS (
   LEFT JOIN (
     -- Subquery de SINIESTROS
     SELECT
+      CODIGO_COMPANIA,
       NUMERO_SECUENCIA_POLIZA,
       NUMERO_POLIZA,
       TIPO_DOCUMENTO_TOMADOR,
@@ -191,6 +136,7 @@ WITH datos_base AS (
       AND ESTADO_SINIESTRO_CALCULADO = 'PAGADO'
       AND LIQUIDADO_BOLIVAR > 0
     GROUP BY
+      CODIGO_COMPANIA,
       KEY_ID_TOMADOR,
       NUMERO_POLIZA,
       NUMERO_SECUENCIA_POLIZA,
@@ -202,6 +148,7 @@ WITH datos_base AS (
     AND p.NUMERO_SECUENCIA_POLIZA = s.NUMERO_SECUENCIA_POLIZA
 
   GROUP BY
+    p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
     p.NOMBRE_RAMO_EMISION,
     p.PERIODO_CONSULTADO,
@@ -211,11 +158,14 @@ WITH datos_base AS (
 calculos_intermedios AS (
   SELECT
     *,
-    -- Total de siniestros de todos los ramos
-    SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER() AS TOTAL_SINIESTROS_GLOBAL,
+    -- Total de siniestros POR COMPAÑÍA (PARTITION BY CODIGO_COMPANIA)
+    SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA) AS TOTAL_SINIESTROS_POR_COMPANIA,
     
-    -- pR = Siniestros del ramo / Total siniestros de todos los ramos
-    SAFE_DIVIDE(SINIESTRO_LIQUIDADO_TOTAL, SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER()) AS pR,
+    -- pR = Siniestros del ramo / Total siniestros de la compañía
+    SAFE_DIVIDE(
+      SINIESTRO_LIQUIDADO_TOTAL, 
+      SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA)
+    ) AS pR,
     
     -- sR = Siniestros pagados / Primas emitidas
     SAFE_DIVIDE(SINIESTRO_LIQUIDADO_TOTAL, PRIMA_ANUAL_TOTAL) AS sR,
@@ -232,13 +182,14 @@ calculos_finales AS (
     -- Riesgo Inherente = pR × sR × DR
     (pR * sR * DR) AS RIESGO_INHERENTE,
     
-    -- Suma total de Riesgo Inherente para calcular el porcentaje
-    SUM(pR * sR * DR) OVER() AS SUMA_TOTAL_RIESGO_INHERENTE
+    -- Suma total de Riesgo Inherente POR COMPAÑÍA (PARTITION BY CODIGO_COMPANIA)
+    SUM(pR * sR * DR) OVER(PARTITION BY CODIGO_COMPANIA) AS SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA
     
   FROM calculos_intermedios
 )
 
 SELECT
+  CODIGO_COMPANIA,
   CODIGO_RAMO_EMISION,
   NOMBRE_RAMO_EMISION,
   PRIMA_ANUAL_TOTAL,
@@ -247,8 +198,10 @@ SELECT
   SINIESTRO_LIQUIDADO_TOTAL,
   CANTIDAD_SINIESTROS,
   PERIODO_SINIESTROS,
-  EXPOSICION_LAFT,
   TIPOLOGIAS_APLICADAS,
+  
+  -- Total de siniestros de la compañía (para validación)
+  TOTAL_SINIESTROS_POR_COMPANIA,
   
   -- Nuevas columnas calculadas
   ROUND(pR * 100, 2) AS pR_PORCENTAJE,
@@ -257,17 +210,20 @@ SELECT
   
   -- Quintil (Impacto) basado en sR
   CASE 
-    WHEN sR <= 0.20 THEN 'Bajo'
-    WHEN sR <= 0.40 THEN 'Medio Bajo'
-    WHEN sR <= 0.60 THEN 'Medio'
-    WHEN sR <= 0.80 THEN 'Medio Alto'
-    ELSE 'Alto'
+    WHEN sR <= 0.20 THEN '🟢 Bajo'
+    WHEN sR <= 0.40 THEN '🟢 Medio Bajo'
+    WHEN sR <= 0.60 THEN '🟡  Medio'
+    WHEN sR <= 0.80 THEN '🟡  Medio Alto'
+    ELSE '🔴 Alto'
   END AS QUINTIL_IMPACTO,
   
   ROUND(RIESGO_INHERENTE, 6) AS RIESGO_INHERENTE,
-  ROUND(SUMA_TOTAL_RIESGO_INHERENTE * 100, 2) AS RESULTADO_FINAL_PORCENTAJE
+  
+  -- RESULTADO FINAL POR COMPAÑÍA (se repite el mismo valor para todos los ramos de la misma compañía)
+  ROUND(SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA * 100, 2) AS RESULTADO_FINAL_PORCENTAJE
 
 FROM calculos_finales
 
 ORDER BY
+  CODIGO_COMPANIA,
   PRIMA_ANUAL_TOTAL DESC;
