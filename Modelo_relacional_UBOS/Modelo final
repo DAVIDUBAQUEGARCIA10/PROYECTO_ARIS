@@ -1,11 +1,9 @@
-CREATE OR REPLACE TABLE
-`sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional_total` AS
 WITH RECURSIVE
 -- ============================================================
 -- 0) CONFIG
 -- ============================================================
 cfg AS (
-  SELECT 10 AS p_max_niveles
+  SELECT 5 AS p_max_niveles
 ),
 
 -- ============================================================
@@ -39,21 +37,22 @@ base AS (
 ),
 
 -- ============================================================
--- 2) RAÍCES (FILTRA DESDE EL ARRANQUE)
---    Si luego lo quieres masivo, quitas el WHERE y listo.
+-- 2) RAÍCES (FILTRADO POR NÚMERO DE DOCUMENTO ESPECÍFICO)
 -- ============================================================
 params AS (
   SELECT DISTINCT
     TIPO_DOCUMENTO  AS raiz_tipo_documento,
     NUMERO_DOCUMENTO AS raiz_numero_documento
   FROM base
+  WHERE NUMERO_DOCUMENTO = 'r2NJ2fCnute+z1+ZIvzrtqOfDr9PLDPLIVU174TLR6IovM0klNx67dVR6f5KEeLcXkKw+Q7L0P85w7X+NWZX4A=='
+  --'h7VF+CwIXDnAub1XvvxHDT/F1aByPacfqzcuKQv8zYaymhL/f1zNq1P99hTjYheIpiL3cBxhchxrSJQIxAkEYw=='
 ),
 
 -- ============================================================
 -- 3) FRONTIER (solo nodos/padres, no cargas columnas innecesarias)
 -- ============================================================
 frontier AS (
-  -- ANCLA
+
   SELECT
     p.raiz_tipo_documento,
     p.raiz_numero_documento,
@@ -65,7 +64,7 @@ frontier AS (
 
   UNION ALL
 
-  -- RECURSIVO (expande a NT/NE)
+  -- RECURSIVO: Expande a los relacionados (NT/NE) nivel por nivel
   SELECT
     f.raiz_tipo_documento,
     f.raiz_numero_documento,
@@ -123,8 +122,6 @@ SELECT
   padre_tipo_documento,
   padre_numero_documento,
   nivel_recursivo,
-  TIPO_DOCUMENTO,
-  NUMERO_DOCUMENTO,
   CODIGO_RESTRICCION_TITULAR,
   DESCRIPCION_RESTRICCION_TITULAR,
   TIPO_DOCUMENTO_RELACIONADO_DAV,
