@@ -1,0 +1,46 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0008_prod` AS 
+SELECT TIPO_DOCUMENTO, KEY_ID , CODIGO_COMPANIA, VALOR_PAGO_PESOS, FECHA_PAGO, CODIGO_RESTRICCION, CONCAT(
+    'Contraparte con código de restricción', CODIGO_RESTRICCION,
+    ', cuya descripción es ', DESCRIPCION_RESTRICCION,
+    ' tiene un pago autorizado por el agente ', CODIGO_AGENTE,
+    ' bajo el número de orden de pago ', NUMERO_ORDEN_PAGO,
+    ' por valor de ', FORMAT('%\'.0f', VALOR_PAGO_PESOS), ' pesos',
+    ', código de banco ', CODIGO_BANCO,
+    ', pago realizado el ', FORMAT_DATE('%Y-%m-%d', FECHA_PAGO)
+  ) AS detalle,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE() AS FECHA_ALERTA,
+FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_con_restriccion
+WHERE CODIGO_RESTRICCION NOT IN ('0','23','50','12','28') and FECHA_PAGO > '2026-01-01' and FECHA_BAJA is null
+
+
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0008_prod` 
+  (TIPO_DOCUMENTO, KEY_ID, CODIGO_COMPANIA, VALOR_PAGO_PESOS, FECHA_PAGO, CODIGO_RESTRICCION, detalle, FECHA_ALERTA_MES, FECHA_ALERTA)
+SELECT 
+  TIPO_DOCUMENTO, 
+  KEY_ID, 
+  CODIGO_COMPANIA, 
+  VALOR_PAGO_PESOS, 
+  FECHA_PAGO, 
+  CODIGO_RESTRICCION, 
+  CONCAT(
+    'Contraparte con código de restricción ', CODIGO_RESTRICCION,
+    ', cuya descripción es ', DESCRIPCION_RESTRICCION,
+    ' tiene un pago autorizado por el agente ', CODIGO_AGENTE,
+    ' bajo el número de orden de pago ', NUMERO_ORDEN_PAGO,
+    ' por valor de ', FORMAT('%\'.0f', VALOR_PAGO_PESOS), ' pesos',
+    ', código de banco ', CODIGO_BANCO,
+    ', pago realizado el ', FORMAT_DATE('%Y-%m-%d', FECHA_PAGO)
+  ) AS detalle,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE() AS FECHA_ALERTA
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_ordenes_pago_con_restriccion` ordenes
+WHERE CODIGO_RESTRICCION NOT IN ('0','23','50','12','28') 
+  AND FECHA_PAGO > '2026-01-01' 
+  AND FECHA_BAJA IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0008_prod` t
+    WHERE t.KEY_ID = ordenes.KEY_ID
+  );
