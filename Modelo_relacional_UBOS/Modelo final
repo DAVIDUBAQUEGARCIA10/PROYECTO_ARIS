@@ -44,7 +44,8 @@ params AS (
     TIPO_DOCUMENTO  AS raiz_tipo_documento,
     NUMERO_DOCUMENTO AS raiz_numero_documento
   FROM base
-  WHERE NUMERO_DOCUMENTO = 'r2NJ2fCnute+z1+ZIvzrtqOfDr9PLDPLIVU174TLR6IovM0klNx67dVR6f5KEeLcXkKw+Q7L0P85w7X+NWZX4A=='
+  WHERE NUMERO_DOCUMENTO = '900848410'
+  -- 'r2NJ2fCnute+z1+ZIvzrtqOfDr9PLDPLIVU174TLR6IovM0klNx67dVR6f5KEeLcXkKw+Q7L0P85w7X+NWZX4A=='
 ),
 
 -- ============================================================
