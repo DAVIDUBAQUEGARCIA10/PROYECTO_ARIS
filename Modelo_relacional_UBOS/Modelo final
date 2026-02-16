@@ -3,7 +3,7 @@ WITH RECURSIVE
 -- 0) CONFIG
 -- ============================================================
 cfg AS (
-  SELECT 5 AS p_max_niveles
+  SELECT 10 AS p_max_niveles
 ),
 
 -- ============================================================
@@ -45,7 +45,6 @@ params AS (
     NUMERO_DOCUMENTO AS raiz_numero_documento
   FROM base
   WHERE NUMERO_DOCUMENTO = 'r2NJ2fCnute+z1+ZIvzrtqOfDr9PLDPLIVU174TLR6IovM0klNx67dVR6f5KEeLcXkKw+Q7L0P85w7X+NWZX4A=='
-  --'h7VF+CwIXDnAub1XvvxHDT/F1aByPacfqzcuKQv8zYaymhL/f1zNq1P99hTjYheIpiL3cBxhchxrSJQIxAkEYw=='
 ),
 
 -- ============================================================
@@ -117,21 +116,147 @@ final AS (
 )
 
 SELECT
-  raiz_tipo_documento,
-  raiz_numero_documento,
-  padre_tipo_documento,
-  padre_numero_documento,
-  nivel_recursivo,
-  CODIGO_RESTRICCION_TITULAR,
-  DESCRIPCION_RESTRICCION_TITULAR,
-  TIPO_DOCUMENTO_RELACIONADO_DAV,
-  KEY_ID_RELACIONADO_DAV,
-  PORCENTAJE_RELACIONADO_DAV,
-  LINAJE_BENEFICIARIO,
-  NIVEL,
-  CODIGO_RESTRICCION_RELACIONADO,
-  DESCRIPCION_RESTRICCION_RELACIONADO
-FROM final
+  f.raiz_tipo_documento,
+  f.raiz_numero_documento,
+  f.padre_tipo_documento,
+  f.padre_numero_documento,
+  f.nivel_recursivo,
+  f.CODIGO_RESTRICCION_TITULAR,
+  f.DESCRIPCION_RESTRICCION_TITULAR,
+  f.TIPO_DOCUMENTO_RELACIONADO_DAV,
+  f.KEY_ID_RELACIONADO_DAV,
+  f.PORCENTAJE_RELACIONADO_DAV,
+  f.LINAJE_BENEFICIARIO,
+  f.NIVEL,
+  f.CODIGO_RESTRICCION_RELACIONADO,
+  f.DESCRIPCION_RESTRICCION_RELACIONADO,
+  
+  -- Traer ALERTA desde la tabla de alertamiento
+  a.ALERTA,
+  
+  -- Clasificación de nivel de proximidad basado en LINAJE_BENEFICIARIO
+  CASE
+    -- NIVEL ALTO: Relaciones familiares directas y control corporativo directo
+    WHEN f.LINAJE_BENEFICIARIO IN (
+      'CONYUGUE',
+      'ESPOSA',
+      'ESPOSO',
+      'COMPANIERO',
+      'COMPANIERA PERMANENTE',
+      'COMPANIERO PERMANENTE',
+      'HIJOS',
+      'HIJA',
+      'HIJO',
+      'PADRE',
+      'PADRES',
+      'MADRE',
+      'HERMANOS',
+      'HERMANO',
+      'HERMANA',
+      'REPRESENTANTE LEGAL',
+      'REPRESENTANTE LEGAL LOCAL',
+      'REPRESENTANTE LEGAL REGIONAL',
+      'REPRESENTANTE LEGAL SUPLENTE',
+      'SOCIO',
+      'SOCIO Y ACCIONISTA',
+      'ACCIONISTA CONTROLANTE',
+      'EJERCE CTRL FINAL BENEFICIOS',
+      'GERENTE',
+      'SUBGERENTE',
+      'PRESIDENTE',
+      'VICEPRESIDENTE',
+      'EMPRESA DEL RL',
+      'ACCIONISTA',
+      'ACCIONISTAS',
+      'JUNTA DIRECTIVA',
+      'JUNTA DIRECTIVA SUPLENTE',
+      'CONSEJO DE ADMINISTRACION',
+      'BOARD MEMBER',
+      'REVISOR FISCAL',
+      'TESORERO',
+      'SOCIO GRUPO FAMILIAR',
+      'SOCIO PARTICIPACION INDIRECTA',
+      'SOCIO PI',
+      'SOCIO GFTIA'
+    ) THEN 'ALTO'
+    
+    -- NIVEL MEDIO: Relaciones familiares secundarias y roles corporativos importantes
+    WHEN f.LINAJE_BENEFICIARIO IN (
+      'ABUELA',
+      'ABUELO',
+      'ABUELOS DE CADA UNO',
+      'NIETO',
+      'NIETA',
+      'SUEGRA',
+      'SUEGRO',
+      'CUNIAD',
+      'CUNIADA',
+      'CUNADO',
+      'CUNIADAS',
+      'YERNO',
+      'NUERA',
+      'SOBRINO',
+      'SOBRINA',
+      'TIO',
+      'ORDENADOR DEL GASTO',
+      'JEFE',
+      'EMPLEADOR',
+      'COTITULAR',
+      'JOINT',
+      'FIDUCIANTE',
+      'FIDEICOMITENTE',
+      'COMITE FIDUCIARIO FINANCIERO',
+      'RELATED SUBSIDIARY',
+      'ABUELOA DEL CONYUGE'
+    ) THEN 'MEDIO'
+    
+    -- NIVEL BAJO: Relaciones lejanas, afinidad, comerciales y roles operativos
+    WHEN f.LINAJE_BENEFICIARIO IN (
+      'PRIMO',
+      'PRIMA',
+      'PADRINO',
+      'MADRINA',
+      'AHIJADO',
+      'AHIJADA',
+      'AMIGO',
+      'AMIGA',
+      'PERSONA NATURAL CON NEGOCIO',
+      'PROVEEDOR',
+      'DISTRIBUIDOR',
+      'CLIENTE',
+      'COMERCIAL',
+      'INFLUENCER',
+      'PARTNERSHIP',
+      'CONFIRMADOR',
+      'ORDENANTE SIN FIRMA',
+      'ORDENANTE',
+      'AVALISTA',
+      'BENEFICIARIO',
+      'APODERADO',
+      'AUTORIZADO',
+      'OTHER ATTORNEY',
+      'TUTOR',
+      'EMPLEADO',
+      'SECRETARIA',
+      'SECRETARIO',
+      'ASISTENTE',
+      'ADMIN ASSISTANT',
+      'SUBALTERNO',
+      'CONTADOR',
+      'USUARIO PORTAL',
+      'REFERENCIA PERSONAL',
+      'PARIENTE',
+      'NO INFORMADO'
+    ) THEN 'BAJO'
+    
+    ELSE 'ALTO'  -- Por defecto, cualquier otro caso
+  END AS NIVEL_PROXIMIDAD
+
+FROM final f
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS` a
+  ON f.TIPO_DOCUMENTO_RELACIONADO_DAV = a.TIPO_DOCUMENTO
+  AND f.KEY_ID_RELACIONADO_DAV = a.KEY_ID_BENEFICIARIO
+  
 QUALIFY ROW_NUMBER() OVER (
   PARTITION BY
     raiz_tipo_documento,
@@ -145,9 +270,15 @@ QUALIFY ROW_NUMBER() OVER (
     padre_numero_documento
 ) = 1
 ORDER BY
+  CASE 
+    WHEN NIVEL_PROXIMIDAD = 'ALTO' THEN 1
+    WHEN NIVEL_PROXIMIDAD = 'MEDIO' THEN 2
+    WHEN NIVEL_PROXIMIDAD = 'BAJO' THEN 3
+  END,
   raiz_tipo_documento,
   raiz_numero_documento,
   nivel_recursivo,
+  LINAJE_BENEFICIARIO,
   padre_tipo_documento,
   padre_numero_documento,
   TIPO_DOCUMENTO_RELACIONADO_DAV,
