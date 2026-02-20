@@ -10,7 +10,8 @@ c.COMPANIA,
 c.FECHA_ALERTA_MES,
 c.FECHA_ALERTA,
 
-p.NUMERO_DOCUMENTO, 
+p.NUMERO_DOCUMENTO,
+ 
 c.FECHA_TRANSACCION,
 c.VALOR_TRANSACCION,
 c.FORMA_PAGO_CANAL,
@@ -37,36 +38,48 @@ datos.OPERACIONES_INTERNACIONALES,
 datos.CODIGO_CODAZZI_DIRECCION_1,
 datos.MUNICIPIO_DIRECCION_1,
 datos.COD_PROFESION,
-list.CODIGO_RESTRICCION,
-list.DESCRIPCION
+datos.COD_OCUPACION,
 
+list.CODIGO_RESTRICCION,
+list.DESCRIPCION,
+
+
+riesgosendo.PRIMA_ANUAL_TOTAL,
+riesgosendo.PERIODO_FACTURACION_REF,
+riesgosendo.NOMBRE_RAMO_EMISION_REF,
+riesgosendo.NOMBRE_PRODUCTO_REF,
+riesgosendo.CLAVE_AGENTE_REF,
+riesgosendo.NOMBRE_AGENTE_REF,
+riesgosendo.MARCA_ANULACION_REF,
+riesgosendo.CODIGO_LOCALIDAD_REF,
+riesgosendo.NOMBRE_LOCALIDAD_REF,
 
 from (
 
 ----------------------- CAPITALIZADORA BOLIVAR
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO,
+--    KEY_ID_BENEFICIARIO,
+--    TITULO,
+--    'CAP_0304' AS ALERTA, 
+--    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA , 
+--    1 AS COMPANIA,
+--    FECHA_ALERTA_MES,
+--    FECHA_ALERTA,
+--     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+--     CAST(SALDO_PESOS AS STRING) AS VALOR_TRANSACCION,
+--     CAST('' AS STRING) AS FORMA_PAGO_CANAL,
+--     801 AS CODIGO_RAMO,
+--     51 AS CODIGO_PRODUCTO
+--FROM
+--    `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO`
+
+--UNION ALL
+
 SELECT DISTINCT
     TIPO_DOCUMENTO,
-    KEY_ID_BENEFICIARIO,
-    TITULO,
-    'CAP_0304' AS ALERTA, 
-    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA , 
-    1 AS COMPANIA,
-    FECHA_ALERTA_MES,
-    FECHA_ALERTA,
-     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST(SALDO_PESOS AS STRING) AS VALOR_TRANSACCION,
-     CAST('' AS STRING) AS FORMA_PAGO_CANAL,
-     801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO`
-
-UNION ALL
-
-SELECT DISTINCT
-    TIPO_DOCUMENTO,
-    KEY_ID AS KEY_ID_TOMADOR,
-    NUMERO_TITULO,
+    KEY_ID AS KEY_ID_BENEFICIARIO,
+    NUMERO_TITULO AS TITULO,
     'CAP_0069' AS ALERTA,
     'Pep realiza pago de cuotas en el titulo de capitalización por un valor  mayor  a  $1.000.000' AS DESCRIPCION_ALERTA,    
     1 AS COMPANIA,
@@ -78,7 +91,7 @@ SELECT DISTINCT
      801 AS CODIGO_RAMO,
      51 AS CODIGO_PRODUCTO     
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod`
 
 UNION ALL
 
@@ -91,13 +104,185 @@ SELECT DISTINCT
     1 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
-     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,     
      CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
      801 AS CODIGO_RAMO,
      51 AS CODIGO_PRODUCTO
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0009_VISOR_TRANS`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0009_prod`
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_TITULO,
+    'CAP_0010' AS ALERTA,
+    'Detona la alerta cuando un cliente realiza una transacción y su pais de residencia u Origen, es de una jurisdicción de alto riesgo según el GAFI ' AS DESCRIPCION_ALERTA ,     
+    1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,     
+     CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
+     801 AS CODIGO_RAMO,
+     51 AS CODIGO_PRODUCTO
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0010_prod`
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    0 as NUMERO_TITULO,
+    'CAP_0011' AS ALERTA,
+    'Detona la alerta cuando un cliente realiza pagos a más de dos títulos y presenta movimientos de alta frecuencia (2 o mas) posterior a la apertura del producto (90 Dias).' AS DESCRIPCION_ALERTA ,     
+    1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(fecha_apertura_primer_titulo AS DATE) AS FECHA_TRANSACCION,
+     CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+     CAST(titulos_muestra AS STRING) AS FORMA_PAGO_CANAL ,
+     801 AS CODIGO_RAMO,
+     51 AS CODIGO_PRODUCTO
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0011_prod`
+
+
+
+UNION ALL
+
+    SELECT DISTINCT
+        TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID AS KEY_ID_TOMADOR,
+        NUMERO_TITULO AS NUMERO_TITULO,
+        'CAP_0012' AS ALERTA,
+        'Se genera una alerta cuando un cliente realiza un pago de cuota por un valor estrictamente superior al pactado individualmente en su producto' AS DESCRIPCION_ALERTA,     
+        1 AS COMPANIA,
+        FECHA_ALERTA_MES,    
+        FECHA_ALERTA,
+        CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
+        CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,
+        
+
+        CONCAT(
+        'El cliente tiene pago fijo pactado por ', CAST(CUOTA_ACTUAL AS STRING),
+        ' y detono por pago de ', CAST(VALOR_TRANSACCION AS STRING),
+        ' por concepto de ', DESCRIPCION_TIPO_MOVIMIENTO,
+        ' en la fecha ', CAST(FECHA_TRANSACCION AS STRING)
+        ) AS FORMA_PAGO_CANAL,
+
+        801 AS CODIGO_RAMO,
+        51 AS CODIGO_PRODUCTO
+    FROM
+        `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0012_prod`
+
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    NUMERO_TITULO AS NUMERO_TITULO,
+    'CAP_0013' AS ALERTA,
+    'Aumento superior al 150% en el pago mensual sumado pagado en los últimos 30 días respecto a los pagos de los últimos 90 días anteriores.' AS DESCRIPCION_ALERTA,
+    1 AS COMPANIA,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA,
+    CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
+    CAST(total_30d AS STRING) AS VALOR_TRANSACCION,
+
+    -- Texto explicativo comparando 30 vs 90 días
+    CONCAT(
+        'En los últimos 30 días tuvo pagos acumulados por ', CAST(total_30d AS STRING),
+        ' y en los 90 días anteriores acumulados por ', CAST(total_90d_prev AS STRING),
+        '. Se evidencia un aumento en el último mes.'
+    ) AS FORMA_PAGO_CANAL,
+    801 AS CODIGO_RAMO,
+    51 AS CODIGO_PRODUCTO
+FROM  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod`
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_TITULO,
+    'CAP_0014' AS ALERTA,
+    'Detona cuando se evidencia la variación superior al 50% frente al año anterior. cuando la diferencia es superior a 5 Millones de Pesos.' AS DESCRIPCION_ALERTA ,     
+    1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(  FECHA_CREACION AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_INGRESOS AS STRING) AS VALOR_TRANSACCION,     
+      CONCAT(
+    'El ingreso reportado por ', CAST(VALOR_INGRESOS AS STRING),
+    ' en la fecha ', CAST(FECHA_CREACION AS STRING),
+    ' supera en condiciones a el valor de la fecha anterior por ',
+    CAST(ingreso_anterior AS STRING),
+    ' con una diferencia de ',
+    CAST(diferencia_ingresos AS STRING)
+  )  AS FORMA_PAGO_CANAL ,
+     801 AS CODIGO_RAMO,
+     51 AS CODIGO_PRODUCTO
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod`
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_TITULO,
+    'CAP_0015' AS ALERTA,
+    'Cliente cancela producto, apertura uno nuevo en corto plazo (90 Dias)' AS DESCRIPCION_ALERTA ,     
+    1 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(FECHA_APERTURA_NUEVO AS DATE) AS FECHA_TRANSACCION,
+     CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+        'Título cancelado: ', CAST(NUMERO_TITULO_CANCELADO AS STRING), ', ',
+        'Fecha de cancelación: ', CAST(FECHA_CANCELACION AS STRING), ', ',
+        'Nuevo: ', CAST(NUMERO_TITULO_NUEVO AS STRING), ', ',
+        'Fecha apertura: ', CAST(FECHA_APERTURA_NUEVO AS STRING), ', ',
+        'Diferencia en días: ', CAST(DIAS_ENTRE_CANCEL_Y_APERTURA AS STRING)
+    ) AS FORMA_PAGO_CANAL,
+     801 AS CODIGO_RAMO,
+     51 AS CODIGO_PRODUCTO
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0015_prod`
+
+
+--UNION ALL
+
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+--    KEY_ID AS KEY_ID_TOMADOR,
+--    0 AS NUMERO_TITULO,
+--    'CAP_0016' AS ALERTA,
+--    'Actividades Economicas de Alto Riesgo sujeto a listas o especificamente a codigos de terceros --restringidos de alto riesgo' AS DESCRIPCION_ALERTA ,     
+--    1 AS COMPANIA,
+--    FECHA_ALERTA_MES,    
+--    FECHA_ALERTA,
+--     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+--     CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+---     CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
+--     801 AS CODIGO_RAMO,
+--     51 AS CODIGO_PRODUCTO
+--FROM
+--    `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0016_VISOR_TRANS`
 
 
 UNION ALL
@@ -109,41 +294,46 @@ UNION ALL
 
 
 
-SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    NUMERO_POLIZA,
-    'SEG_0311' AS ALERTA,
-    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA ,     
-    2 AS COMPANIA,
-    FECHA_ALERTA_MES,    
-    FECHA_ALERTA,
-     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST(NOMBRE_LISTA AS STRING) AS FORMA_PAGO_CANAL ,
-     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO     
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO`
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO_TOMADOR,
+--    KEY_ID_TOMADOR,
+--    NUMERO_POLIZA,
+--    'SEG_0311' AS ALERTA,
+--    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA ,     
+--    2 AS COMPANIA,
+--    FECHA_ALERTA_MES,    
+--    FECHA_ALERTA,
+--     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+--    CAST('0' AS STRING) AS VALOR_TRANSACCION, 
+--     CAST(NOMBRE_LISTA AS STRING) AS FORMA_PAGO_CANAL ,
+--     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+--     CODIGO_PRODUCTO AS CODIGO_PRODUCTO     
+--FROM
+--    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO`
 
-UNION ALL
+--UNION ALL
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
     KEY_ID_TOMADOR,
     NUMERO_POLIZA_ACTUAL,
     'SEG_0101' AS ALERTA,
-    'Montos asegurados por ramo, para un tomador persona natural, supera en 175% el monto del periodo anterior' AS DESCRIPCION_ALERTA ,     
+    'Montos asegurados por ramo, para un tomador persona natural, supera en 160% el monto del periodo anterior' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
      CAST(VALOR_ASEGURADO_POLIZA_ANTERIOR AS STRING) AS VALOR_TRANSACCION, 
-     CAST(CODIGO_COBERTURA AS STRING) AS FORMA_PAGO_CANAL,
+        CONCAT(
+        'Valor asegurado anterior: ',
+        CAST(VALOR_ASEGURADO_POLIZA_ANTERIOR AS STRING),
+        ', Valor asegurado actual: ',
+        CAST(VALOR_ASEGURADO_POLIZA_ACTUAL AS STRING)
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101_prod`
 
 UNION ALL
 
@@ -158,11 +348,16 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ACTUALIZACION AS DATE) AS FECHA_TRANSACCION,
      CAST(VALOR_ASEGURADO AS STRING) AS VALOR_TRANSACCION,    
-     CAST(VALOR_ASEGURADO AS STRING) AS FORMA_PAGO_CANAL,
+    CONCAT(
+    'La fecha de constitución de la empresa es ',
+    CAST(FECHA_NACIMIENTO AS STRING),
+    ' y su valor asegurado es ',
+    CAST(VALOR_ASEGURADO AS STRING)
+    ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO             
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103_prod`
 
 
 UNION ALL
@@ -172,17 +367,24 @@ SELECT DISTINCT
     KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'SEG_0002' AS ALERTA,
-    'Retiro del fondo de ahorro por un monto estrictamente mayor a $25.000.000 o 15.000 usd y la poliza aun no ha vencido ' AS DESCRIPCION_ALERTA ,     
+    'Generar alerta cuando se realice un retiro del fondo de ahorro por un monto superior a $25.000.000, antes del vencimiento de la póliza y dentro de los primeros 90 días desde su apertura.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
      CAST(VALOR_RETIRO AS STRING) AS VALOR_TRANSACCION,  
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
+        CONCAT(
+        'Póliza emitida el ',
+        CAST(FECHA_EMISION_POLIZA AS STRING),
+        ', retiro por ',
+        CAST(VALOR_RETIRO AS STRING),
+        ' el ',
+        CAST(FECHA_ULT_MODIFICACION AS STRING)
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0002_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0002_prod`
 
 
 UNION ALL
@@ -198,11 +400,18 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_CANCELACION_DEF AS DATE) AS FECHA_TRANSACCION,
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST(DESCRIPCION_ENDOSO AS STRING) AS FORMA_PAGO_CANAL,
+    CONCAT(
+    'Póliza emitida el ',
+    CAST(FECHA_INICIO_VIGENCIA_POLIZA AS STRING),
+    ', y cancelada el ',
+    CAST(FECHA_CANCELACION_DEF AS STRING),
+    ', comentario: ',
+    CAST(DESCRIPCION_ENDOSO AS STRING)
+    ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO             
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0003_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0003_prod`
 
 UNION ALL
 ---------------------------
@@ -217,11 +426,18 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_CANCELACION_DEF AS DATE) AS FECHA_TRANSACCION,
      CAST('0' AS STRING) AS VALOR_TRANSACCION,   
-     CAST(DESCRIPCION_ENDOSO_B AS STRING) AS FORMA_PAGO_CANAL,
+    CAST(
+    CONCAT(
+        'Motivo: ', DESCRIPCION_ENDOSO,
+        ' | Fecha inicio endoso: ', CAST(FECHA_INICIO_ENDOSO AS STRING),
+        ' | Cambio beneficiario: ', CAST(FECHA_CAMBIO_NOVEDAD_BENEF AS STRING),
+        ' | Fecha cancelación definitiva: ', CAST(FECHA_CANCELACION_DEF AS STRING)
+    )
+    AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0004_prod`
 
 UNION ALL
 
@@ -236,11 +452,20 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ORDEN_PAGO AS DATE) AS FECHA_TRANSACCION,
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,
-     CAST(DESCRIPCION_ENDOSO AS STRING) AS FORMA_PAGO_CANAL,
+    CONCAT(
+    'Pago de siniestro el día ',
+    CAST(FECHA_ORDEN_PAGO AS STRING),
+    ' por valor de ',
+    CAST(LIQUIDADO_BOLIVAR AS STRING),
+    ', tipo de endoso ',
+    CAST(TIPO_ENDOSO AS STRING),
+    ' y descripción ',
+    CAST(DESCRIPCION_ENDOSO AS STRING)
+    ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO           
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0005_prod`
 
 UNION ALL
 
@@ -255,11 +480,17 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ORDEN_PAGO AS DATE) AS FECHA_TRANSACCION,
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,   
-     CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
+        CAST(
+        CONCAT(
+            'Fecha suscripción: ', CAST(FECHA_SUSCRIPCION AS STRING),
+            ' | Fecha pago: ', CAST(FECHA_ORDEN_PAGO AS STRING),
+            ' | Valor pagado: ', CAST(LIQUIDADO_BOLIVAR AS STRING)
+        )
+        AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0007_prod`
 
 UNION ALL
 
@@ -278,7 +509,7 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO            
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0014_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod`
 
 UNION ALL
 
@@ -293,11 +524,16 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_EMISION_POLIZA AS DATE) AS FECHA_TRANSACCION,
      CAST(SUM_VALOR_AHORRO_EXTRA AS STRING) AS VALOR_TRANSACCION,  
-     CAST(CANAL_DESCUENTO AS STRING) AS FORMA_PAGO_CANAL ,
+        CONCAT(
+        'la suma de los ',
+        CAST(CANTIDAD_REGISTROS AS STRING),
+        ' abonos extraordinarios es ',
+        CAST(SUM_VALOR_AHORRO_EXTRA AS STRING)
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod`
 
 UNION ALL
 
@@ -312,11 +548,20 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_RECAUDO AS DATE) AS FECHA_TRANSACCION,
      CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION,   
-     CAST(FORMA_COBRO AS STRING) AS FORMA_PAGO_CANAL,
+    CONCAT(
+    'el valor inicial es ',
+    CAST(VALOR_INICIAL AS STRING),
+    ', el valor de recaudo fue ',
+    CAST(VALOR_RECAUDO_MES AS STRING),
+    ' el dia ',
+    CAST(FECHA_RECAUDO AS STRING),
+    ' en ',
+    CAST(CANAL_DESCUENTO AS STRING)
+    ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO            
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO`    
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0062_prod`    
 
 
     
@@ -327,17 +572,24 @@ SELECT DISTINCT
     CAST(KEY_ID_TOMADOR AS STRING) AS NUMERO_DOCUMENTO_TOMADOR,
     NUMERO_POLIZA,
     'SEG_0070' AS ALERTA,
-    'Tomador cliente PEP realiza pagos por aportes extraordinarios a los seguros de vida con componente de ahorro por valor mayor a $653.223.' AS DESCRIPCION_ALERTA ,     
+    'Tomador cliente PEP realiza pagos por aportes extraordinarios a los seguros de vida con componente de ahorro por valor mayor a $1.280.951.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_RECAUDO AS DATE) AS FECHA_TRANSACCION,
      CAST(VALOR_AHORRO_EXTRA AS STRING) AS VALOR_TRANSACCION,     
-     CAST(CANAL_DESCUENTO AS STRING) AS FORMA_PAGO_CANAL ,
+    CONCAT(
+    'el valor del pago fue ',
+    CAST(VALOR_AHORRO_EXTRA AS STRING),
+    ' el ',
+    CAST(FECHA_RECAUDO AS STRING),
+    ' y un cliente con indicador pep: ',
+    CAST(PUBLICAMENTE_EXPUESTA AS STRING)
+    ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO`   
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod`   
 
 UNION ALL
 
@@ -352,12 +604,15 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
      CAST('0' AS STRING) AS VALOR_TRANSACCION,  
-     CAST(NUMERO_POLIZAS_PAGADAS AS STRING) AS FORMA_PAGO_CANAL,
+        CONCAT(
+        'Número de pólizas pagadas ',
+        CAST(NUMERO_POLIZAS_PAGADAS AS STRING)
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
-
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO`  
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod`  
+
 
 UNION ALL
 
@@ -366,17 +621,24 @@ SELECT DISTINCT
     KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'SEG_0101B' AS ALERTA,
-    'Pago de siniestro a una persona natural,  por un valor  mayor a $50.000.000,   en  menos de 3 meses de emitida la poliza.' AS DESCRIPCION_ALERTA ,     
+    'Pago de siniestro a una persona natural, por un valor mayor a $50.000.000,en menos de 3 meses de emitida la poliza.' AS DESCRIPCION_ALERTA ,     
     2 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ORDEN_PAGO AS DATE) AS FECHA_TRANSACCION,  
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,   
-     CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
+        CONCAT(
+        'Pago por ',
+        CAST(FECHA_ORDEN_PAGO AS STRING),
+        ' el dia ',
+        CAST(LIQUIDADO_BOLIVAR AS STRING),
+        ' cuyo fecha de emision fue ',
+        CAST(FECHA_SUSCRIPCION AS STRING)
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101B_VISOR_REPO`  
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101B_prod`  
 
 UNION ALL
 
@@ -391,11 +653,18 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ORDEN_PAGO AS DATE) AS FECHA_TRANSACCION, 
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,  
-     CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
-     CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
+        CONCAT(
+        'Pago por ',
+        CAST(LIQUIDADO_BOLIVAR AS STRING),
+        ' el dia ',
+        CAST(FECHA_SINIESTRO AS STRING),
+        ' cuyo fecha de emision fue ',
+        CAST(FECHA_SUSCRIPCION AS STRING)
+        ) AS FORMA_PAGO_CANAL,
+             CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO                
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO`          
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0102B_prod`          
 
 
 
@@ -413,11 +682,11 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,    
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
+     CONCAT('Productos ', PRODUCTOS_ALERTADOS, ' del ramo ', RAMOS_EMISION_ALERTADOS)  AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103Z_VISOR_REPO`          
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103Z_prod`          
 
 
 
@@ -439,48 +708,12 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0104_VISOR_REPO`          
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0104_prod`          
 
 
+    
 
-UNION ALL
-
-SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    NUMERO_POLIZA,
-    'SEG_0105' AS ALERTA,
-    'Tomador se encuentra en una jurisdiccion de alto riesgo por transaccionalidad o residencia y su actividad economica es de alto riesgo.' AS DESCRIPCION_ALERTA ,     
-    2 AS COMPANIA,
-    FECHA_ALERTA_MES,    
-    FECHA_ALERTA,
-     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,    
-     CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST(municipio_direccion_1 AS STRING) AS FORMA_PAGO_CANAL,
-     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0105_VISOR_REPO`          
-
-
-UNION ALL
-
-SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    NUMERO_POLIZA,
-    'SEG_0106' AS ALERTA,
-    'Terceros que hacen  pagos por caja a mas de 3 polizas.' AS DESCRIPCION_ALERTA ,     
-    2 AS COMPANIA,
-    FECHA_ALERTA_MES,    
-    FECHA_ALERTA,
-     CAST(FECHA_RECAUDO AS DATE) AS FECHA_TRANSACCION,  
-     CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION, 
-     CAST(FORMA_COBRO AS STRING) AS FORMA_PAGO_CANAL,
-     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0106_VISOR_REPO`          
+        
 
 UNION ALL
 
@@ -495,36 +728,113 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST(NACIONALIDAD AS STRING) AS FORMA_PAGO_CANAL,
+        CAST(
+        CONCAT(
+            'CLIENTE TIENE NACIONALIDAD ', NACIONALIDAD,
+            'CATALOGADA DE ALTO RIESGO Y TIENE UN PAGO POR ', VALOR_RECAUDO_MES,
+            ' EL DIA ', FECHA_RECAUDO
+        ) AS STRING
+        ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0107_VISOR_REPO`          
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0107_prod`  
 
-
-
-
------------------------ COMERCIALES BOLIVAR
 
 UNION ALL
-
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
     KEY_ID_TOMADOR,
     NUMERO_POLIZA,
-    'COM_0312' AS ALERTA,
-    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA,     
-    3 AS COMPANIA,
+    'SEG_0108' AS ALERTA,
+    'Valor de la Prima no Guarda relacion con los ingresos del tomador.' AS DESCRIPCION_ALERTA ,     
+    2 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,
+    DETALLE_ALERTA AS FORMA_PAGO_CANAL,
+     CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0108_prod`          
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+  TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID as KEY_ID_TOMADOR,
+  NUMERO_POLIZA,
+  'SEG_0106' AS ALERTA,
+  'Cambios bruscos en el perfil financiero del cliente' AS DESCRIPCION_ALERTA,
+  2 AS COMPANIA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  CAST(FECHA_CREACION AS DATE) AS FECHA_TRANSACCION,
+  CAST(0 AS STRING) AS VALOR_TRANSACCION,
+  CONCAT(
+    'El ingreso reportado por ', CAST(VALOR_INGRESOS AS STRING),
+    ' en la fecha ', CAST(FECHA_CREACION AS STRING),
+    ' supera en condiciones al valor de la fecha anterior por ',
+    CAST(ingreso_anterior AS STRING),
+    ' con una diferencia de ',
+    CAST(diferencia_ingresos AS STRING)
+  ) AS FORMA_PAGO_CANAL,
+  CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+  CODIGO_PRODUCTO AS CODIGO_PRODUCTO
+FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod` 
+
+
+----------------------- COMERCIALES BOLIVAR
+
+
+
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO_TOMADOR,
+--    KEY_ID_TOMADOR,
+--    NUMERO_POLIZA,
+--    'COM_0312' AS ALERTA,
+--    'Cliente este calificado como pep en listas consultables pero no registra marcación en terceros' AS DESCRIPCION_ALERTA,     
+--    3 AS COMPANIA,
+--    FECHA_ALERTA_MES,    
+--    FECHA_ALERTA,
+--     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,    
+--     CAST('0' AS STRING) AS VALOR_TRANSACCION, 
+--     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
+--     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+--     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+--FROM
+--    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
+
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0110' AS ALERTA,
+    'Tomador se tiene productos activos del ramo estrategia (923 y 924) y su actividad economica y su jurisdiccion es de alto riesgo para LAFT' AS DESCRIPCION_ALERTA ,     
+    2 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,    
+     CAST(
+    CONCAT(
+        'CLIENTE UBICADO EN ', municipio_direccion_1,
+        ' CON NIVEL DE RIESGO ', nivel_riesgo_jurisdiccion,
+        ' CON CODIGO_CIIU ALTO Y PRODUCTO NIVEL ALTO'
+    ) AS STRING
+    ) AS FORMA_PAGO_CANAL,
+
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.COM_0110_prod`      
+
 
 UNION ALL
 
@@ -543,7 +853,7 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0106_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0106_prod`
 
 UNION ALL
 
@@ -562,7 +872,7 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0115_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0115_prod`
 
 UNION ALL
 
@@ -582,7 +892,7 @@ SELECT DISTINCT
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0116_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0116_prod`
 
 UNION ALL
 
@@ -601,7 +911,7 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0050_prod`
 
 UNION ALL
 
@@ -620,7 +930,7 @@ SELECT DISTINCT
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0063_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod`
 
 UNION ALL
 
@@ -639,7 +949,7 @@ SELECT DISTINCT
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0064_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0064_prod`
 
 UNION ALL
 
@@ -658,32 +968,32 @@ SELECT DISTINCT
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0065_prod`
 
 UNION ALL
 
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO_TOMADOR,
+--    KEY_ID_TOMADOR,
+--    NUMERO_POLIZA,
+--    'COM_0066' AS ALERTA,
+--    'Pago de siniestro a algun tercero diferente al tomador, beneficiario o relacionado en la poliza.' AS DESCRIPCION_ALERTA,     
+--    3 AS COMPANIA,
+--    FECHA_ALERTA_MES,    
+--    FECHA_ALERTA,
+--     CAST(FECHA_SINIESTRO AS DATE) AS FECHA_TRANSACCION, 
+--     CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,
+--     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
+--     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+--     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+--FROM
+--    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0066_prod`
+
+--UNION ALL
+
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    NUMERO_POLIZA,
-    'COM_0066' AS ALERTA,
-    'Pago de siniestro a algun tercero diferente al tomador, beneficiario o relacionado en la poliza.' AS DESCRIPCION_ALERTA,     
-    3 AS COMPANIA,
-    FECHA_ALERTA_MES,    
-    FECHA_ALERTA,
-     CAST(FECHA_SINIESTRO AS DATE) AS FECHA_TRANSACCION, 
-     CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
-     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0066_VISOR_REPO`
-
-UNION ALL
-
-SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    CAST(DOCUMENTO_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'COM_0067' AS ALERTA,
     'Cancelacion anticipada de una poliza emitida en menos de 90 días' AS DESCRIPCION_ALERTA,     
@@ -696,32 +1006,33 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0067_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0067_prod`
+    where KEY_ID_TOMADOR is not null
+
+--UNION ALL
+
+--SELECT DISTINCT
+--    TIPO_DOCUMENTO_TOMADOR,
+--    KEY_ID_TOMADOR,
+--    NUMERO_POLIZA,
+--    'COM_0068' AS ALERTA,
+--    'Cambio de beneficiaro y en menos de 90 dias se presenta el pago de siniestro.' AS DESCRIPCION_ALERTA,     
+--    3 AS COMPANIA,
+--    FECHA_ALERTA_MES,    
+--    FECHA_ALERTA,
+--     CAST(FECHA_SINIESTRO AS DATE) AS FECHA_TRANSACCION,    
+--     CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,     
+--     CAST(DESCRIPCION_ENDOSO AS STRING) AS FORMA_PAGO_CANAL,
+--    --  CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+--     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+--FROM
+--    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0068_prod`
 
 UNION ALL
 
 SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
-    NUMERO_POLIZA,
-    'COM_0068' AS ALERTA,
-    'Cambio de beneficiaro y en menos de 90 dias se presenta el pago de siniestro.' AS DESCRIPCION_ALERTA,     
-    3 AS COMPANIA,
-    FECHA_ALERTA_MES,    
-    FECHA_ALERTA,
-     CAST(FECHA_SINIESTRO AS DATE) AS FECHA_TRANSACCION,    
-     CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,     
-     CAST(DESCRIPCION_ENDOSO AS STRING) AS FORMA_PAGO_CANAL,
-     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
-FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0068_VISOR_REPO`
-
-UNION ALL
-
-SELECT DISTINCT
-    TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO_ASEGURADO,
+    KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'COM_0072' AS ALERTA,
     'Pago de siniestros en productos de alto riesgo y el beneficiario este catalogado como PEP' AS DESCRIPCION_ALERTA,     
@@ -734,7 +1045,7 @@ SELECT DISTINCT
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0072_prod`
 
 UNION ALL
 
@@ -753,7 +1064,7 @@ SELECT DISTINCT
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0100_prod`
 
 
 UNION ALL
@@ -763,18 +1074,18 @@ SELECT DISTINCT
     KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'COM_0101' AS ALERTA,
-    'Cliente PJ con mas de 5 Productos del mismo ramo activos.' AS DESCRIPCION_ALERTA,     
+    'Cliente PN Y  PJ con mas de 5 Productos del mismo ramo activos.' AS DESCRIPCION_ALERTA,     
     3 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,  
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
+     CONCAT('Pólizas: ', NUMEROS_POLIZA_LISTA, ' | Ramos: ', CODIGOS_RAMO_EMISION_LISTA) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0101_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0101_prod`
 
 UNION ALL
 
@@ -793,7 +1104,7 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0102_VISOR_REPO`
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0102_prod`
 
 UNION ALL
 
@@ -808,11 +1119,11 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_RECAUDO AS DATE) AS FECHA_TRANSACCION,    
      CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION,    
-     CAST(FORMA_COBRO AS STRING) AS FORMA_PAGO_CANAL ,
+     CONCAT('Pólizas: ', NUMEROS_POLIZA_LISTA, ' | Ramos: ', CODIGOS_RAMO_EMISION_LISTA) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0103_VISOR_REPO`  
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0103_prod`  
 
 UNION ALL
 
@@ -821,7 +1132,28 @@ SELECT DISTINCT
     KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'COM_0104' AS ALERTA,
-    'El pais de nacionalidad o residencia pertenece a una jurisdicción calificada como de alto riesgo.' AS DESCRIPCION_ALERTA,     
+    'Valor de la Prima no Guarda relacion con los ingresos del tomador.' AS DESCRIPCION_ALERTA ,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,
+    DETALLE_ALERTA AS FORMA_PAGO_CANAL,
+     CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod`  
+
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'COM_0010' AS ALERTA,
+    'Clientes con vinculos en paises de mayor riesgo.' AS DESCRIPCION_ALERTA,     
     3 AS COMPANIA,
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
@@ -831,8 +1163,645 @@ SELECT DISTINCT
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
      CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
 FROM
-    `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0104_VISOR_REPO`  ) as c
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0010_prod`  
 
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+  TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID as KEY_ID_TOMADOR,
+  NUMERO_POLIZA,
+  'COM_0105' AS ALERTA,
+  'Cambios bruscos en el perfil financiero del cliente' AS DESCRIPCION_ALERTA,
+  3 AS COMPANIA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  CAST(FECHA_CREACION AS DATE) AS FECHA_TRANSACCION,
+  CAST(0 AS STRING) AS VALOR_TRANSACCION,
+  CONCAT(
+    'El ingreso reportado por ', CAST(VALOR_INGRESOS AS STRING),
+    ' en la fecha ', CAST(FECHA_CREACION AS STRING),
+    ' supera en condiciones al valor de la fecha anterior por ',
+    CAST(ingreso_anterior AS STRING),
+    ' con una diferencia de ',
+    CAST(diferencia_ingresos AS STRING)
+  ) AS FORMA_PAGO_CANAL,
+  CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+  CODIGO_PRODUCTO AS CODIGO_PRODUCTO
+FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0105_prod`   
+
+
+
+UNION ALL
+
+
+---------MODELO DE SEGMENTACION 
+
+--CANAL 
+SELECT DISTINCT
+    'Factor_Canal' AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    codigo_localidad AS NUMERO_POLIZA,
+    'Factor_Canal' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentacón de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ULTIMO_MES) AS FECHA_ALERTA_MES,
+    FECHA_ULTIMO_MES AS FECHA_ALERTA,
+     CAST(FECHA_ULTIMO_MES AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_canal_final`
+
+
+UNION ALL
+
+
+--CLIENTES 
+
+SELECT DISTINCT
+    c.TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ULTIMO_MES) AS FECHA_ALERTA_MES,
+    FECHA_ULTIMO_MES AS FECHA_ALERTA,
+    CAST(FECHA_ULTIMO_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_cliente_final_1` AS c
+
+
+UNION ALL
+
+
+
+--JURISDICCION 
+SELECT DISTINCT
+    'Factor_Jurisdiccion' AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Jurisdiccion' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentacón de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ULTIMO_MES) AS FECHA_ALERTA_MES,
+    FECHA_ULTIMO_MES AS FECHA_ALERTA,
+     CAST(FECHA_ULTIMO_MES AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_jurisdiccion_final` 
+
+
+
+
+
+
+UNION ALL
+
+--PRODUCTO 
+SELECT DISTINCT
+    'Factor_Producto' AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Producto' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentacón de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ULTIMO_MES) AS FECHA_ALERTA_MES,
+    FECHA_ULTIMO_MES AS FECHA_ALERTA,
+     CAST(FECHA_ULTIMO_MES AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_producto_final`
+
+
+
+
+----------LISTAS
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L001' AS ALERTA,
+    'Beneficiario de seguro en lista de control.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION  in (1,2,3,5,9,24,25,26,27,1, 2, 3, 5, 6, 9, 17, 20,  24, 25, 26, 27)
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L002' AS ALERTA,
+    'Beneficiario de seguro catalogado como PEP.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION  in (23,20)  
+
+
+
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L003' AS ALERTA,
+    'Beneficiario de seguro sin información actualizada.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION = 29  
+
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L004' AS ALERTA,
+    'Beneficiario de seguro con actividad de alto riesgo.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION = 33  
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L005' AS ALERTA,
+    'Beneficiario de seguro asociado anticorrupción y soborno.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION = 35  
+
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L006' AS ALERTA,
+    'Beneficiario de seguro impactado FATCA/CRS.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION = 50  
+
+UNION ALL
+
+--Beneficirio asegurado en listas 
+SELECT DISTINCT
+    tipo_doc AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+    NUMERO_POLIZA AS NUMERO_POLIZA,
+    'L007' AS ALERTA,
+    'Beneficiario de seguro con investigación procesal.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
+ where CODIGO_RESTRICCION = 28
+
+UNION ALL
+
+--Ordenes de pago listas
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0001' AS ALERTA,
+    'Pagos a terceros en lista de control.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("1","2","3","5","9","24","25","26","27","1", "2", "3", "5", "6", "9", "17", "20",  "24", "25", "26", "27")
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0002' AS ALERTA,
+    'Pagos a  terceros catalogado como PEP.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("23","20")
+
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0003' AS ALERTA,
+    'Pagos a terceros sin información actualizada.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("29")
+
+
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0004' AS ALERTA,
+    'Pagos a terceros con actividad de alto riesgo.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("33")
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0005' AS ALERTA,
+    'Pagos a terceros asociado anticorrupción y soborno.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("35")
+
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0006' AS ALERTA,
+    'Pagos a terceros impactado FATCA/CRS.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("50")
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'PAG_0007' AS ALERTA,
+    'Pagos a terceros a con investigación procesal.' AS DESCRIPCION_ALERTA,     
+    CODIGO_COMPANIA AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_PAGO AS DATE) AS FECHA_TRANSACCION,
+     CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
+     CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
+     0 AS CODIGO_RAMO,
+     0 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
+     where CODIGO_RESTRICCION  in ("28")
+
+
+
+    
+
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion-------------------------
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_001' AS ALERTA,
+    'Pagos a catalogado como PEP.' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (1,2,3,5,9,24,25,26,27,1, 2, 3, 5, 6, 9, 17, 20,  24, 25, 26, 27)
+
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_002' AS ALERTA,
+    'Empleados de seguro catalogado como PEP.' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (23,20)
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_003' AS ALERTA,
+    'Empleados de seguro sin información actualizada.' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (29)
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_004' AS ALERTA,
+    'Empleados de seguro con actividad de alto riesgo.' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (33)
+
+
+
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_005' AS ALERTA,
+    'Empleados de seguro asociado anticorrupción y soborno' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (35)
+
+
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_006' AS ALERTA,
+    'Empleados de seguro impactado FATCA/CRS' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (50)
+
+
+
+UNION ALL
+
+--Funcionarios metricas y restringidos. tienen marcacion
+SELECT DISTINCT
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(KEY_ID AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'FUN_007' AS ALERTA,
+    'Beneficiario de seguro con investigación procesal.' AS DESCRIPCION_ALERTA,     
+    0 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_ALERTA) AS FECHA_ALERTA_MES,
+    FECHA_ALERTA AS FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
+     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    COALESCE(CAST(CODIGO_RESTRICCION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_RESTRICCION, ''), ' / ',
+    COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
+    COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
+     00001 AS CODIGO_RAMO,
+     00001 AS CODIGO_PRODUCTO              
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
+where CODIGO_RESTRICCION  in (28)
+
+
+
+
+
+
+ ) as c
 
 
 LEFT JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes AS p
@@ -881,7 +1850,9 @@ SELECT
     CAST(OPERACIONES_INTERNACIONALES AS STRING) AS OPERACIONES_INTERNACIONALES,
     CAST(CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS CODIGO_CODAZZI_DIRECCION_1,
     MUNICIPIO_DIRECCION_1,
-    CAST(COD_PROFESION AS STRING) AS COD_PROFESION
+    CAST(COD_PROFESION AS STRING) AS COD_PROFESION,
+    CAST(COD_OCUPACION AS STRING) AS COD_OCUPACION 
+    
 FROM 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
 
@@ -909,7 +1880,8 @@ SELECT
     CAST(OPERACIONES_INTERNACIONALES AS STRING) AS OPERACIONES_INTERNACIONALES,
     CAST(CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS CODIGO_CODAZZI_DIRECCION_1,
     CAST(0 AS STRING) AS MUNICIPIO_DIRECCION_1,  
-    CAST(0 AS STRING) AS COD_PROFESION              
+    CAST(0 AS STRING) AS COD_PROFESION,
+    CAST(0 AS STRING) AS COD_OCUPACION                  
 FROM 
     `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
 
@@ -921,6 +1893,73 @@ AND   c.TIPO_DOCUMENTO = datos.TIPO_DOCUMENTO
 LEFT JOIN sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos as list
 ON    c.KEY_ID_BENEFICIARIO = list.KEY_ID
 AND   c.TIPO_DOCUMENTO = list.TIPO_DOCUMENTO_TERCERO
+and list.FECHA_BAJA is null
+
+
+
+
+
+
+LEFT JOIN (
+
+
+                WITH ultima AS (
+                SELECT MAX(DATE(FECHA_PROCESO)) AS periodo_max
+                FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+                ),
+
+                -- 1) Agregas por póliza (y conservas tus ANY_VALUE)
+                pol_base AS (
+                SELECT
+                    t.KEY_ID_TOMADOR,
+                    t.NUMERO_POLIZA,
+                    SUM(t.PRIMA_ANUAL) AS PRIMA_ANUAL_TOTAL,
+
+                    ANY_VALUE(t.PERIODO_FACTURACION) AS PERIODO_FACTURACION_REF,
+                    ANY_VALUE(t.CODIGO_RAMO_EMISION) AS CODIGO_RAMO_EMISION_REF,
+                    ANY_VALUE(t.NOMBRE_RAMO_EMISION) AS NOMBRE_RAMO_EMISION_REF,
+                    ANY_VALUE(t.CODIGO_PRODUCTO)     AS CODIGO_PRODUCTO_REF,
+                    ANY_VALUE(t.NOMBRE_PRODUCTO)     AS NOMBRE_PRODUCTO_REF,
+                    ANY_VALUE(t.CLAVE_AGENTE)        AS CLAVE_AGENTE_REF,
+                    ANY_VALUE(t.NOMBRE_AGENTE)       AS NOMBRE_AGENTE_REF,
+                    ANY_VALUE(t.MARCA_ANULACION)     AS MARCA_ANULACION_REF,
+                    ANY_VALUE(t.CODIGO_LOCALIDAD)    AS CODIGO_LOCALIDAD_REF,
+                    ANY_VALUE(t.NOMBRE_LOCALIDAD)    AS NOMBRE_LOCALIDAD_REF,
+
+                    u.periodo_max AS PERIODO_CONSULTADO
+                FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` t
+                CROSS JOIN ultima u
+                WHERE DATE(t.FECHA_PROCESO) = u.periodo_max
+                GROUP BY t.KEY_ID_TOMADOR, t.NUMERO_POLIZA, u.periodo_max
+                ),
+
+                -- 2) Aplicas ventana sobre el resultado agregado y marcas el top por póliza
+                pol_ranked AS (
+                SELECT
+                    pb.*,
+                    ROW_NUMBER() OVER (
+                    PARTITION BY pb.NUMERO_POLIZA
+                    ORDER BY pb.PRIMA_ANUAL_TOTAL DESC
+                    ) AS rn
+                FROM pol_base pb
+                )
+
+                -- 3) Te quedas con una sola fila por póliza
+                SELECT *
+                FROM pol_ranked
+                WHERE rn = 1
+                ORDER BY PRIMA_ANUAL_TOTAL DESC
+
+
+
+
+
+) AS riesgosendo
+ON c.TITULO = riesgosendo.NUMERO_POLIZA
+
+
+
+
 ) 
 
 SELECT 
@@ -973,6 +2012,54 @@ OPERACIONES_INTERNACIONALES,
 CODIGO_CODAZZI_DIRECCION_1,
 MUNICIPIO_DIRECCION_1,
 COD_PROFESION,
+COD_OCUPACION,
 CODIGO_RESTRICCION,
-DESCRIPCION
+DESCRIPCION, 
+
+ CASE 
+    WHEN COMPANIA = 1 THEN 'Título de Capitalización'
+    ELSE NOMBRE_RAMO_EMISION_REF
+  END AS NOMBRE_RAMO_EMISION_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN 'Título de Capitalización'
+    ELSE NOMBRE_PRODUCTO_REF
+  END AS NOMBRE_PRODUCTO_REF,
+
+  -- Campos en blanco (NULL) cuando COMPANIA = 1
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE PRIMA_ANUAL_TOTAL
+  END AS PRIMA_ANUAL_TOTAL,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE PERIODO_FACTURACION_REF
+  END AS PERIODO_FACTURACION_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE CLAVE_AGENTE_REF
+  END AS CLAVE_AGENTE_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE NOMBRE_AGENTE_REF
+  END AS NOMBRE_AGENTE_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE MARCA_ANULACION_REF
+  END AS MARCA_ANULACION_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE CODIGO_LOCALIDAD_REF
+  END AS CODIGO_LOCALIDAD_REF,
+
+  CASE 
+    WHEN COMPANIA = 1 THEN NULL
+    ELSE NOMBRE_LOCALIDAD_REF
+  END AS NOMBRE_LOCALIDAD_REF
+
 FROM bloque_estructura
