@@ -89,7 +89,9 @@ SELECT DISTINCT
      CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,
      CAST(DESCRIPCION_TIPO_MOVIMIENTO AS STRING) AS FORMA_PAGO_CANAL,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO     
+     51 AS CODIGO_PRODUCTO,
+     'PEP' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION     
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod`
 
@@ -108,10 +110,12 @@ SELECT DISTINCT
      CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,     
      CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
+     51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION  
+
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0009_prod`
-
 
 UNION ALL
 
@@ -128,7 +132,9 @@ SELECT DISTINCT
      CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,     
      CAST('0' AS STRING) AS FORMA_PAGO_CANAL ,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
+     51 AS CODIGO_PRODUCTO,
+     'Jurisdicción' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0010_prod`
 
@@ -149,7 +155,10 @@ SELECT DISTINCT
      CAST(0 AS STRING) AS VALOR_TRANSACCION,     
      CAST(titulos_muestra AS STRING) AS FORMA_PAGO_CANAL ,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
+     51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
+     
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0011_prod`
 
@@ -168,17 +177,16 @@ UNION ALL
         FECHA_ALERTA,
         CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
         CAST(VALOR_TRANSACCION AS STRING) AS VALOR_TRANSACCION,
-        
-
         CONCAT(
         'El cliente tiene pago fijo pactado por ', CAST(CUOTA_ACTUAL AS STRING),
         ' y detono por pago de ', CAST(VALOR_TRANSACCION AS STRING),
         ' por concepto de ', DESCRIPCION_TIPO_MOVIMIENTO,
         ' en la fecha ', CAST(FECHA_TRANSACCION AS STRING)
         ) AS FORMA_PAGO_CANAL,
-
         801 AS CODIGO_RAMO,
-        51 AS CODIGO_PRODUCTO
+        51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
     FROM
         `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0012_prod`
 
@@ -198,20 +206,22 @@ SELECT DISTINCT
     FECHA_ALERTA,
     CAST(FECHA_TRANSACCION AS DATE) AS FECHA_TRANSACCION,
     CAST(total_30d AS STRING) AS VALOR_TRANSACCION,
-
-    -- Texto explicativo comparando 30 vs 90 días
     CONCAT(
         'En los últimos 30 días tuvo pagos acumulados por ', CAST(total_30d AS STRING),
         ' y en los 90 días anteriores acumulados por ', CAST(total_90d_prev AS STRING),
         '. Se evidencia un aumento en el último mes.'
     ) AS FORMA_PAGO_CANAL,
     801 AS CODIGO_RAMO,
-    51 AS CODIGO_PRODUCTO
+    51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION
 FROM  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod`
 
 
 
 UNION ALL
+
+
 
 SELECT DISTINCT
     TIPO_DOCUMENTO as TIPO_DOCUMENTO_TOMADOR,
@@ -233,7 +243,9 @@ SELECT DISTINCT
     CAST(diferencia_ingresos AS STRING)
   )  AS FORMA_PAGO_CANAL ,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
+     51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0014_prod`
 
@@ -260,7 +272,9 @@ SELECT DISTINCT
         'Diferencia en días: ', CAST(DIAS_ENTRE_CANCEL_Y_APERTURA AS STRING)
     ) AS FORMA_PAGO_CANAL,
      801 AS CODIGO_RAMO,
-     51 AS CODIGO_PRODUCTO
+     51 AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0015_prod`
 
@@ -331,7 +345,10 @@ SELECT DISTINCT
         CAST(VALOR_ASEGURADO_POLIZA_ACTUAL AS STRING)
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
+                   
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101_prod`
 
@@ -355,7 +372,9 @@ SELECT DISTINCT
     CAST(VALOR_ASEGURADO AS STRING)
     ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO             
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103_prod`
 
@@ -372,7 +391,14 @@ SELECT DISTINCT
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST(VALOR_RETIRO AS STRING) AS VALOR_TRANSACCION,  
+     CONCAT(
+  '$',
+  REPLACE(
+    FORMAT("%'d", CAST(ROUND(VALOR_RETIRO) AS INT64)),
+    ",",
+    "."
+  )
+) AS VALOR_TRANSACCION,  
         CONCAT(
         'Póliza emitida el ',
         CAST(FECHA_EMISION_POLIZA AS STRING),
@@ -382,7 +408,9 @@ SELECT DISTINCT
         CAST(FECHA_ULT_MODIFICACION AS STRING)
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Ahorro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0002_prod`
 
@@ -391,7 +419,7 @@ UNION ALL
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
-    CAST(DOCUMENTO_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'SEG_0003' AS ALERTA,
     'Cancelacion anticipada de una poliza  emitida en menos de 90 días' AS DESCRIPCION_ALERTA ,     
@@ -409,7 +437,9 @@ SELECT DISTINCT
     CAST(DESCRIPCION_ENDOSO AS STRING)
     ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO             
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION              
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0003_prod`
 
@@ -435,7 +465,9 @@ SELECT DISTINCT
     )
     AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION          
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0004_prod`
 
@@ -463,7 +495,9 @@ SELECT DISTINCT
     CAST(DESCRIPCION_ENDOSO AS STRING)
     ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO           
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION            
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0005_prod`
 
@@ -488,7 +522,9 @@ SELECT DISTINCT
         )
         AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION           
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0007_prod`
 
@@ -496,7 +532,7 @@ UNION ALL
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
-    KEY_ID_TOMADOR,
+    BENEFICIARIO_SINIESTRO as KEY_ID_TOMADOR,
     NUMERO_POLIZA,
     'SEG_0014' AS ALERTA,
     'Pago de siniestro a algun tercero diferente al tomador, beneficiario o relacionado en la poliza.' AS DESCRIPCION_ALERTA ,     
@@ -505,9 +541,16 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ORDEN_PAGO AS DATE) AS FECHA_TRANSACCION,
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,  
-     CAST(CODIGO_CANAL AS STRING) AS FORMA_PAGO_CANAL,
+CONCAT(
+    'Nota:el numero de documento de esta alerta es el del beneficiario al cual se le pago y no estaba registrado como beneficiario anteriormente, Siniestro ocurrido el ',
+    CAST(FECHA_SINIESTRO AS STRING),
+    ' por valor de $',
+    CAST(ROUND(COALESCE(LIQUIDADO_BOLIVAR, 0)) AS STRING)
+) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO            
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION              
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod`
 
@@ -531,7 +574,9 @@ SELECT DISTINCT
         CAST(SUM_VALOR_AHORRO_EXTRA AS STRING)
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO         
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Ap. Extraordinario' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION         
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod`
 
@@ -559,7 +604,9 @@ SELECT DISTINCT
     CAST(CANAL_DESCUENTO AS STRING)
     ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO            
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Ahorro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION              
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0062_prod`    
 
@@ -587,7 +634,9 @@ SELECT DISTINCT
     CAST(PUBLICAMENTE_EXPUESTA AS STRING)
     ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'PEP' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                  
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod`   
 
@@ -609,7 +658,9 @@ SELECT DISTINCT
         CAST(NUMERO_POLIZAS_PAGADAS AS STRING)
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'PEP' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                   
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod`  
 
@@ -636,7 +687,9 @@ SELECT DISTINCT
         CAST(FECHA_SUSCRIPCION AS STRING)
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0101B_prod`  
 
@@ -662,10 +715,33 @@ SELECT DISTINCT
         CAST(FECHA_SUSCRIPCION AS STRING)
         ) AS FORMA_PAGO_CANAL,
              CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO                
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0102B_prod`          
 
+
+UNION ALL
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    'SEG_0102' AS ALERTA,
+    'Tomador se encuentra en una jurisdiccion de alto riesgo por transaccionalidad o residencia y su actividad economica es de alto riesgo para manejar flujos de dinero corriente.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FECHA_ALERTA_MES,    
+    FECHA_ALERTA,
+     CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,     
+     CAST('0' AS STRING) AS VALOR_TRANSACCION, 
+     CAST(municipio_direccion_1 AS STRING) AS FORMA_PAGO_CANAL,
+     CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
+FROM
+    `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.SEG_0102_prod`
 
 
 
@@ -684,7 +760,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
      CONCAT('Productos ', PRODUCTOS_ALERTADOS, ' del ramo ', RAMOS_EMISION_ALERTADOS)  AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0103Z_prod`          
 
@@ -692,6 +770,7 @@ FROM
 
 
 UNION ALL
+
 
 SELECT DISTINCT
     TIPO_DOCUMENTO_TOMADOR,
@@ -704,11 +783,19 @@ SELECT DISTINCT
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,    
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
-     CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
+     CONCAT(
+    'Los productos involucrados son ',
+    PRODUCTOS,
+    ' del ramo ',
+    RAMOS_CONTABLES
+) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0104_prod`          
+     
 
 
     
@@ -727,7 +814,7 @@ SELECT DISTINCT
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST('0' AS STRING) AS VALOR_TRANSACCION, 
+     CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION, 
         CAST(
         CONCAT(
             'CLIENTE TIENE NACIONALIDAD ', NACIONALIDAD,
@@ -736,7 +823,9 @@ SELECT DISTINCT
         ) AS STRING
         ) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Jurisdicción' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0107_prod`  
 
@@ -756,7 +845,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,
     DETALLE_ALERTA AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                  
 FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0108_prod`          
 
 
@@ -783,8 +874,33 @@ SELECT DISTINCT
     CAST(diferencia_ingresos AS STRING)
   ) AS FORMA_PAGO_CANAL,
   CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-  CODIGO_PRODUCTO AS CODIGO_PRODUCTO
+  CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
 FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod` 
+
+
+
+UNION ALL
+
+SELECT DISTINCT
+  TIPO_DOCUMENTO_TOMADOR as TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID_TOMADOR as KEY_ID_TOMADOR,
+  NUMERO_POLIZA,
+  'SEG_0109' AS ALERTA,
+  'Operaciones en divisas y los recursos son consignados en el banco para ser legalizados en las polizas de Seguros Bolivar por parte de un Tomador o Tercero.' AS DESCRIPCION_ALERTA,
+  2 AS COMPANIA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  CAST(FECHA_RECAUDO AS DATE) AS FECHA_TRANSACCION,
+  CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION,
+  "0"  AS FORMA_PAGO_CANAL,
+  CODIGO_RAMO_EMISION AS CODIGO_RAMO,
+  CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION 
+FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0109_prod` 
+
 
 
 ----------------------- COMERCIALES BOLIVAR
@@ -831,7 +947,9 @@ SELECT DISTINCT
 
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.COM_0110_prod`      
 
@@ -851,7 +969,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
      CAST(municipio_direccion_1 AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Jurisdicción' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0106_prod`
 
@@ -870,7 +990,9 @@ SELECT DISTINCT
      CAST(VALOR_ASEGURADO_POLIZA_ANTERIOR AS STRING) AS VALOR_TRANSACCION,
      CAST(CODIGO_COBERTURA AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0115_prod`
 
@@ -889,7 +1011,9 @@ SELECT DISTINCT
      CAST(VALOR_ASEGURADO AS STRING) AS VALOR_TRANSACCION,  
      CAST('0' AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0116_prod`
@@ -909,7 +1033,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(ACTIVIDAD_ECONOMICA AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                    
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0050_prod`
 
@@ -928,7 +1054,9 @@ SELECT DISTINCT
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION,     
      CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                    
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod`
 
@@ -947,7 +1075,9 @@ SELECT DISTINCT
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION, 
      CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                      
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0064_prod`
 
@@ -966,7 +1096,9 @@ SELECT DISTINCT
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION, 
      CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0065_prod`
 
@@ -1004,7 +1136,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,
      CAST(DESCRIPCION_ENDOSO AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Transaccional' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                   
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0067_prod`
     where KEY_ID_TOMADOR is not null
@@ -1043,7 +1177,9 @@ SELECT DISTINCT
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION, 
      CAST(CODIGO_CANAL AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'PEP' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0072_prod`
 
@@ -1062,7 +1198,9 @@ SELECT DISTINCT
      CAST(LIQUIDADO_BOLIVAR AS STRING) AS VALOR_TRANSACCION, 
      CAST(ESTADO_SINIESTRO AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Siniestro' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0100_prod`
 
@@ -1082,7 +1220,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CONCAT('Pólizas: ', NUMEROS_POLIZA_LISTA, ' | Ramos: ', CODIGOS_RAMO_EMISION_LISTA) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                        
 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0101_prod`
@@ -1102,7 +1242,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION, 
      CAST(municipio_direccion_1 AS STRING) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO               
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Jurisdicción' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0102_prod`
 
@@ -1121,7 +1263,9 @@ SELECT DISTINCT
      CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION,    
      CONCAT('Pólizas: ', NUMEROS_POLIZA_LISTA, ' | Ramos: ', CODIGOS_RAMO_EMISION_LISTA) AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                              
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0103_prod`  
 
@@ -1140,7 +1284,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,
     DETALLE_ALERTA AS FORMA_PAGO_CANAL,
      CODIGO_RAMO_CONTABLE AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod`  
 
 
@@ -1158,10 +1304,12 @@ SELECT DISTINCT
     FECHA_ALERTA_MES,    
     FECHA_ALERTA,
      CAST(FECHA_ALERTA AS DATE) AS FECHA_TRANSACCION,
-     CAST('0' AS STRING) AS VALOR_TRANSACCION,     
+     CAST(VALOR_RECAUDO_MES AS STRING) AS VALOR_TRANSACCION,     
      CAST(NACIONALIDAD AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Jurisdicción' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                   
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0010_prod`  
 
@@ -1190,7 +1338,9 @@ SELECT DISTINCT
     CAST(diferencia_ingresos AS STRING)
   ) AS FORMA_PAGO_CANAL,
   CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-  CODIGO_PRODUCTO AS CODIGO_PRODUCTO
+  CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Cliente' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION  
 FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0105_prod`   
 
 
@@ -1214,7 +1364,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_canal_final`
 
@@ -1237,7 +1389,9 @@ SELECT DISTINCT
     CAST(0 AS STRING) AS VALOR_TRANSACCION,     
     CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL,
     0 AS CODIGO_RAMO,
-    0 AS CODIGO_PRODUCTO              
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_cliente_final_1` AS c
 
@@ -1260,7 +1414,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_jurisdiccion_final` 
 
@@ -1285,7 +1441,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-sandbox-usuarios.sandbox_cumplimiento.alerta_nivel_riesgo_alto_producto_final`
 
@@ -1310,7 +1468,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION  in (1,2,3,5,9,24,25,26,27,1, 2, 3, 5, 6, 9, 17, 20,  24, 25, 26, 27)
@@ -1331,7 +1491,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION  in (23,20)  
@@ -1355,7 +1517,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION = 29  
@@ -1377,7 +1541,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION = 33  
@@ -1398,7 +1564,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION = 35  
@@ -1420,7 +1588,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION = 50  
@@ -1441,7 +1611,9 @@ SELECT DISTINCT
      CAST('0' AS STRING) AS VALOR_TRANSACCION,     
      CAST(DESCRIPCION AS STRING) AS FORMA_PAGO_CANAL ,
      CODIGO_RAMO_EMISION AS CODIGO_RAMO,
-     CODIGO_PRODUCTO AS CODIGO_PRODUCTO              
+     CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+     'Beneficiarios ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod`
  where CODIGO_RESTRICCION = 28
@@ -1462,7 +1634,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("1","2","3","5","9","24","25","26","27","1", "2", "3", "5", "6", "9", "17", "20",  "24", "25", "26", "27")
@@ -1484,7 +1658,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("23","20")
@@ -1507,7 +1683,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("29")
@@ -1531,7 +1709,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO ,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("33")
@@ -1552,7 +1732,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO ,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("35")
@@ -1575,7 +1757,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("50")
@@ -1597,7 +1781,9 @@ SELECT DISTINCT
      CAST(VALOR_PAGO_PESOS AS STRING) AS VALOR_TRANSACCION,     
      CONCAT(CODIGO_RESTRICCION, ' - ', CAST(detalle AS STRING)) AS FORMA_PAGO_CANAL,
      0 AS CODIGO_RAMO,
-     0 AS CODIGO_PRODUCTO              
+     0 AS CODIGO_PRODUCTO ,
+     'Transaccional ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PAG_0001`
      where CODIGO_RESTRICCION  in ("28")
@@ -1628,7 +1814,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                 
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (1,2,3,5,9,24,25,26,27,1, 2, 3, 5, 6, 9, 17, 20,  24, 25, 26, 27)
@@ -1655,7 +1843,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (23,20)
@@ -1681,7 +1871,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (29)
@@ -1707,7 +1899,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (33)
@@ -1736,7 +1930,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (35)
@@ -1764,7 +1960,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (50)
@@ -1791,7 +1989,9 @@ SELECT DISTINCT
     COALESCE(CAST(EMPRESA_RELACION AS STRING), ''), ' / ',
     COALESCE(DESCRIPCION_TIPO_RELACION, '')) AS FORMA_PAGO_CANAL,
      00001 AS CODIGO_RAMO,
-     00001 AS CODIGO_PRODUCTO              
+     00001 AS CODIGO_PRODUCTO,
+     'Empleados ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION               
 FROM
     `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos`
 where CODIGO_RESTRICCION  in (28)
@@ -1961,6 +2161,9 @@ ON c.TITULO = riesgosendo.NUMERO_POLIZA
 
 
 ) 
+
+
+
 
 SELECT 
 TIPO_DOCUMENTO,
