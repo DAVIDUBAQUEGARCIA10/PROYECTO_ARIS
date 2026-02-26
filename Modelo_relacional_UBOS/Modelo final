@@ -2,6 +2,18 @@ WITH RECURSIVE
 -- ============================================================
 -- 0) CONFIG
 -- ============================================================
+-- ============================================================
+-- 2) RAÍCES (filtrado por documento específico)
+-- ============================================================
+params AS (
+  SELECT DISTINCT
+    TIPO_DOCUMENTO   AS raiz_tipo_documento,
+    NUMERO_DOCUMENTO AS raiz_numero_documento
+  FROM base
+  WHERE NUMERO_DOCUMENTO = '860027283'
+    AND TIPO_DOCUMENTO = 'NT'
+),
+
 cfg AS (
   SELECT 10 AS p_max_niveles
 ),
@@ -49,17 +61,6 @@ base AS (
     AND NUMERO_DOCUMENTO IS NOT NULL
 ),
 
--- ============================================================
--- 2) RAÍCES (filtrado por documento específico)
--- ============================================================
-params AS (
-  SELECT DISTINCT
-    TIPO_DOCUMENTO   AS raiz_tipo_documento,
-    NUMERO_DOCUMENTO AS raiz_numero_documento
-  FROM base
-  WHERE NUMERO_DOCUMENTO = '860027283'
-    AND TIPO_DOCUMENTO = 'NT'
-),
 
 -- ============================================================
 -- 3) FRONTIER (recursivo)
