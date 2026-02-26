@@ -7,27 +7,40 @@ cfg AS (
 ),
 
 -- ============================================================
--- 1) BASE NORMALIZADA (evita CAST/CONCAT repetidos)
---    - key_relacionado_str: para comparar/armar path y joins
---    - nodo_relacionado: "TIPO:ID" para anti-ciclos
+-- 1) BASE NORMALIZADA
+--    + incluye variables adicionales requeridas en salida final
 -- ============================================================
 base AS (
   SELECT
+    -- Identificadores del titular (raíz / nodo actual)
     TIPO_DOCUMENTO,
     NUMERO_DOCUMENTO,
 
+    -- Restricción titular
     CODIGO_RESTRICCION_TITULAR,
     DESCRIPCION_RESTRICCION_TITULAR,
 
+    -- Relacionado DAV
     TIPO_DOCUMENTO_RELACIONADO_DAV,
     CAST(KEY_ID_RELACIONADO_DAV AS STRING) AS KEY_ID_RELACIONADO_DAV_STR,
     SAFE_CAST(PORCENTAJE_RELACIONADO_DAV AS NUMERIC) AS PORCENTAJE_RELACIONADO_DAV,
 
+    -- Linaje / nivel
     LINAJE_BENEFICIARIO,
     NIVEL,
 
+    -- Restricción relacionado
     CODIGO_RESTRICCION_RELACIONADO,
     DESCRIPCION_RESTRICCION_RELACIONADO,
+
+    -- Variables adicionales (ya calculadas/enriquecidas en UBOs)
+    ALERTAS_TITULAR,
+    ALERTAS_RELACIONADO,
+    PERIODO_CONSULTADO_TITULAR,
+    PRODUCTO_TITULAR,
+    PERIODO_CONSULTADO_RELACIONADO,
+    PRODUCTO_RELACIONADO,
+    NIVEL_PROXIMIDAD,
 
     -- nodo para anti-ciclos
     CONCAT(TIPO_DOCUMENTO_RELACIONADO_DAV, ':', CAST(KEY_ID_RELACIONADO_DAV AS STRING)) AS nodo_relacionado
@@ -37,26 +50,27 @@ base AS (
 ),
 
 -- ============================================================
--- 2) RAÍCES (FILTRADO POR NÚMERO DE DOCUMENTO ESPECÍFICO)
+-- 2) RAÍCES (filtrado por documento específico)
 -- ============================================================
 params AS (
   SELECT DISTINCT
-    TIPO_DOCUMENTO  AS raiz_tipo_documento,
+    TIPO_DOCUMENTO   AS raiz_tipo_documento,
     NUMERO_DOCUMENTO AS raiz_numero_documento
   FROM base
-  WHERE NUMERO_DOCUMENTO = '900848410'
-  -- 'r2NJ2fCnute+z1+ZIvzrtqOfDr9PLDPLIVU174TLR6IovM0klNx67dVR6f5KEeLcXkKw+Q7L0P85w7X+NWZX4A=='
+  WHERE NUMERO_DOCUMENTO = '860027283'
+    AND TIPO_DOCUMENTO = 'NT'
 ),
 
 -- ============================================================
--- 3) FRONTIER (solo nodos/padres, no cargas columnas innecesarias)
+-- 3) FRONTIER (recursivo)
 -- ============================================================
 frontier AS (
 
+  -- raíz
   SELECT
     p.raiz_tipo_documento,
     p.raiz_numero_documento,
-    p.raiz_tipo_documento AS padre_tipo_documento,
+    p.raiz_tipo_documento   AS padre_tipo_documento,
     p.raiz_numero_documento AS padre_numero_documento,
     0 AS nivel_recursivo,
     [ CONCAT(p.raiz_tipo_documento, ':', p.raiz_numero_documento) ] AS path
@@ -64,7 +78,7 @@ frontier AS (
 
   UNION ALL
 
-  -- RECURSIVO: Expande a los relacionados (NT/NE) nivel por nivel
+  -- expansión
   SELECT
     f.raiz_tipo_documento,
     f.raiz_numero_documento,
@@ -86,8 +100,7 @@ frontier AS (
 ),
 
 -- ============================================================
--- 4) SALIDA (trae relaciones del padre) + DEDUP en una sola pasada
---    DEDUP por: (raiz_tipo, raiz_numero, tipo_rel, key_rel)
+-- 4) FINAL (trae data del padre desde base)
 -- ============================================================
 final AS (
   SELECT
@@ -97,6 +110,7 @@ final AS (
     f.padre_numero_documento,
     f.nivel_recursivo,
 
+    -- columnas del registro "padre" en base
     b.TIPO_DOCUMENTO,
     b.NUMERO_DOCUMENTO,
     b.CODIGO_RESTRICCION_TITULAR,
@@ -107,7 +121,16 @@ final AS (
     b.LINAJE_BENEFICIARIO,
     b.NIVEL,
     b.CODIGO_RESTRICCION_RELACIONADO,
-    b.DESCRIPCION_RESTRICCION_RELACIONADO
+    b.DESCRIPCION_RESTRICCION_RELACIONADO,
+
+    -- adicionales
+    b.ALERTAS_TITULAR,
+    b.ALERTAS_RELACIONADO,
+    b.PERIODO_CONSULTADO_TITULAR,
+    b.PRODUCTO_TITULAR,
+    b.PERIODO_CONSULTADO_RELACIONADO,
+    b.PRODUCTO_RELACIONADO,
+    b.NIVEL_PROXIMIDAD
   FROM frontier f
   LEFT JOIN base b
     ON b.TIPO_DOCUMENTO   = f.padre_tipo_documento
@@ -117,11 +140,9 @@ final AS (
 )
 
 SELECT
-  f.raiz_tipo_documento,
-  f.raiz_numero_documento,
-  f.padre_tipo_documento,
-  f.padre_numero_documento,
-  f.nivel_recursivo,
+  -- salida EXACTA solicitada
+  f.TIPO_DOCUMENTO,
+  f.NUMERO_DOCUMENTO,
   f.CODIGO_RESTRICCION_TITULAR,
   f.DESCRIPCION_RESTRICCION_TITULAR,
   f.TIPO_DOCUMENTO_RELACIONADO_DAV,
@@ -131,133 +152,16 @@ SELECT
   f.NIVEL,
   f.CODIGO_RESTRICCION_RELACIONADO,
   f.DESCRIPCION_RESTRICCION_RELACIONADO,
-  
-  -- Traer ALERTA desde la tabla de alertamiento
-  a.ALERTA,
-  
-  -- Clasificación de nivel de proximidad basado en LINAJE_BENEFICIARIO
-  CASE
-    -- NIVEL ALTO: Relaciones familiares directas y control corporativo directo
-    WHEN f.LINAJE_BENEFICIARIO IN (
-      'CONYUGUE',
-      'ESPOSA',
-      'ESPOSO',
-      'COMPANIERO',
-      'COMPANIERA PERMANENTE',
-      'COMPANIERO PERMANENTE',
-      'HIJOS',
-      'HIJA',
-      'HIJO',
-      'PADRE',
-      'PADRES',
-      'MADRE',
-      'HERMANOS',
-      'HERMANO',
-      'HERMANA',
-      'REPRESENTANTE LEGAL',
-      'REPRESENTANTE LEGAL LOCAL',
-      'REPRESENTANTE LEGAL REGIONAL',
-      'REPRESENTANTE LEGAL SUPLENTE',
-      'SOCIO',
-      'SOCIO Y ACCIONISTA',
-      'ACCIONISTA CONTROLANTE',
-      'EJERCE CTRL FINAL BENEFICIOS',
-      'GERENTE',
-      'SUBGERENTE',
-      'PRESIDENTE',
-      'VICEPRESIDENTE',
-      'EMPRESA DEL RL',
-      'ACCIONISTA',
-      'ACCIONISTAS',
-      'JUNTA DIRECTIVA',
-      'JUNTA DIRECTIVA SUPLENTE',
-      'CONSEJO DE ADMINISTRACION',
-      'BOARD MEMBER',
-      'REVISOR FISCAL',
-      'TESORERO',
-      'SOCIO GRUPO FAMILIAR',
-      'SOCIO PARTICIPACION INDIRECTA',
-      'SOCIO PI',
-      'SOCIO GFTIA'
-    ) THEN 'ALTO'
-    
-    -- NIVEL MEDIO: Relaciones familiares secundarias y roles corporativos importantes
-    WHEN f.LINAJE_BENEFICIARIO IN (
-      'ABUELA',
-      'ABUELO',
-      'ABUELOS DE CADA UNO',
-      'NIETO',
-      'NIETA',
-      'SUEGRA',
-      'SUEGRO',
-      'CUNIAD',
-      'CUNIADA',
-      'CUNADO',
-      'CUNIADAS',
-      'YERNO',
-      'NUERA',
-      'SOBRINO',
-      'SOBRINA',
-      'TIO',
-      'ORDENADOR DEL GASTO',
-      'JEFE',
-      'EMPLEADOR',
-      'COTITULAR',
-      'JOINT',
-      'FIDUCIANTE',
-      'FIDEICOMITENTE',
-      'COMITE FIDUCIARIO FINANCIERO',
-      'RELATED SUBSIDIARY',
-      'ABUELOA DEL CONYUGE'
-    ) THEN 'MEDIO'
-    
-    -- NIVEL BAJO: Relaciones lejanas, afinidad, comerciales y roles operativos
-    WHEN f.LINAJE_BENEFICIARIO IN (
-      'PRIMO',
-      'PRIMA',
-      'PADRINO',
-      'MADRINA',
-      'AHIJADO',
-      'AHIJADA',
-      'AMIGO',
-      'AMIGA',
-      'PERSONA NATURAL CON NEGOCIO',
-      'PROVEEDOR',
-      'DISTRIBUIDOR',
-      'CLIENTE',
-      'COMERCIAL',
-      'INFLUENCER',
-      'PARTNERSHIP',
-      'CONFIRMADOR',
-      'ORDENANTE SIN FIRMA',
-      'ORDENANTE',
-      'AVALISTA',
-      'BENEFICIARIO',
-      'APODERADO',
-      'AUTORIZADO',
-      'OTHER ATTORNEY',
-      'TUTOR',
-      'EMPLEADO',
-      'SECRETARIA',
-      'SECRETARIO',
-      'ASISTENTE',
-      'ADMIN ASSISTANT',
-      'SUBALTERNO',
-      'CONTADOR',
-      'USUARIO PORTAL',
-      'REFERENCIA PERSONAL',
-      'PARIENTE',
-      'NO INFORMADO'
-    ) THEN 'BAJO'
-    
-    ELSE 'ALTO'  -- Por defecto, cualquier otro caso
-  END AS NIVEL_PROXIMIDAD
+  f.ALERTAS_TITULAR,
+  f.ALERTAS_RELACIONADO,
+  f.PERIODO_CONSULTADO_TITULAR,
+  f.PRODUCTO_TITULAR,
+  f.PERIODO_CONSULTADO_RELACIONADO,
+  f.PRODUCTO_RELACIONADO,
+  f.NIVEL_PROXIMIDAD
 
 FROM final f
-LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS` a
-  ON f.TIPO_DOCUMENTO_RELACIONADO_DAV = a.TIPO_DOCUMENTO
-  AND f.KEY_ID_RELACIONADO_DAV = a.KEY_ID_BENEFICIARIO
-  
+
 QUALIFY ROW_NUMBER() OVER (
   PARTITION BY
     raiz_tipo_documento,
@@ -270,17 +174,15 @@ QUALIFY ROW_NUMBER() OVER (
     padre_tipo_documento,
     padre_numero_documento
 ) = 1
+
 ORDER BY
-  CASE 
-    WHEN NIVEL_PROXIMIDAD = 'ALTO' THEN 1
-    WHEN NIVEL_PROXIMIDAD = 'MEDIO' THEN 2
-    WHEN NIVEL_PROXIMIDAD = 'BAJO' THEN 3
+  CASE
+    WHEN f.NIVEL_PROXIMIDAD = 'ALTO'  THEN 1
+    WHEN f.NIVEL_PROXIMIDAD = 'MEDIO' THEN 2
+    WHEN f.NIVEL_PROXIMIDAD = 'BAJO'  THEN 3
+    ELSE 4
   END,
-  raiz_tipo_documento,
-  raiz_numero_documento,
-  nivel_recursivo,
-  LINAJE_BENEFICIARIO,
-  padre_tipo_documento,
-  padre_numero_documento,
-  TIPO_DOCUMENTO_RELACIONADO_DAV,
-  KEY_ID_RELACIONADO_DAV;
+  f.TIPO_DOCUMENTO,
+  f.NUMERO_DOCUMENTO,
+  f.TIPO_DOCUMENTO_RELACIONADO_DAV,
+  f.KEY_ID_RELACIONADO_DAV;
