@@ -1,13 +1,57 @@
+-- =====================================================================
+-- MODELO: Riesgo Inherente por RAMO y COMPAÑÍA (pR * sR * DR)
+-- ---------------------------------------------------------------------
+-- OBJETIVO:
+--   1) Tomar el periodo más reciente de PRIMAS (t_polizas_riesgos_endosos)
+--   2) Tomar el periodo más reciente de SINIESTROS PAGADOS (t_siniestros)
+--   3) Consolidar PRIMAS + SINIESTROS por RAMO y COMPAÑÍA
+--   4) Calcular:
+--        - pR: Participación de siniestros del ramo dentro de la compañía
+--        - sR: Severidad (siniestros / primas)
+--        - DR: Índice dicotómico por tipologías (1 si aplica tipología, 0 si no)
+--        - RI: Riesgo Inherente = pR * sR * DR
+--        - RI_COMP: Suma RI por compañía (resultado final por compañía)
+--
+--   5) (AGREGADO - CUANTIFICACIÓN 0-100, según lo conversado):
+--        - P_QUANT_SCORE_BRUTO      : Score bruto de Probabilidad por RAMO
+--        - P_QUANT_MINMAX_0_100     : MinMax 0-100 de Probabilidad por RAMO (dentro de la compañía)
+--        - I_QUANT_MINMAX_0_100     : MinMax 0-100 de Impacto por RAMO (dentro de la compañía)
+--        - P_COMPANIA_0_100         : Promedio simple por compañía de P_QUANT_MINMAX_0_100
+--        - I_COMPANIA_0_100         : Promedio simple por compañía de I_QUANT_MINMAX_0_100
+--        - RI_COMPANIA_MATRIZ_0_100 : Combinación 50/50 (P e I) a nivel compañía (0-100)
+--
+-- RESTRICCIONES / SUPUESTOS:
+--   - Solo pólizas vigentes: FECHA_FIN_ENDOSO y FECHA_FIN_POLIZA >= CURRENT_DATE()
+--   - Solo primas positivas: PRIMA_ANUAL > 0
+--   - Solo siniestros pagados: ESTADO_SINIESTRO_CALCULADO='PAGADO' y LIQUIDADO_BOLIVAR>0
+--   - SAFE_DIVIDE evita errores por división entre cero.
+--
+-- NOTA SOBRE TIPOLOGÍAS:
+--   Aquí "TIPOLOGIAS_APLICADAS" es un NIVEL DE EXPOSICIÓN (1=baja, 2=media, 3=alta)
+--   asignado por CODIGO_RAMO_EMISION, con comentarios de tipologías asociadas.
+--
+-- NOTA SOBRE P e I (CUANTITATIVO):
+--   - Probabilidad (P) cuantitativa por RAMO: se toma como pR (participación de siniestros).
+--     Intuición: más “peso” del ramo en el total de siniestros de la compañía => más probabilidad relativa.
+--   - Impacto (I) cuantitativo por RAMO: se toma como sR (severidad siniestros/primas).
+--     Intuición: cuánto “duele” el ramo vs su prima.
+--   - Luego ambos se llevan a escala 0-100 vía MinMax por compañía (para que sea comparable).
+-- =====================================================================
+
 DECLARE periodo_max_primas DATE;
 DECLARE periodo_max_siniestros TIMESTAMP;
 
--- 1) Último periodo disponible por FECHA_PROCESO en primas
+-- =====================================================================
+-- 1) Último periodo disponible por FECHA_PROCESO en PRIMAS
+-- =====================================================================
 SET periodo_max_primas = (
   SELECT MAX(DATE(FECHA_PROCESO))
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
 );
 
--- 2) Último periodo disponible para siniestros pagados
+-- =====================================================================
+-- 2) Último periodo disponible para SINIESTROS PAGADOS
+-- =====================================================================
 SET periodo_max_siniestros = (
   SELECT MAX(FECHA_PROCESO)
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
@@ -15,29 +59,42 @@ SET periodo_max_siniestros = (
     AND LIQUIDADO_BOLIVAR > 0
 );
 
--- 3) Query principal: PRIMAS + SINIESTROS agrupado por RAMO
+-- =====================================================================
+-- 3) Base por RAMO y COMPAÑÍA: PRIMAS + SINIESTROS + NIVEL DE EXPOSICIÓN
+-- =====================================================================
 WITH datos_base AS (
   SELECT
-    -- Llave de agregación
+    -- -------------------------
+    -- Llaves de agregación
+    -- -------------------------
     p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
     p.NOMBRE_RAMO_EMISION,
 
+    -- -------------------------
     -- Métricas de PRIMAS
+    -- -------------------------
     SUM(p.PRIMA_ANUAL_TOTAL) AS PRIMA_ANUAL_TOTAL,
-    SUM(p.CANTIDAD_POLIZAS) AS CANTIDAD_POLIZAS,
-    p.PERIODO_CONSULTADO AS PERIODO_PRIMAS,
+    SUM(p.CANTIDAD_POLIZAS)  AS CANTIDAD_POLIZAS,
+    p.PERIODO_CONSULTADO     AS PERIODO_PRIMAS,
 
+    -- -------------------------
     -- Métricas de SINIESTROS
+    -- -------------------------
     SUM(IFNULL(s.SINIESTRO_LIQUIDADO_TOTAL, 0)) AS SINIESTRO_LIQUIDADO_TOTAL,
-    SUM(IFNULL(s.CANTIDAD_SINIESTROS, 0)) AS CANTIDAD_SINIESTROS,
-    periodo_max_siniestros AS PERIODO_SINIESTROS,
+    SUM(IFNULL(s.CANTIDAD_SINIESTROS, 0))       AS CANTIDAD_SINIESTROS,
+    periodo_max_siniestros                      AS PERIODO_SINIESTROS,
 
-    -- Tipologías Aplicadas
+    -- =================================================================
+    -- NIVEL DE EXPOSICIÓN SEGÚN TIPOLOGÍAS (1=BAJA, 2=MEDIA, 3=ALTA)
+    -- =================================================================
     CASE p.CODIGO_RAMO_EMISION
+
+        -- =============================================================
         -- EXPOSICIÓN BAJA (1)
+        -- =============================================================
         WHEN 1   THEN 1  -- AUTOMOVILES - Fraude en siniestros, Uso de testaferros, Cambio por activos de lujo, Empresas fachada, Sobrefacturación
-        WHEN 3   THEN 1  -- CORRIENTE DEBIL - fRAUDE
+        WHEN 3   THEN 1  -- CORRIENTE DEBIL - Fraude
         WHEN 4   THEN 1  -- CUMPLIMIENTO - Empresas fachada, Uso de testaferros
         WHEN 5   THEN 1  -- INCENDIO - Fraude en siniestros, Inversión en bienes raíces, Uso de testaferros
         WHEN 8   THEN 1  -- ROTURA DE MAQUINARIA - Fraude en siniestros, Empresas fachada
@@ -58,7 +115,9 @@ WITH datos_base AS (
         WHEN 310 THEN 1  -- SOAT - Fraude en siniestros, Pitufeo
         WHEN 923 THEN 1  -- OFERTAS DE PROTECCION GENERAL - Fraude en siniestros, Uso de intermediarios
 
+        -- =============================================================
         -- EXPOSICIÓN MEDIA (2)
+        -- =============================================================
         WHEN 7   THEN 2  -- MANEJO - Fraude en siniestros, Uso de testaferros, Empresas fachada
         WHEN 15  THEN 2  -- TRANSPORTES - Fraude en siniestros, Exportaciones ficticias, Sobrefacturación, Empresas fachada
         WHEN 20  THEN 2  -- GRUPO - Seguros colectivos/masivos, Uso de intermediarios, Pitufeo
@@ -73,7 +132,9 @@ WITH datos_base AS (
         WHEN 48  THEN 2  -- VIDA CONJUNTO - Rescate anticipado, Fraude en siniestros, Uso de testaferros
         WHEN 922 THEN 2  -- OFERTAS DE PROTECCION PERSONAS - Fraude en siniestros, Uso de intermediarios
 
+        -- =============================================================
         -- EXPOSICIÓN ALTA (3)
+        -- =============================================================
         WHEN 40  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
         WHEN 42  THEN 3  -- VIDA INDIVIDUAL BANCASEGUROS - Compra con recursos ilícitos, Rescate anticipado, Pitufeo, Uso de testaferros, Paraísos fiscales
         WHEN 46  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
@@ -85,13 +146,17 @@ WITH datos_base AS (
         WHEN 801 THEN 3  -- TITULOS DE CAPITALIZACION - Compra con recursos ilícitos, Rescate anticipado, Cambio por activos de lujo, Loterías ficticias, Paraísos fiscales
         WHEN 140 THEN 3  -- SEGUROS DE VIDA (ANTIGUOS) - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Uso de testaferros
 
+        -- =============================================================
         -- NO DOCUMENTADO / CONSERVADOR
+        -- =============================================================
         WHEN 81  THEN 1  -- NO DOCUMENTADO EN LISTADO - Fraude en siniestros
-        ELSE 1  -- Default conservador: exposición baja
+        ELSE 1           -- Default conservador: exposición baja
     END AS TIPOLOGIAS_APLICADAS
 
   FROM (
-    -- Subquery de PRIMAS
+    -- ===============================================================
+    -- Subquery PRIMAS: pólizas vigentes al último FECHA_PROCESO
+    -- ===============================================================
     SELECT
       CODIGO_COMPANIA,
       CODIGO_RAMO_EMISION,
@@ -100,14 +165,14 @@ WITH datos_base AS (
       NUMERO_POLIZA,
       TIPO_DOCUMENTO_TOMADOR,
       KEY_ID_TOMADOR,
-      SUM(PRIMA_ANUAL) AS PRIMA_ANUAL_TOTAL,
+      SUM(PRIMA_ANUAL)              AS PRIMA_ANUAL_TOTAL,
       COUNT(DISTINCT NUMERO_POLIZA) AS CANTIDAD_POLIZAS,
-      periodo_max_primas AS PERIODO_CONSULTADO
+      periodo_max_primas            AS PERIODO_CONSULTADO
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
     WHERE
       DATE(FECHA_PROCESO) = periodo_max_primas
       AND DATE(FECHA_FIN_ENDOSO) >= CURRENT_DATE()
-      AND DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE() 
+      AND DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
       AND PRIMA_ANUAL > 0
     GROUP BY
       CODIGO_COMPANIA,
@@ -120,16 +185,18 @@ WITH datos_base AS (
   ) p
 
   LEFT JOIN (
-    -- Subquery de SINIESTROS
+    -- ===============================================================
+    -- Subquery SINIESTROS: pagados al último FECHA_PROCESO
+    -- ===============================================================
     SELECT
       CODIGO_COMPANIA,
       NUMERO_SECUENCIA_POLIZA,
       NUMERO_POLIZA,
       TIPO_DOCUMENTO_TOMADOR,
       KEY_ID_TOMADOR,
-      SUM(LIQUIDADO_BOLIVAR) AS SINIESTRO_LIQUIDADO_TOTAL,
+      SUM(LIQUIDADO_BOLIVAR)                  AS SINIESTRO_LIQUIDADO_TOTAL,
       COUNT(DISTINCT NUMERO_SECUENCIA_POLIZA) AS CANTIDAD_SINIESTROS,
-      periodo_max_siniestros AS PERIODO_CONSULTADO
+      periodo_max_siniestros                  AS PERIODO_CONSULTADO
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
     WHERE
       FECHA_PROCESO = periodo_max_siniestros
@@ -147,6 +214,7 @@ WITH datos_base AS (
     AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
     AND p.NUMERO_SECUENCIA_POLIZA = s.NUMERO_SECUENCIA_POLIZA
 
+  -- Agregación final por compañía/ramo
   GROUP BY
     p.CODIGO_COMPANIA,
     p.CODIGO_RAMO_EMISION,
@@ -155,75 +223,214 @@ WITH datos_base AS (
     periodo_max_siniestros
 ),
 
+-- =====================================================================
+-- 4) Cálculos intermedios (pR, sR, DR) + SCORE BRUTO P/I
+-- =====================================================================
 calculos_intermedios AS (
   SELECT
     *,
-    -- Total de siniestros POR COMPAÑÍA (PARTITION BY CODIGO_COMPANIA)
+
+    -- ---------------------------------------------------------------
+    -- Total siniestros por compañía (para auditar pR)
+    -- ---------------------------------------------------------------
     SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA) AS TOTAL_SINIESTROS_POR_COMPANIA,
-    
-    -- pR = Siniestros del ramo / Total siniestros de la compañía
+
+    -- ---------------------------------------------------------------
+    -- pR = siniestros del ramo / total siniestros de la compañía
+    -- ---------------------------------------------------------------
     SAFE_DIVIDE(
-      SINIESTRO_LIQUIDADO_TOTAL, 
+      SINIESTRO_LIQUIDADO_TOTAL,
       SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA)
     ) AS pR,
-    
-    -- sR = Siniestros pagados / Primas emitidas
+
+    -- ---------------------------------------------------------------
+    -- sR = siniestros / primas
+    -- ---------------------------------------------------------------
     SAFE_DIVIDE(SINIESTRO_LIQUIDADO_TOTAL, PRIMA_ANUAL_TOTAL) AS sR,
-    
-    -- DR = Índice por tipologías (dicotómica: 1 si tiene tipología, 0 si no)
-    CASE WHEN TIPOLOGIAS_APLICADAS > 0 THEN 1 ELSE 0 END AS DR
-    
+
+    -- ---------------------------------------------------------------
+    -- DR = 1 si el ramo tiene tipología (en tu diccionario siempre >0), sino 0
+    -- ---------------------------------------------------------------
+    CASE WHEN TIPOLOGIAS_APLICADAS > 0 THEN 1 ELSE 0 END AS DR,
+
+    -- ===============================================================
+    -- SCORES BRUTOS CUANTITATIVOS (por RAMO)
+    --   P_QUANT_SCORE_BRUTO: Probabilidad cuantitativa => pR
+    --   I_QUANT_SCORE_BRUTO: Impacto cuantitativo      => sR
+    -- ===============================================================
+    (SAFE_DIVIDE(
+      SINIESTRO_LIQUIDADO_TOTAL,
+      SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA)
+    )) AS P_QUANT_SCORE_BRUTO,
+
+    (SAFE_DIVIDE(SINIESTRO_LIQUIDADO_TOTAL, PRIMA_ANUAL_TOTAL)) AS I_QUANT_SCORE_BRUTO
+
   FROM datos_base
 ),
 
+-- =====================================================================
+-- 4.1) Min/Max por compañía para escalar (MinMax 0-100)
+--      (Se calcula sobre los scores brutos por RAMO dentro de cada compañía)
+-- =====================================================================
+minmax_compania AS (
+  SELECT
+    *,
+    -- -----------------------------
+    -- Min/Max de P (por compañía)
+    -- -----------------------------
+    MIN(P_QUANT_SCORE_BRUTO) OVER(PARTITION BY CODIGO_COMPANIA) AS P_MIN_COMPANIA,
+    MAX(P_QUANT_SCORE_BRUTO) OVER(PARTITION BY CODIGO_COMPANIA) AS P_MAX_COMPANIA,
+
+    -- -----------------------------
+    -- Min/Max de I (por compañía)
+    -- -----------------------------
+    MIN(I_QUANT_SCORE_BRUTO) OVER(PARTITION BY CODIGO_COMPANIA) AS I_MIN_COMPANIA,
+    MAX(I_QUANT_SCORE_BRUTO) OVER(PARTITION BY CODIGO_COMPANIA) AS I_MAX_COMPANIA
+  FROM calculos_intermedios
+),
+
+-- =====================================================================
+-- 4.2) Escalamiento MinMax 0-100 por RAMO (dentro de cada compañía)
+--      Fórmula: 100 * (x - min) / (max - min)
+--      Manejo caso max=min: devuelve 0 para evitar división por cero.
+-- =====================================================================
+escalamiento_ramo_0_100 AS (
+  SELECT
+    *,
+
+    -- ---------------------------------------------------------------
+    -- P_QUANT_MINMAX_0_100 (por RAMO)
+    -- ---------------------------------------------------------------
+    CASE
+      WHEN (P_MAX_COMPANIA - P_MIN_COMPANIA) = 0 THEN 0
+      ELSE 100 * SAFE_DIVIDE((P_QUANT_SCORE_BRUTO - P_MIN_COMPANIA), (P_MAX_COMPANIA - P_MIN_COMPANIA))
+    END AS P_QUANT_MINMAX_0_100,
+
+    -- ---------------------------------------------------------------
+    -- I_QUANT_MINMAX_0_100 (por RAMO)
+    -- ---------------------------------------------------------------
+    CASE
+      WHEN (I_MAX_COMPANIA - I_MIN_COMPANIA) = 0 THEN 0
+      ELSE 100 * SAFE_DIVIDE((I_QUANT_SCORE_BRUTO - I_MIN_COMPANIA), (I_MAX_COMPANIA - I_MIN_COMPANIA))
+    END AS I_QUANT_MINMAX_0_100
+
+  FROM minmax_compania
+),
+
+-- =====================================================================
+-- 5) Cálculos finales (RI y agregados compañía: RI total + P/I compañía 0-100)
+-- =====================================================================
 calculos_finales AS (
   SELECT
     *,
-    -- Riesgo Inherente = pR × sR × DR
+
+    -- ---------------------------------------------------------------
+    -- RI = pR × sR × DR
+    -- ---------------------------------------------------------------
     (pR * sR * DR) AS RIESGO_INHERENTE,
-    
-    -- Suma total de Riesgo Inherente POR COMPAÑÍA (PARTITION BY CODIGO_COMPANIA)
-    SUM(pR * sR * DR) OVER(PARTITION BY CODIGO_COMPANIA) AS SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA
-    
-  FROM calculos_intermedios
+
+    -- ---------------------------------------------------------------
+    -- Total RI por compañía (misma lógica que ya tenías)
+    -- ---------------------------------------------------------------
+    SUM(pR * sR * DR) OVER(PARTITION BY CODIGO_COMPANIA) AS SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA,
+
+    -- ===============================================================
+    -- AGREGADOS POR COMPAÑÍA (0-100)
+    --   - P_COMPANIA_0_100: promedio simple de P_QUANT_MINMAX_0_100
+    --   - I_COMPANIA_0_100: promedio simple de I_QUANT_MINMAX_0_100
+    --   - RI_COMPANIA_MATRIZ_0_100: mezcla 50/50 (P e I) (0-100)
+    -- ===============================================================
+    AVG(P_QUANT_MINMAX_0_100) OVER(PARTITION BY CODIGO_COMPANIA) AS P_COMPANIA_0_100,
+    AVG(I_QUANT_MINMAX_0_100) OVER(PARTITION BY CODIGO_COMPANIA) AS I_COMPANIA_0_100,
+
+    (
+      0.5 * AVG(P_QUANT_MINMAX_0_100) OVER(PARTITION BY CODIGO_COMPANIA)
+      + 0.5 * AVG(I_QUANT_MINMAX_0_100) OVER(PARTITION BY CODIGO_COMPANIA)
+    ) AS RI_COMPANIA_MATRIZ_0_100
+
+  FROM escalamiento_ramo_0_100
 )
 
+-- =====================================================================
+-- 6) Salida final
+-- =====================================================================
 SELECT
+  -- -------------------------
+  -- Identificadores
+  -- -------------------------
   CODIGO_COMPANIA,
   CODIGO_RAMO_EMISION,
   NOMBRE_RAMO_EMISION,
+
+  -- -------------------------
+  -- Primas / Siniestros
+  -- -------------------------
   PRIMA_ANUAL_TOTAL,
   CANTIDAD_POLIZAS,
   PERIODO_PRIMAS,
   SINIESTRO_LIQUIDADO_TOTAL,
   CANTIDAD_SINIESTROS,
   PERIODO_SINIESTROS,
+
+  -- -------------------------
+  -- Tipologías
+  -- -------------------------
   TIPOLOGIAS_APLICADAS,
-  
-  -- Total de siniestros de la compañía (para validación)
+
+  -- -------------------------
+  -- Validación: total siniestros compañía
+  -- -------------------------
   TOTAL_SINIESTROS_POR_COMPANIA,
-  
-  -- Nuevas columnas calculadas
+
+  -- -------------------------
+  -- Lectura de negocio (pR y sR)
+  -- -------------------------
   ROUND(pR * 100, 2) AS pR_PORCENTAJE,
   ROUND(sR * 100, 2) AS sR_PORCENTAJE,
   DR AS INDICE_TIPOLOGIAS,
-  
-  -- Quintil (Impacto) basado en sR
-  CASE 
+
+  -- -------------------------
+  -- Quintil (impacto) basado en sR
+  -- -------------------------
+  CASE
     WHEN sR <= 0.20 THEN '🟢 Bajo'
     WHEN sR <= 0.40 THEN '🟢 Medio Bajo'
-    WHEN sR <= 0.60 THEN '🟡  Medio'
-    WHEN sR <= 0.80 THEN '🟡  Medio Alto'
+    WHEN sR <= 0.60 THEN '🟡 Medio'
+    WHEN sR <= 0.80 THEN '🟡 Medio Alto'
     ELSE '🔴 Alto'
   END AS QUINTIL_IMPACTO,
-  
+
+  -- ===============================================================
+  -- VARIABLES NUEVAS (HISTÓRICO CONVERSADO)
+  -- ===============================================================
+
+  -- -------------------------
+  -- Scores brutos (por RAMO)
+  -- -------------------------
+  P_QUANT_SCORE_BRUTO,
+  -- I_QUANT_SCORE_BRUTO (no la pediste en lista final, pero la dejo para trazabilidad)
+  I_QUANT_SCORE_BRUTO,
+
+  -- -------------------------
+  -- Escalamiento 0-100 (por RAMO)
+  -- -------------------------
+  ROUND(P_QUANT_MINMAX_0_100, 2) AS P_QUANT_MINMAX_0_100,
+  ROUND(I_QUANT_MINMAX_0_100, 2) AS I_QUANT_MINMAX_0_100,
+
+  -- -------------------------
+  -- Agregados por compañía (0-100)
+  -- -------------------------
+  ROUND(P_COMPANIA_0_100, 2) AS P_COMPANIA_0_100,
+  ROUND(I_COMPANIA_0_100, 2) AS I_COMPANIA_0_100,
+  ROUND(RI_COMPANIA_MATRIZ_0_100, 2) AS RI_COMPANIA_MATRIZ_0_100,
+
+  -- -------------------------
+  -- Resultado por ramo y agregado compañía (tu métrica original)
+  -- -------------------------
   ROUND(RIESGO_INHERENTE, 6) AS RIESGO_INHERENTE,
-  
-  -- RESULTADO FINAL POR COMPAÑÍA (se repite el mismo valor para todos los ramos de la misma compañía)
   ROUND(SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA * 100, 2) AS RESULTADO_FINAL_PORCENTAJE
 
 FROM calculos_finales
-
 ORDER BY
   CODIGO_COMPANIA,
   PRIMA_ANUAL_TOTAL DESC;
