@@ -1,0 +1,113 @@
+
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod
+
+SELECT DISTINCT
+    m.FECHA_TRANSACCION,                    -- Fecha del movimiento
+    m.NUMERO_TITULO,                        -- Título del movimiento
+    m.VALOR_TRANSACCION,                    -- Valor de la transacción
+    m.DESCRIPCION_TIPO_MOVIMIENTO,          -- Tipo de movimiento (filtrado)
+    m.CODIGO_AGENCIA,                       -- Agencia que realizó el movimiento
+    c.KEY_ID_BENEFICIARIO as KEY_ID,                  -- ID del cliente
+    c.TIPO_DOCUMENTO,                       -- Tipo de documento del cliente
+    t2.PUBLICAMENTE_EXPUESTA,                -- Indica si el cliente es públicamente expuesto
+        -- Marca del mes de alerta (formato Año-Mes)
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Fecha en la que se genera la alerta
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora m
+JOIN 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
+    ON m.NUMERO_TITULO = c.TITULO
+
+-- Unión externa para traer información de exposición pública desde dos tablas
+LEFT JOIN (
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+
+    UNION ALL
+
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+) AS t2
+    ON c.KEY_ID_BENEFICIARIO = t2.KEY_ID
+    AND c.TIPO_DOCUMENTO = t2.TIPO_DOCUMENTO
+
+-- Filtro por número de título específico y movimientos relevantes
+WHERE  m.DESCRIPCION_TIPO_MOVIMIENTO IN (
+        'N.D. REVERSION SALDO A FAVOR',
+        'REC.REINTE.UNID CJAS.BOLIVAR',
+        'SALDO FAVOR CLIENTE ANULACION SORTEO',
+        'APLIC. RECAUDOS DABUENAVIDA DEPTO TITULO',
+        'REC.CUOT.INIC.TRANSF.DAVIV',
+        'REC.REINTE.UNID CJAS.DAVIVIENDA',
+        'TRASL APLI UNID DE SALD FAVOR',
+        'REC.SOBRANTE EFECT.CAJEROS',
+        'CAUSAC VTO INT DEPOSITO',
+        'N.D. REVERS CTA ADEL PER ACTUAL',
+        'REC.CUOT.INIC.DATAFONOS',
+        'TRASL REVERS CUOT INI APLI',
+        'CORREC. INCONS. REINTEGRO',
+        'APLIC CTAS INIC DE SALD FAVOR',
+        'CORREC. INCONS. CUOTA INICIAL',
+        'CORREC. INCONS. CUOTA POSTER.',
+        'REC. CTAS POST TRANSF DAVIV',
+        'ANULACION DEVOLUCION GASTOS SORTEO',
+        'SALDO FAVOR CLIENTE NOTA DEBITO',
+        'REC. CTAS INIC TRASL AUTOMA',
+        'REC.CUOT.INIC.DEB.CONVENIOS',
+        'REC.CUOT.POST.CJAS.BOLIVAR',
+        'TRASL REVERS POST APLIC CONVEN',
+        'TRASL REVERS POST ADELA CONVEN',
+        'APLIC CTAS POST DE SALD FAVOR',
+        'REC.INIC.BOTON DE PAGOS',
+        'ANULACION RETIRO PARCIAL',
+        'TRASL AUTOM CTAS AL V.N.A.',
+        'TRASL AUTOM REVERS SALDO',
+        'APLICAC UNID DEPTO TITULOS',
+        'REC.CUOT.POST.CJAS DAVIVIENDA',
+        'TRASLADO REVERS CUOT ADEL AUTOM',
+        'APLICACION CTAS POST DEPTO TITULOS',
+        'REC.CUOT.INIC.DEB.CORPORATIVO',
+        'RECAUDO CUOTAS EXTRAORDINARIAS',
+        'TRASL REVERS CUOT POS APLI',
+        'RECAUDO CUOTAS TELEFONO ROJO',
+        'ANULAC.PAG.SALDO FAV.CLIENTE',
+        'TRASL REVERS CUOT INI ADEL',
+        'REVERSION REINTEGRO DEPTO TITULOS',
+        'REVER CUOTA ADEL A SALDO FAV',
+        'RECAUDO BOTON DE PAGOS',
+        'TRASL APLIC  SALDO A FAVOR',
+        'TRASLADO REVERS SALDO FAVOR',
+        'REC.CUOT.POST.LIBRANZA',
+        'N.D. RETIRO UNIDADES',
+        'DEVOLUCION GASTOS SORTEO',
+        'INCONSISTENCIAS CUOTAS POST CICS',
+        'N.D. REVERS CTA POSTERIOR',
+        'REC. CUOTAS POSTERIORES GANALEASING',
+        'TRASL APLIC  CUOT POST',
+        'TRASL APLIC  CUOT INIC',
+        'APLICACION CTAS INIC DEPTO TITULOS',
+        'APLIC. CUOTA EXTRAORD. DABUENAVIDA TITUL',
+        'TRASL REVERS CUOT POS ADEL',
+        'TRASLADO REVERS INT SALDO',
+        'N.D. REVERS CTA INICIAL',
+        'REC.CUOT.INIC.CJAS.BOLIVAR',
+        'TRASL AUTOM REVERS CTAS ADEL',
+        'REC. CUOTAS INICIALES GANALEASING',
+        'REC INICIALES ESTRAORD',
+        'ANULACION VENCIMIENTOS',
+        'SALDO FAVOR POR ANUL RETIRO',
+        'TRASL REVERS INIC APLIC CONVEN'
+    ) AND m.FECHA_TRANSACCION >= '2026-03-01'  AND m.VALOR_TRANSACCION > 1000000 AND t2.PUBLICAMENTE_EXPUESTA = "S"
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_069_prod t
+    WHERE t.NUMERO_TITULO = m.NUMERO_TITULO
+      AND t.KEY_ID = c.KEY_ID_BENEFICIARIO
+      AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+      AND t.FECHA_TRANSACCION = m.FECHA_TRANSACCION
+      AND t.VALOR_TRANSACCION = m.VALOR_TRANSACCION
+)
+ORDER BY m.FECHA_TRANSACCION DESC;
