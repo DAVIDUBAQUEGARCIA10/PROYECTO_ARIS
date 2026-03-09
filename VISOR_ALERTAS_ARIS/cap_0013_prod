@@ -1,0 +1,134 @@
+-- ============================================================
+-- Regla: Aumento >150% en total pagado (30d vs 90d previos)
+-- Inserta en: sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0013_VISOR_TRANS
+-- Estrategia anti-duplicados: NOT EXISTS por (KEY_ID, FECHA_ALERTA_MES, FECHA_TRANSACCION)
+-- ============================================================
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod` (
+  FECHA_TRANSACCION,
+  NUMERO_TITULO,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  CODIGO_AGENCIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  TOTAL_30D,
+  TOTAL_90D_PREV,
+  RATIO_30D_90D,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+WITH param AS (
+  SELECT 
+    CURRENT_DATE()                             AS fecha_hoy,
+    DATE_SUB(CURRENT_DATE(), INTERVAL 29 DAY)  AS ini_30d,     -- ventana 30d (incluye hoy)
+    DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)  AS fin_90d,     -- día anterior a la ventana 30d
+    DATE_SUB(CURRENT_DATE(), INTERVAL 119 DAY) AS ini_90d,     -- 90 días previos a la ventana 30d
+    1.5                                        AS umbral_ratio -- 150% (ajústalo si deseas)
+),
+
+-- 1) Base de movimientos filtrada + identificación cliente/título
+base AS (
+  SELECT DISTINCT
+    m.FECHA_TRANSACCION,
+    m.NUMERO_TITULO,
+    m.VALOR_TRANSACCION,
+    m.DESCRIPCION_TIPO_MOVIMIENTO,
+    m.CODIGO_AGENCIA,
+    c.KEY_ID_BENEFICIARIO AS KEY_ID,
+    c.TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` m
+  JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+    ON m.NUMERO_TITULO = c.TITULO
+  WHERE m.DESCRIPCION_TIPO_MOVIMIENTO IN (
+    'REC.REINTE.UNID CJAS.BOLIVAR',
+    'REC.CUOT.INIC.TRANSF.DAVIV',
+    'REC.REINTE.UNID CJAS.DAVIVIENDA',
+    'REC.CUOT.INIC.DATAFONOS',
+    'REC.CUOT.INIC.DEB.CONVENIOS',
+    'REC.CUOT.POST.CJAS.BOLIVAR',
+    'REC.INIC.BOTON DE PAGOS',
+    'REC.CUOT.POST.DEB.AUTOMATICO',
+    'REC.CUOT.POST.CJAS DAVIVIENDA',
+    'REC.CUOT.INIC.DEB.CORPORATIVO',
+    'RECAUDO CUOTAS EXTRAORDINARIAS',
+    'RECAUDO CUOTAS TELEFONO ROJO',
+    'RECAUDO BOTON DE PAGOS',
+    'REC.CUOT.POST.LIBRANZA',
+    'REC. CUOTAS POSTERIORES GANALEASING',
+    'REC.CUOT.INIC.CJAS.BOLIVAR',
+    'REC. CUOTAS INICIALES GANALEASING',
+    'REC.SOBRANTE EFECT.CAJEROS',
+    'REC. CTAS INIC TRASL AUTOMA',
+    'REC INICIALES ESTRAORD'
+)
+
+  AND m.FECHA_TRANSACCION >= '2026-03-01'
+),
+
+-- 2) Totales por KEY_ID (30d vs 90d previos)
+totales AS (
+  SELECT
+    b.KEY_ID,
+    SUM(CASE WHEN b.FECHA_TRANSACCION BETWEEN p.ini_30d AND p.fecha_hoy
+             THEN b.VALOR_TRANSACCION ELSE 0 END) AS total_30d,
+    SUM(CASE WHEN b.FECHA_TRANSACCION BETWEEN p.ini_90d AND p.fin_90d
+             THEN b.VALOR_TRANSACCION ELSE 0 END) AS total_90d_prev
+  FROM base b
+  CROSS JOIN param p
+  GROUP BY b.KEY_ID
+),
+
+-- 3) Clientes que superan el umbral
+disparadores AS (
+  SELECT
+    t.KEY_ID,
+    t.total_30d,
+    t.total_90d_prev,
+    SAFE_DIVIDE(t.total_30d, NULLIF(t.total_90d_prev, 0)) AS ratio
+  FROM totales t, param
+  WHERE t.total_90d_prev > 0
+    AND t.total_30d > param.umbral_ratio * t.total_90d_prev
+),
+
+-- 4) Una sola fila por cliente: última transacción
+ult_transaccion AS (
+  SELECT
+    b.FECHA_TRANSACCION,
+    b.NUMERO_TITULO,
+    b.DESCRIPCION_TIPO_MOVIMIENTO,
+    b.CODIGO_AGENCIA,
+    b.KEY_ID,
+    b.TIPO_DOCUMENTO,
+    d.total_30d      AS TOTAL_30D,
+    d.total_90d_prev AS TOTAL_90D_PREV,
+    d.ratio          AS RATIO_30D_90D,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE()                        AS FECHA_ALERTA,
+    ROW_NUMBER() OVER (
+      PARTITION BY b.KEY_ID
+      ORDER BY b.FECHA_TRANSACCION DESC, b.NUMERO_TITULO DESC
+    ) AS rn
+  FROM base b
+  JOIN disparadores d
+    ON b.KEY_ID = d.KEY_ID
+)
+SELECT
+  FECHA_TRANSACCION,
+  NUMERO_TITULO,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  CODIGO_AGENCIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  TOTAL_30D,
+  TOTAL_90D_PREV,
+  RATIO_30D_90D,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM ult_transaccion u
+WHERE rn = 1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0013_prod` t
+    WHERE t.KEY_ID             = u.KEY_ID
+      AND t.FECHA_TRANSACCION  = u.FECHA_TRANSACCION
+);
