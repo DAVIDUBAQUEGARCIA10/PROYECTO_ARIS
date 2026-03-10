@@ -1,0 +1,108 @@
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod (
+    CODIGO_COMPANIA, 
+    CODIGO_RAMO_CONTABLE, 
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_SINIESTRO,
+    FECHA_SUSCRIPCION,
+    ESTADO_SINIESTRO,
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
+
+-- Subconsulta CTE que organiza y filtra los siniestros relevantes
+WITH SiniestrosConFila AS (
+    SELECT DISTINCT 
+        -- Información del siniestro y datos de la póliza
+        CODIGO_COMPANIA, 
+        CODIGO_RAMO_CONTABLE, 
+        NOMBRE_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        FECHA_SINIESTRO,
+        FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR,
+
+        -- Se asigna un número de fila por combinación de cliente y monto liquidado
+        ROW_NUMBER() OVER (
+            PARTITION BY KEY_ID_TOMADOR, TIPO_DOCUMENTO_TOMADOR, LIQUIDADO_BOLIVAR
+            ORDER BY FECHA_SUSCRIPCION
+        ) AS fila
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+
+    WHERE 
+        -- Fechas recientes desde 2025
+        DATE(FECHA_SUSCRIPCION) >= '2026-03-01' AND
+        DATE(FECHA_SINIESTRO) >= '2026-03-01' AND
+
+        -- Orden de pago en los 90 días posteriores a la suscripción
+        DATE_DIFF(DATE(FECHA_ORDEN_PAGO), DATE(FECHA_SUSCRIPCION), DAY) <= 90 AND
+
+        -- Solo pólizas madre (terminadas en '01')
+        RIGHT(CAST(NUMERO_POLIZA AS STRING), 2) = '01' AND
+
+        -- Compañía específica (Seguros Bolívar)
+        CODIGO_COMPANIA = 3 AND
+
+        -- Valor liquidado positivo y pago registrado
+        LIQUIDADO_BOLIVAR > 0 AND
+        FECHA_ORDEN_PAGO IS NOT NULL AND
+
+        -- Exclusión de clientes internos o no sujetos a control
+        KEY_ID_TOMADOR NOT IN ('860034313', '830053700') AND
+
+        -- Excluir ciertos ramos contables no aplicables al análisis de riesgo
+        CODIGO_RAMO_CONTABLE NOT IN (45, 34, 70, 26, 118, 27, 888, 13, 310, 1, 68)
+)
+
+-- Selección final de registros únicos
+SELECT  DISTINCT
+    S.CODIGO_COMPANIA, 
+    S.CODIGO_RAMO_CONTABLE, 
+    S.NOMBRE_RAMO_CONTABLE,
+    S.CODIGO_PRODUCTO,
+    S.NOMBRE_PRODUCTO,
+    S.NUMERO_SECUENCIA_POLIZA,
+    S.NUMERO_POLIZA,
+    S.TIPO_DOCUMENTO_TOMADOR,
+    S.KEY_ID_TOMADOR,
+    S.FECHA_SINIESTRO,
+    S.FECHA_SUSCRIPCION,
+    S.ESTADO_SINIESTRO,
+    S.FECHA_ORDEN_PAGO,
+    S.LIQUIDADO_BOLIVAR,
+
+    -- Agrega la fecha actual como marca de generación de la alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+
+FROM SiniestrosConFila S
+
+-- Se queda solo con la fila más representativa por grupo (fila = 1)
+WHERE 
+    S.fila = 1
+
+    -- Evita insertar duplicados ya existentes en la tabla destino
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0063_prod T
+        WHERE 
+            T.KEY_ID_TOMADOR = S.KEY_ID_TOMADOR
+            AND T.NUMERO_POLIZA = S.NUMERO_POLIZA
+            AND T.LIQUIDADO_BOLIVAR = S.LIQUIDADO_BOLIVAR
+                        AND T.FECHA_ORDEN_PAGO = S.FECHA_ORDEN_PAGO
+    );
