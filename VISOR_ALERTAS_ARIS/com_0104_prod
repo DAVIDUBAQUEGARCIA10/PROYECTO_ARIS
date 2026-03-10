@@ -1,0 +1,207 @@
+--standardSQL
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod` (
+  TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID_TOMADOR,
+  NUMERO_POLIZA,
+  CODIGO_RAMO_CONTABLE,
+  CODIGO_PRODUCTO,
+  NIVEL_DE_RIESGO,
+  PERIODO_CONSULTADO,
+  NOMBRE_RAMO_EMISION_REF,
+  NOMBRE_PRODUCTO_REF,
+  PRIMA_ANUAL_TOTAL,
+  NUM_PAGOS_ANUALES,
+  PRIMA_POR_PAGO,
+  VALOR_INGRESOS,
+  VALOR_EGRESOS,
+  CAPACIDAD_NETA,
+  DISPARA_ALERTA,
+  DETALLE_ALERTA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+WITH ultima AS (
+  -- 1) Último corte disponible en pólizas
+  SELECT MAX(DATE(FECHA_PROCESO)) AS periodo_max
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+),
+
+pol_base AS (
+  -- 2) Pólizas al último corte agregadas por tomador + póliza
+  SELECT
+    t.TIPO_DOCUMENTO_TOMADOR,
+    t.KEY_ID_TOMADOR,
+    t.NUMERO_POLIZA,
+    SUM(t.PRIMA_ANUAL) AS PRIMA_ANUAL_TOTAL,
+
+    ANY_VALUE(t.PERIODO_FACTURACION) AS PERIODO_FACTURACION_REF,
+    ANY_VALUE(t.CODIGO_RAMO_EMISION) AS CODIGO_RAMO_CONTABLE,
+    ANY_VALUE(t.NOMBRE_RAMO_EMISION) AS NOMBRE_RAMO_EMISION_REF,
+    ANY_VALUE(t.CODIGO_PRODUCTO)     AS CODIGO_PRODUCTO,
+    ANY_VALUE(t.NOMBRE_PRODUCTO)     AS NOMBRE_PRODUCTO_REF,
+
+    u.periodo_max AS PERIODO_CONSULTADO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` t
+  CROSS JOIN ultima u
+  WHERE DATE(t.FECHA_PROCESO) = u.periodo_max AND CODIGO_COMPANIA = 3
+  GROUP BY
+    t.TIPO_DOCUMENTO_TOMADOR,
+    t.KEY_ID_TOMADOR,
+    t.NUMERO_POLIZA,
+    u.periodo_max
+),
+
+clientes_capacidad AS (
+  -- 3) Capacidad financiera PN + PJ (ingresos / egresos)
+  SELECT DISTINCT
+    KEY_ID,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+  WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+  UNION ALL
+
+  SELECT DISTINCT
+    KEY_ID,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+  WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+),
+
+PolizasFiltradas AS (
+  -- 4) Enriquecimiento: capacidad neta, pagos anuales, prima por pago
+  SELECT
+    p.*,
+    c.VALOR_INGRESOS,
+    c.VALOR_EGRESOS,
+    (c.VALOR_INGRESOS - c.VALOR_EGRESOS) AS CAPACIDAD_NETA,
+
+    CASE
+      WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%mens%'   THEN 12
+      WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%bimes%'  THEN 6
+      WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%trimes%' THEN 4
+      WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%semes%'  THEN 2
+      WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%an%'     THEN 1
+      ELSE 12
+    END AS NUM_PAGOS_ANUALES,
+
+    SAFE_DIVIDE(
+      p.PRIMA_ANUAL_TOTAL,
+      CASE
+        WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%mens%'   THEN 12
+        WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%bimes%'  THEN 6
+        WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%trimes%' THEN 4
+        WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%semes%'  THEN 2
+        WHEN LOWER(CAST(p.PERIODO_FACTURACION_REF AS STRING)) LIKE '%an%'     THEN 1
+        ELSE 12
+      END
+    ) AS PRIMA_POR_PAGO
+  FROM pol_base p
+  LEFT JOIN clientes_capacidad c
+    ON c.KEY_ID = p.KEY_ID_TOMADOR
+),
+
+ConRiesgoAlto AS (
+  -- 5) Solo productos con NIVEL_DE_RIESGO = 'Alto'
+  SELECT
+    pf.*,
+    r.NIVEL_DE_RIESGO
+  FROM PolizasFiltradas pf
+  LEFT JOIN (
+    SELECT
+      SAFE_CAST(C__digo_del_Ramo AS INT64)      AS CODIGO_RAMO_CONTABLE,
+      SAFE_CAST(C__digo_de_Producto AS INT64)  AS CODIGO_PRODUCTO,
+      NIVEL_DE_RIESGO
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo`
+    WHERE NIVEL_DE_RIESGO = 'Alto'
+  ) r
+    ON pf.CODIGO_RAMO_CONTABLE = r.CODIGO_RAMO_CONTABLE
+   AND pf.CODIGO_PRODUCTO      = r.CODIGO_PRODUCTO
+  WHERE r.NIVEL_DE_RIESGO = 'Alto'
+),
+
+Alertados AS (
+  -- 6) Regla de disparo + exclusiones
+  SELECT
+    a.*,
+    TRUE AS DISPARA_ALERTA,
+    CONCAT(
+      'Producto de riesgo ALTO. Prima por pago (', CAST(a.PRIMA_POR_PAGO AS STRING),
+      ') supera capacidad neta (ingresos-egresos = ', CAST(a.CAPACIDAD_NETA AS STRING),
+      '). Ingresos=', CAST(a.VALOR_INGRESOS AS STRING),
+      ', Egresos=', CAST(a.VALOR_EGRESOS AS STRING),
+      ', PeriodoFacturacion=', CAST(a.PERIODO_FACTURACION_REF AS STRING)
+    ) AS DETALLE_ALERTA
+  FROM ConRiesgoAlto a
+  WHERE
+    -- Exclusión: ingresos y egresos ambos < 100.000
+    NOT (IFNULL(a.VALOR_INGRESOS,0) < 100000 AND IFNULL(a.VALOR_EGRESOS,0) < 100000)
+
+    -- Regla principal
+    AND a.PRIMA_POR_PAGO > a.CAPACIDAD_NETA
+
+    -- Sanidad mínima
+    AND a.CAPACIDAD_NETA IS NOT NULL
+    AND a.CAPACIDAD_NETA > 0
+),
+
+Final_1xTomador AS (
+  -- 7) Solo 1 póliza/producto por tomador
+  SELECT
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+    CODIGO_RAMO_CONTABLE,
+    CODIGO_PRODUCTO,
+    NIVEL_DE_RIESGO,
+    PERIODO_CONSULTADO,
+    NOMBRE_RAMO_EMISION_REF,
+    NOMBRE_PRODUCTO_REF,
+    PRIMA_ANUAL_TOTAL,
+    NUM_PAGOS_ANUALES,
+    PRIMA_POR_PAGO,
+    VALOR_INGRESOS,
+    VALOR_EGRESOS,
+    CAPACIDAD_NETA,
+    DISPARA_ALERTA,
+    DETALLE_ALERTA,
+
+    -- Fechas estándar de alerta
+      FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+  FROM Alertados
+  QUALIFY
+    ROW_NUMBER() OVER (
+      PARTITION BY KEY_ID_TOMADOR
+      ORDER BY PRIMA_POR_PAGO DESC, PRIMA_ANUAL_TOTAL DESC
+    ) = 1
+)
+
+SELECT
+  TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID_TOMADOR,
+  NUMERO_POLIZA,
+  CODIGO_RAMO_CONTABLE,
+  CODIGO_PRODUCTO,
+  NIVEL_DE_RIESGO,
+  PERIODO_CONSULTADO,
+  NOMBRE_RAMO_EMISION_REF,
+  NOMBRE_PRODUCTO_REF,
+  PRIMA_ANUAL_TOTAL,
+  NUM_PAGOS_ANUALES,
+  PRIMA_POR_PAGO,
+  VALOR_INGRESOS,
+  VALOR_EGRESOS,
+  CAPACIDAD_NETA,
+  DISPARA_ALERTA,
+  DETALLE_ALERTA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM Final_1xTomador
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.com_0104_prod` t
+  WHERE t.KEY_ID_TOMADOR = Final_1xTomador.KEY_ID_TOMADOR
+);
