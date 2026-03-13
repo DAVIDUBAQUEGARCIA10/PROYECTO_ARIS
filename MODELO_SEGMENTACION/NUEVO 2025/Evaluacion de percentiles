@@ -1,0 +1,329 @@
+-- ============================================================
+-- OBJETIVO
+-- Calcular un umbral transaccional por SEGMENTO, COMPANIA
+-- y TIPO_PERSONA_SEGMENTO (PN / PJ), usando percentiles
+-- diferenciados:
+--
+--   - Compañia 1 → Percentil 99.0
+--   - Compañia 2 → Percentil 99.7
+--   - Compañia 3 → Percentil 90.0
+--
+-- tomando las transacciones de los últimos 12 meses cerrados
+-- para aumentar la cantidad de observaciones y contar cuántas
+-- transacciones superan el umbral.
+-- ============================================================
+
+WITH clientes_base AS (
+
+    -- ========================================================
+    -- BASE PRINCIPAL DE CLIENTES SEGMENTADOS
+    -- Se toma la relación única entre cliente, compañía,
+    -- segmento y tipo de persona inferido desde MODELO.
+    -- ========================================================
+    SELECT DISTINCT
+        KEY_ID_TOMADOR,
+        COMPANIA,
+        SEGMENTO,
+        CASE
+            WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+            WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+            ELSE 'NO_IDENTIFICADO'
+        END AS TIPO_PERSONA_SEGMENTO
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+    WHERE
+    (
+        -- ====================================================
+        -- COMPAÑIA 1
+        -- Se filtran únicamente los segmentos permitidos
+        -- para modelos PN y PJ de esta compañía.
+        -- ====================================================
+        COMPANIA = 1
+        AND (
+            (
+                LOWER(MODELO) LIKE '%_pn_%'
+                AND SEGMENTO IN (
+                    'cluster_0','cluster_1','cluster_4','cluster_11',
+                    'cluster_13','cluster_16','cluster_19','Cluster_Outliers'
+                )
+            )
+            OR
+            (
+                LOWER(MODELO) LIKE '%_pj_%'
+                AND SEGMENTO IN (
+                    'cluster_2','cluster_15','cluster_18',
+                    'cluster_24','cluster_27','cluster_19','Cluster_Outliers'
+                )
+            )
+        )
+    )
+
+    OR
+
+    (
+        -- ====================================================
+        -- COMPAÑIA 2
+        -- Se filtran únicamente los segmentos permitidos
+        -- para modelos PN y PJ de esta compañía.
+        -- ====================================================
+        COMPANIA = 2
+        AND (
+            (
+                LOWER(MODELO) LIKE '%_pn_%'
+                AND SEGMENTO IN (
+                    'cluster_0','cluster_1','cluster_2','cluster_4',
+                    'cluster_6','cluster_11','cluster_14','cluster_16',
+                    'cluster_23','cluster_24','Cluster_Outliers'
+                )
+            )
+            OR
+            (
+                LOWER(MODELO) LIKE '%_pj_%'
+                AND SEGMENTO IN ('Cluster_Outliers')
+            )
+        )
+    )
+
+    OR
+
+    (
+        -- ====================================================
+        -- COMPAÑIA 3
+        -- Se filtran únicamente los segmentos permitidos
+        -- para modelos PN y PJ de esta compañía.
+        -- ====================================================
+        COMPANIA = 3
+        AND (
+            (
+                LOWER(MODELO) LIKE '%_pn_%'
+                AND SEGMENTO IN (
+                    'cluster_3','cluster_11','cluster_13',
+                    'cluster_14','cluster_17','cluster_19'
+                )
+            )
+            OR
+            (
+                LOWER(MODELO) LIKE '%_pj_%'
+                AND SEGMENTO IN (
+                    'cluster_0','cluster_17','cluster_18',
+                    'cluster_19','cluster_20'
+                )
+            )
+        )
+    )
+),
+
+polizas_base AS (
+
+    -- ========================================================
+    -- BASE DE PÓLIZAS
+    -- Se extrae la información principal de pólizas para
+    -- relacionar cada movimiento transaccional con su cliente.
+    -- ========================================================
+    SELECT DISTINCT
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        DATE(FECHA_EMISION_POLIZA) AS FECHA_EMISION_POLIZA,
+        FECHA_VIGENCIA_POLIZA,
+        FECHA_VENCIMIENTO_POLIZA,
+        FECHA_CANCELACION_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        PERIODICIDAD_PAGO
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+),
+
+aportes_extraordinarios AS (
+
+    -- ========================================================
+    -- MOVIMIENTOS DE LOS ÚLTIMOS 12 MESES CERRADOS
+    -- Ejemplo:
+    -- si hoy es marzo de 2026, toma desde 2025-03-01
+    -- hasta 2026-02-28.
+    --
+    -- No se incluye el mes en curso para evitar que el análisis
+    -- quede incompleto por cortes parciales.
+    -- ========================================================
+    SELECT
+        NUMERO_CUENTA_FONDO,
+        DATE(FECHA_PROCESO) AS FECHA_PROCESO,
+        VALOR_TRANSACCION,
+        DETALLE_OPERACION_EMMASCARADO,
+        NOMBRE_SUB_TRANSACCION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
+    WHERE DATE(FECHA_PROCESO) >= DATE_TRUNC(
+              DATE_SUB(CURRENT_DATE("America/Bogota"), INTERVAL 12 MONTH),
+              MONTH
+          )
+      AND DATE(FECHA_PROCESO) < DATE_TRUNC(
+              CURRENT_DATE("America/Bogota"),
+              MONTH
+          )
+      AND VALOR_TRANSACCION IS NOT NULL
+),
+
+base_cruce AS (
+
+    -- ========================================================
+    -- CRUCE ENTRE PÓLIZAS Y MOVIMIENTOS
+    -- Se enlaza NUMERO_CUENTA_FONDO con los primeros 11
+    -- caracteres del número de póliza.
+    -- ========================================================
+    SELECT
+        p.NUMERO_POLIZA,
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.FECHA_EMISION_POLIZA,
+        p.FECHA_VIGENCIA_POLIZA,
+        p.FECHA_VENCIMIENTO_POLIZA,
+        p.FECHA_CANCELACION_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR,
+        p.NOMBRE_TOMADOR,
+        p.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        p.PERIODICIDAD_PAGO,
+        a.NUMERO_CUENTA_FONDO,
+        a.FECHA_PROCESO,
+        a.VALOR_TRANSACCION,
+        a.DETALLE_OPERACION_EMMASCARADO,
+        a.NOMBRE_SUB_TRANSACCION
+    FROM polizas_base p
+    INNER JOIN aportes_extraordinarios a
+        ON CAST(a.NUMERO_CUENTA_FONDO AS STRING) = SUBSTR(CAST(p.NUMERO_POLIZA AS STRING), 1, 11)
+),
+
+movimientos_clientes AS (
+
+    -- ========================================================
+    -- MOVIMIENTOS DE CLIENTES SEGMENTADOS
+    -- Se asocia cada movimiento con su compañía, segmento
+    -- y tipo de persona (PN / PJ).
+    -- ========================================================
+    SELECT DISTINCT
+        c.KEY_ID_TOMADOR,
+        c.COMPANIA,
+        c.SEGMENTO,
+        c.TIPO_PERSONA_SEGMENTO,
+        b.NUMERO_POLIZA,
+        b.FECHA_PROCESO,
+        b.VALOR_TRANSACCION,
+        b.DETALLE_OPERACION_EMMASCARADO,
+        b.NOMBRE_SUB_TRANSACCION
+    FROM clientes_base c
+    INNER JOIN base_cruce b
+        ON c.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
+       AND c.COMPANIA = b.CODIGO_COMPANIA
+),
+
+percentiles AS (
+
+    -- ========================================================
+    -- CÁLCULO DE PERCENTILES
+    -- Se calculan percentiles por:
+    --   - COMPANIA
+    --   - SEGMENTO
+    --   - TIPO_PERSONA_SEGMENTO
+    --
+    -- Se usa resolución de 1000 para poder obtener:
+    --   P90.0 -> OFFSET(900)
+    --   P99.0 -> OFFSET(990)
+    --   P99.7 -> OFFSET(997)
+    -- ========================================================
+    SELECT
+        COMPANIA,
+        SEGMENTO,
+        TIPO_PERSONA_SEGMENTO,
+        APPROX_QUANTILES(VALOR_TRANSACCION, 1000)[OFFSET(900)] AS PERCENTIL_90_0,
+        APPROX_QUANTILES(VALOR_TRANSACCION, 1000)[OFFSET(990)] AS PERCENTIL_99_0,
+        APPROX_QUANTILES(VALOR_TRANSACCION, 1000)[OFFSET(997)] AS PERCENTIL_99_7
+    FROM movimientos_clientes
+    GROUP BY
+        COMPANIA,
+        SEGMENTO,
+        TIPO_PERSONA_SEGMENTO
+),
+
+umbral_por_compania AS (
+
+    -- ========================================================
+    -- SELECCIÓN DEL UMBRAL SEGÚN COMPAÑÍA
+    -- Se asigna el percentil que corresponde a cada compañía
+    -- manteniendo la separación por PN y PJ.
+    -- ========================================================
+    SELECT
+        COMPANIA,
+        SEGMENTO,
+        TIPO_PERSONA_SEGMENTO,
+        CASE
+            WHEN COMPANIA = 2 THEN PERCENTIL_99_7
+            WHEN COMPANIA = 3 THEN PERCENTIL_90_0
+            ELSE PERCENTIL_99_0
+        END AS UMBRAL_TRANSACCIONAL,
+        CASE
+            WHEN COMPANIA = 2 THEN 'P99.7'
+            WHEN COMPANIA = 3 THEN 'P90.0'
+            ELSE 'P99.0'
+        END AS TIPO_UMBRAL
+    FROM percentiles
+),
+
+resumen_final AS (
+
+    -- ========================================================
+    -- CONTEO DE TRANSACCIONES SOBRE EL UMBRAL
+    -- Se cuenta cuántas transacciones están por encima del
+    -- umbral para cada combinación de:
+    --   - COMPANIA
+    --   - SEGMENTO
+    --   - TIPO_PERSONA_SEGMENTO
+    -- ========================================================
+    SELECT
+        m.COMPANIA,
+        m.SEGMENTO,
+        m.TIPO_PERSONA_SEGMENTO,
+        u.TIPO_UMBRAL,
+        u.UMBRAL_TRANSACCIONAL,
+        COUNT(*) AS TOTAL_TRANSACCIONES,
+        COUNTIF(m.VALOR_TRANSACCION > u.UMBRAL_TRANSACCIONAL) AS TRANSACCIONES_SOBRE_UMBRAL,
+        SAFE_DIVIDE(
+            COUNTIF(m.VALOR_TRANSACCION > u.UMBRAL_TRANSACCIONAL),
+            COUNT(*)
+        ) AS PORCENTAJE_SOBRE_UMBRAL
+    FROM movimientos_clientes m
+    INNER JOIN umbral_por_compania u
+        ON m.COMPANIA = u.COMPANIA
+       AND m.SEGMENTO = u.SEGMENTO
+       AND m.TIPO_PERSONA_SEGMENTO = u.TIPO_PERSONA_SEGMENTO
+    GROUP BY
+        m.COMPANIA,
+        m.SEGMENTO,
+        m.TIPO_PERSONA_SEGMENTO,
+        u.TIPO_UMBRAL,
+        u.UMBRAL_TRANSACCIONAL
+)
+
+-- ============================================================
+-- RESULTADO FINAL
+-- ============================================================
+SELECT
+    COMPANIA,
+    SEGMENTO,
+    TIPO_PERSONA_SEGMENTO,
+    TIPO_UMBRAL,
+    UMBRAL_TRANSACCIONAL,
+    TOTAL_TRANSACCIONES,
+    TRANSACCIONES_SOBRE_UMBRAL,
+    ROUND(PORCENTAJE_SOBRE_UMBRAL * 100, 4) AS PORCENTAJE_SOBRE_UMBRAL
+FROM resumen_final
+ORDER BY
+    COMPANIA,
+    TIPO_PERSONA_SEGMENTO,
+    SEGMENTO;
