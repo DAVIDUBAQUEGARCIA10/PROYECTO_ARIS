@@ -1,0 +1,187 @@
+-- ============================================================
+-- OBJETIVO
+-- Calcular el percentil 90 del valor transaccional del último año
+-- por:
+--   - CODIGO_COMPANIA
+--   - TIPO_PERSONA_SEGMENTO (PN / PJ)
+--   - SEGMENTO
+--
+-- Se consideran únicamente:
+--   - títulos vigentes
+--   - movimientos del último año
+--   - clientes con cluster permitido en la tabla de segmentación
+-- ============================================================
+
+WITH
+
+-- ============================================================
+-- 1) TÍTULOS VIGENTES
+-- Se identifican únicamente los títulos vigentes.
+-- ============================================================
+titulos_vigentes AS (
+  SELECT DISTINCT
+    NUMERO_TITULO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_historico_titulos_capitalizacion`
+  WHERE ESTADO_TITULO = 1
+),
+
+-- ============================================================
+-- 2) CLIENTE ASOCIADO A CADA TÍTULO
+-- Se trae el cliente relacionado con cada título.
+-- ============================================================
+clientes_por_titulo AS (
+  SELECT DISTINCT
+    TITULO AS NUMERO_TITULO,
+    KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora`
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+    AND TIPO_DOCUMENTO IS NOT NULL
+),
+
+-- ============================================================
+-- 3) MOVIMIENTOS DEL ÚLTIMO AÑO
+-- Se conservan todos los movimientos transaccionales del último año.
+-- ============================================================
+movimientos_ultimo_anio AS (
+  SELECT
+    p.CODIGO_COMPANIA,
+    p.NUMERO_TITULO,
+    DATE(p.FECHA_TRANSACCION) AS FECHA_TRANSACCION,
+    p.CODIGO_TIPO_MOVIMIENTO,
+    p.NUMERO_TRANSACCION,
+    p.VALOR_TRANSACCION,
+    p.CODIGO_AGENCIA,
+    p.AGRUPAMIENTO_CODIGO,
+    p.SIGNO_MOVIMIENTO,
+    p.DESCRIPCION_TIPO_MOVIMIENTO,
+    p.ABREVIATURA_TIPO_MOVIMIENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` p
+  WHERE DATE(p.FECHA_TRANSACCION) >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR)
+    AND p.VALOR_TRANSACCION IS NOT NULL
+    AND p.VALOR_TRANSACCION > 0
+),
+
+-- ============================================================
+-- 4) SEGMENTACIÓN DE CLIENTES
+-- Se trae el cluster por KEY_ID_TOMADOR, compañía y tipo persona,
+-- filtrando únicamente los segmentos autorizados.
+-- ============================================================
+segmentacion_clientes AS (
+  SELECT DISTINCT
+    KEY_ID_TOMADOR,
+    COMPANIA,
+    SEGMENTO,
+    CASE
+      WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+      WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+      ELSE 'NO_IDENTIFICADO'
+    END AS TIPO_PERSONA_SEGMENTO
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+  WHERE
+    (
+      -- ======================================================
+      -- COMPAÑÍA 1
+      -- ======================================================
+      COMPANIA = 1
+      AND (
+        (
+          LOWER(MODELO) LIKE '%_pn_%'
+          AND SEGMENTO IN (
+            'cluster_0','cluster_1','cluster_4','cluster_11',
+            'cluster_13','cluster_16','cluster_19','Cluster_Outliers'
+          )
+        )
+        OR
+        (
+          LOWER(MODELO) LIKE '%_pj_%'
+          AND SEGMENTO IN (
+            'cluster_2','cluster_15','cluster_18',
+            'cluster_24','cluster_27','cluster_19','Cluster_Outliers'
+          )
+        )
+      )
+    )
+),
+
+-- ============================================================
+-- 5) BASE TRANSACCIONAL ENRIQUECIDA
+-- Se cruzan:
+--   - movimientos del último año
+--   - títulos vigentes
+--   - cliente por título
+--   - segmentación por cliente y compañía
+-- ============================================================
+base_final AS (
+  SELECT
+    m.CODIGO_COMPANIA,
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID_TOMADOR,
+    s.TIPO_PERSONA_SEGMENTO,
+    s.SEGMENTO,
+    m.NUMERO_TITULO,
+    m.FECHA_TRANSACCION,
+    m.CODIGO_TIPO_MOVIMIENTO,
+    m.NUMERO_TRANSACCION,
+    m.VALOR_TRANSACCION,
+    m.CODIGO_AGENCIA,
+    m.AGRUPAMIENTO_CODIGO,
+    m.SIGNO_MOVIMIENTO,
+    m.DESCRIPCION_TIPO_MOVIMIENTO,
+    m.ABREVIATURA_TIPO_MOVIMIENTO
+  FROM movimientos_ultimo_anio m
+  INNER JOIN titulos_vigentes tv
+    ON m.NUMERO_TITULO = tv.NUMERO_TITULO
+  LEFT JOIN clientes_por_titulo c
+    ON m.NUMERO_TITULO = c.NUMERO_TITULO
+  INNER JOIN segmentacion_clientes s
+    ON c.KEY_ID_TOMADOR = s.KEY_ID_TOMADOR
+   AND m.CODIGO_COMPANIA = s.COMPANIA
+  WHERE s.TIPO_PERSONA_SEGMENTO IN ('PN', 'PJ')
+    AND s.SEGMENTO IS NOT NULL
+),
+
+-- ============================================================
+-- 6) CÁLCULO DEL PERCENTIL 90
+-- Se calcula el umbral transaccional por compañía, tipo de
+-- persona y cluster.
+-- ============================================================
+calculo_percentil AS (
+  SELECT
+    CODIGO_COMPANIA,
+    TIPO_PERSONA_SEGMENTO,
+    SEGMENTO,
+    COUNT(*) AS TOTAL_MOVIMIENTOS,
+    COUNT(DISTINCT KEY_ID_TOMADOR) AS TOTAL_CLIENTES,
+    COUNT(DISTINCT NUMERO_TITULO) AS TOTAL_TITULOS,
+    MIN(VALOR_TRANSACCION) AS VALOR_MINIMO,
+    MAX(VALOR_TRANSACCION) AS VALOR_MAXIMO,
+    AVG(VALOR_TRANSACCION) AS VALOR_PROMEDIO,
+    APPROX_QUANTILES(VALOR_TRANSACCION, 100)[OFFSET(90)] AS UMBRAL_PERCENTIL_90
+  FROM base_final
+  GROUP BY
+    CODIGO_COMPANIA,
+    TIPO_PERSONA_SEGMENTO,
+    SEGMENTO
+)
+
+-- ============================================================
+-- 7) RESULTADO FINAL
+-- Percentil 90 por cluster diferenciando PN y PJ.
+-- ============================================================
+SELECT
+  CODIGO_COMPANIA,
+  TIPO_PERSONA_SEGMENTO,
+  SEGMENTO,
+  TOTAL_MOVIMIENTOS,
+  TOTAL_CLIENTES,
+  TOTAL_TITULOS,
+  VALOR_MINIMO,
+  VALOR_MAXIMO,
+  VALOR_PROMEDIO,
+  UMBRAL_PERCENTIL_90
+FROM calculo_percentil
+ORDER BY
+  CODIGO_COMPANIA,
+  TIPO_PERSONA_SEGMENTO,
+  SEGMENTO;
