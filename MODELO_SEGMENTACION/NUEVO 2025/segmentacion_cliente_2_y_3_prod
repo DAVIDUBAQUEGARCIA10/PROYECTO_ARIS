@@ -1,239 +1,20 @@
-CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_cliente_2_y_3_prod AS 
-
 -- ============================================================
--- OBJETIVO
--- Traer las transacciones que superan el umbral definido por
--- COMPANIA, SEGMENTO y TIPO_PERSONA_SEGMENTO (PN / PJ)
--- desde febrero de 2026 en adelante.
+-- INSERT DE ALERTAS POR SEGMENTACIÓN CLIENTE COMPAÑÍAS 2 Y 3
 -- ============================================================
-
-WITH umbrales AS (
-
-SELECT 2 AS COMPANIA, 'cluster_0' AS SEGMENTO, 'PN' AS TIPO_PERSONA_SEGMENTO, 13472124 AS UMBRAL_TRANSACCIONAL UNION ALL
-SELECT 2,'cluster_1','PN',21891540 UNION ALL
-SELECT 2,'cluster_14','PN',1548400 UNION ALL
-SELECT 2,'cluster_16','PN',199329 UNION ALL
-SELECT 2,'cluster_2','PN',30000000 UNION ALL
-SELECT 2,'cluster_23','PN',1405229 UNION ALL
-SELECT 2,'cluster_24','PN',240100 UNION ALL
-SELECT 2,'cluster_4','PN',10509280 UNION ALL
-SELECT 2,'cluster_6','PN',6307572 UNION ALL
-SELECT 3,'cluster_0','PJ',1675508 UNION ALL
-SELECT 3,'cluster_17','PJ',1920000 UNION ALL
-SELECT 3,'cluster_18','PJ',1384410 UNION ALL
-SELECT 3,'cluster_19','PJ',1155022 UNION ALL
-SELECT 3,'cluster_20','PJ',1565555 UNION ALL
-SELECT 3,'cluster_11','PN',843300
-
-),
-
-clientes_base AS (
-
-SELECT DISTINCT
-    KEY_ID_TOMADOR,
-    COMPANIA,
-    SEGMENTO,
-    CASE
-        WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
-        WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
-        ELSE 'NO_IDENTIFICADO'
-    END AS TIPO_PERSONA_SEGMENTO
-FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
-
-),
-
--- ============================================================
--- POLIZAS ORIGEN
+-- OBJETIVO:
+-- Insertar en la tabla
+-- `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_cliente_2_y_3_prod`
+-- las transacciones que superan el umbral definido por:
+--   - COMPANIA
+--   - SEGMENTO
+--   - TIPO_PERSONA_SEGMENTO
+--
+-- considerando únicamente movimientos desde el 01-feb-2026,
+-- y evitando duplicados mediante validación con NOT EXISTS.
 -- ============================================================
 
-polizas_pre AS (
-
-SELECT DISTINCT
-    NUMERO_POLIZA,
-    CODIGO_COMPANIA,
-    KEY_ID_TOMADOR,
-    TIPO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    SUBSTR(CAST(NUMERO_POLIZA AS STRING),1,11) AS NUMERO_POLIZA_BASE
-FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
-
-),
-
--- ============================================================
--- DEDUPLICACIÓN DE POLIZAS
--- ============================================================
-
-polizas_base AS (
-
-SELECT
-    NUMERO_POLIZA,
-    CODIGO_COMPANIA,
-    KEY_ID_TOMADOR,
-    TIPO_DOCUMENTO_TOMADOR,
-    NOMBRE_TOMADOR,
-    CODIGO_RAMO_CONTABLE,
-    CODIGO_PRODUCTO,
-    NUMERO_POLIZA_BASE
-FROM (
-
-    SELECT
-        p.*,
-        ROW_NUMBER() OVER(
-            PARTITION BY CODIGO_COMPANIA, KEY_ID_TOMADOR, NUMERO_POLIZA_BASE
-            ORDER BY CAST(NUMERO_POLIZA AS STRING) DESC
-        ) AS RN_POLIZA
-
-    FROM polizas_pre p
-
-)
-
-WHERE RN_POLIZA = 1
-
-),
-
--- ============================================================
--- MOVIMIENTOS DESDE FEBRERO 2026
--- ============================================================
-
-aportes_extraordinarios AS (
-
-SELECT
-    NUMERO_CUENTA_FONDO,
-    DATE(FECHA_PROCESO) AS FECHA_PROCESO,
-    VALOR_TRANSACCION,
-    DETALLE_OPERACION_EMMASCARADO,
-    NOMBRE_SUB_TRANSACCION
-FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
-WHERE DATE(FECHA_PROCESO) >= DATE '2026-02-01'
-
-),
-
--- ============================================================
--- CRUCE POLIZAS VS MOVIMIENTOS
--- ============================================================
-
-base_cruce AS (
-
-SELECT
-    p.KEY_ID_TOMADOR,
-    p.TIPO_DOCUMENTO_TOMADOR,
-    p.CODIGO_COMPANIA,
-    p.NUMERO_POLIZA,
-    p.NOMBRE_TOMADOR,
-    p.CODIGO_RAMO_CONTABLE,
-    p.CODIGO_PRODUCTO,
-    a.FECHA_PROCESO,
-    a.VALOR_TRANSACCION,
-    a.DETALLE_OPERACION_EMMASCARADO,
-    a.NOMBRE_SUB_TRANSACCION
-
-FROM polizas_base p
-
-INNER JOIN aportes_extraordinarios a
-ON CAST(a.NUMERO_CUENTA_FONDO AS STRING) = p.NUMERO_POLIZA_BASE
-
-),
-
--- ============================================================
--- MOVIMIENTOS DE CLIENTES SEGMENTADOS
--- ============================================================
-
-movimientos_clientes AS (
-
-SELECT
-    c.COMPANIA,
-    c.SEGMENTO,
-    c.TIPO_PERSONA_SEGMENTO,
-    b.KEY_ID_TOMADOR,
-    b.TIPO_DOCUMENTO_TOMADOR,
-    b.NUMERO_POLIZA,
-    b.NOMBRE_TOMADOR,
-    b.CODIGO_RAMO_CONTABLE,
-    b.CODIGO_PRODUCTO,
-    b.FECHA_PROCESO,
-    b.VALOR_TRANSACCION,
-    b.DETALLE_OPERACION_EMMASCARADO,
-    b.NOMBRE_SUB_TRANSACCION
-
-FROM clientes_base c
-
-INNER JOIN base_cruce b
-ON c.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
-AND c.COMPANIA = b.CODIGO_COMPANIA
-
-),
-
--- ============================================================
--- ALERTAS
--- ============================================================
-
-alertas_pre AS (
-
-SELECT
-    m.COMPANIA,
-    m.SEGMENTO,
-    m.TIPO_PERSONA_SEGMENTO,
-    m.KEY_ID_TOMADOR,
-    m.TIPO_DOCUMENTO_TOMADOR,
-    m.NOMBRE_TOMADOR,
-    m.NUMERO_POLIZA,
-    m.CODIGO_RAMO_CONTABLE,
-    m.CODIGO_PRODUCTO,
-    m.FECHA_PROCESO,
-    m.VALOR_TRANSACCION,
-    u.UMBRAL_TRANSACCIONAL,
-    m.VALOR_TRANSACCION - u.UMBRAL_TRANSACCIONAL AS EXCESO_SOBRE_UMBRAL,
-    m.NOMBRE_SUB_TRANSACCION,
-    m.DETALLE_OPERACION_EMMASCARADO
-
-FROM movimientos_clientes m
-
-INNER JOIN umbrales u
-ON m.COMPANIA = u.COMPANIA
-AND m.SEGMENTO = u.SEGMENTO
-AND m.TIPO_PERSONA_SEGMENTO = u.TIPO_PERSONA_SEGMENTO
-
-WHERE m.VALOR_TRANSACCION > u.UMBRAL_TRANSACCIONAL
-
-),
-
--- ============================================================
--- DEDUPLICACIÓN FINAL
--- ============================================================
-
-alertas AS (
-
-SELECT *
-FROM (
-
-    SELECT
-        a.*,
-        ROW_NUMBER() OVER(
-            PARTITION BY
-                COMPANIA,
-                SEGMENTO,
-                TIPO_PERSONA_SEGMENTO,
-                KEY_ID_TOMADOR,
-                FECHA_PROCESO,
-                VALOR_TRANSACCION
-            ORDER BY NUMERO_POLIZA DESC
-        ) AS RN_ALERTA
-
-    FROM alertas_pre a
-
-)
-
-WHERE RN_ALERTA = 1
-
-)
-
--- ============================================================
--- RESULTADO FINAL
--- ============================================================
-
-SELECT
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_cliente_2_y_3_prod`
+(
     COMPANIA,
     SEGMENTO,
     TIPO_PERSONA_SEGMENTO,
@@ -249,13 +30,302 @@ SELECT
     EXCESO_SOBRE_UMBRAL,
     NOMBRE_SUB_TRANSACCION,
     DETALLE_OPERACION_EMMASCARADO,
-            FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-        CURRENT_DATE() AS FECHA_ALERTA
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
 
-FROM alertas
+WITH umbrales AS (
 
+    -- ========================================================
+    -- TABLA PARAMÉTRICA DE UMBRALES
+    -- Define el valor máximo esperado por:
+    --   - compañía
+    --   - segmento
+    --   - tipo de persona
+    -- ========================================================
+SELECT 2 AS COMPANIA, 'cluster_0'  AS SEGMENTO, 'PN' AS TIPO_PERSONA_SEGMENTO, 13472124 AS UMBRAL_TRANSACCIONAL UNION ALL
+SELECT 2,               'cluster_1',               'PN',                             21891540 UNION ALL --ok
+SELECT 2,               'cluster_2',               'PN',                             30000000 UNION ALL  --ok
+SELECT 2,               'cluster_4',               'PN',                             23324447 UNION ALL --ok
+SELECT 2,               'cluster_6',               'PN',                              6307572 UNION ALL --ok 
+SELECT 2,               'cluster_11',              'PN',                             1000000 UNION ALL--ok 
+SELECT 2,               'cluster_14',              'PN',                              1548400 UNION ALL --ok
+SELECT 2,               'cluster_16',              'PN',                               199329 UNION ALL --ok
+SELECT 2,               'cluster_23',              'PN',                              1405229 UNION ALL --ok
+SELECT 2,               'cluster_24',              'PN',                               240100 UNION ALL --ok
+SELECT 2,               'Cluster_Outliers',       'PN',                             33689336 UNION ALL --ok
+SELECT 2,               'cluster_outliers',       'PJ',                             429347106 UNION ALL --ok
+SELECT 2,               'cluster_outliers',       'PN',                             33689336 UNION ALL --ok
+SELECT 2,               'Cluster_Outliers',       'PJ',                             429347106 UNION ALL --ok
+
+SELECT 3,               'cluster_3',               'PN',                             1200000 UNION ALL --ok
+SELECT 3,               'cluster_11',              'PN',                               843300 UNION ALL --ok
+SELECT 3,               'cluster_13',              'PN',                             1100000 UNION ALL --ok
+SELECT 3,               'cluster_14',              'PN',                             1500000 UNION ALL --ok
+SELECT 3,               'cluster_17',              'PN',                             1500000 UNION ALL --ok
+SELECT 3,               'cluster_19',              'PN',                             1000000 UNION ALL --ok
+
+SELECT 3,               'cluster_0',               'PJ',                              29457208 UNION ALL --ok
+SELECT 3,               'cluster_17',              'PJ',                              1920000 UNION ALL --ok
+SELECT 3,               'cluster_18',              'PJ',                              666372406 UNION ALL --ok
+SELECT 3,               'cluster_19',              'PJ',                              1155022 UNION ALL --ok
+SELECT 3,               'cluster_20',              'PJ',                              1565555
+
+),
+
+clientes_base AS (
+
+    -- ========================================================
+    -- BASE DE CLIENTES SEGMENTADOS
+    -- Se toma el cliente con su compañía, segmento y tipo de
+    -- persona inferido desde el nombre del modelo.
+    -- ========================================================
+    SELECT DISTINCT
+        KEY_ID_TOMADOR,
+        COMPANIA,
+        SEGMENTO,
+        CASE
+            WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+            WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+            ELSE 'NO_IDENTIFICADO'
+        END AS TIPO_PERSONA_SEGMENTO
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+
+),
+
+polizas_pre AS (
+
+    -- ========================================================
+    -- BASE PRELIMINAR DE PÓLIZAS
+    -- Se toma la información base de pólizas desde producción
+    -- y recaudo diario, generando además el número base de
+    -- póliza para facilitar el cruce con cuenta fondo.
+    -- ========================================================
+    SELECT DISTINCT
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        SUBSTR(CAST(NUMERO_POLIZA AS STRING), 1, 11) AS NUMERO_POLIZA_BASE
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+
+),
+
+polizas_base AS (
+
+    -- ========================================================
+    -- DEDUPLICACIÓN DE PÓLIZAS
+    -- Se conserva un solo registro por:
+    --   - compañía
+    --   - tomador
+    --   - número base de póliza
+    --
+    -- priorizando el número de póliza más alto en orden
+    -- descendente.
+    -- ========================================================
+    SELECT
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_RAMO_CONTABLE,
+        CODIGO_PRODUCTO,
+        NUMERO_POLIZA_BASE
+    FROM (
+        SELECT
+            p.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY CODIGO_COMPANIA, KEY_ID_TOMADOR, NUMERO_POLIZA_BASE
+                ORDER BY CAST(NUMERO_POLIZA AS STRING) DESC
+            ) AS RN_POLIZA
+        FROM polizas_pre p
+    )
+    WHERE RN_POLIZA = 1
+
+),
+
+aportes_extraordinarios AS (
+
+    -- ========================================================
+    -- MOVIMIENTOS DESDE FEBRERO DE 2026
+    -- Se toman únicamente transacciones iguales o posteriores
+    -- al 01-feb-2026.
+    -- ========================================================
+    SELECT
+        NUMERO_CUENTA_FONDO,
+        DATE(FECHA_PROCESO) AS FECHA_PROCESO,
+        VALOR_TRANSACCION,
+        DETALLE_OPERACION_EMMASCARADO,
+        NOMBRE_SUB_TRANSACCION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
+    WHERE DATE(FECHA_PROCESO) >= DATE '2026-02-01'
+
+),
+
+base_cruce AS (
+
+    -- ========================================================
+    -- CRUCE ENTRE PÓLIZAS Y MOVIMIENTOS
+    -- Se relacionan los movimientos con la póliza base usando
+    -- la cuenta fondo contra el número base de póliza.
+    -- ========================================================
+    SELECT
+        p.KEY_ID_TOMADOR,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.CODIGO_COMPANIA,
+        p.NUMERO_POLIZA,
+        p.NOMBRE_TOMADOR,
+        p.CODIGO_RAMO_CONTABLE,
+        p.CODIGO_PRODUCTO,
+        a.FECHA_PROCESO,
+        a.VALOR_TRANSACCION,
+        a.DETALLE_OPERACION_EMMASCARADO,
+        a.NOMBRE_SUB_TRANSACCION
+    FROM polizas_base p
+    INNER JOIN aportes_extraordinarios a
+        ON CAST(a.NUMERO_CUENTA_FONDO AS STRING) = p.NUMERO_POLIZA_BASE
+
+),
+
+movimientos_clientes AS (
+
+    -- ========================================================
+    -- ASIGNACIÓN DE SEGMENTO AL MOVIMIENTO
+    -- Se cruza el movimiento con la segmentación del cliente
+    -- para identificar su compañía, segmento y tipo persona.
+    -- ========================================================
+    SELECT
+        c.COMPANIA,
+        c.SEGMENTO,
+        c.TIPO_PERSONA_SEGMENTO,
+        b.KEY_ID_TOMADOR,
+        b.TIPO_DOCUMENTO_TOMADOR,
+        b.NUMERO_POLIZA,
+        b.NOMBRE_TOMADOR,
+        b.CODIGO_RAMO_CONTABLE,
+        b.CODIGO_PRODUCTO,
+        b.FECHA_PROCESO,
+        b.VALOR_TRANSACCION,
+        b.DETALLE_OPERACION_EMMASCARADO,
+        b.NOMBRE_SUB_TRANSACCION
+    FROM clientes_base c
+    INNER JOIN base_cruce b
+        ON c.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
+       AND c.COMPANIA = b.CODIGO_COMPANIA
+
+),
+
+alertas_pre AS (
+
+    -- ========================================================
+    -- IDENTIFICACIÓN DE TRANSACCIONES SOBRE UMBRAL
+    -- Se conservan únicamente aquellas transacciones cuyo valor
+    -- supera el umbral parametrizado para:
+    --   - compañía
+    --   - segmento
+    --   - tipo de persona
+    -- ========================================================
+    SELECT
+        m.COMPANIA,
+        m.SEGMENTO,
+        m.TIPO_PERSONA_SEGMENTO,
+        m.KEY_ID_TOMADOR,
+        m.TIPO_DOCUMENTO_TOMADOR,
+        m.NOMBRE_TOMADOR,
+        m.NUMERO_POLIZA,
+        m.CODIGO_RAMO_CONTABLE,
+        m.CODIGO_PRODUCTO,
+        m.FECHA_PROCESO,
+        m.VALOR_TRANSACCION,
+        u.UMBRAL_TRANSACCIONAL,
+        m.VALOR_TRANSACCION - u.UMBRAL_TRANSACCIONAL AS EXCESO_SOBRE_UMBRAL,
+        m.NOMBRE_SUB_TRANSACCION,
+        m.DETALLE_OPERACION_EMMASCARADO
+    FROM movimientos_clientes m
+    INNER JOIN umbrales u
+        ON m.COMPANIA = u.COMPANIA
+       AND m.SEGMENTO = u.SEGMENTO
+       AND m.TIPO_PERSONA_SEGMENTO = u.TIPO_PERSONA_SEGMENTO
+    WHERE m.VALOR_TRANSACCION > u.UMBRAL_TRANSACCIONAL
+
+),
+
+alertas AS (
+
+    -- ========================================================
+    -- DEDUPLICACIÓN FINAL DE ALERTAS
+    -- Se conserva una sola alerta por combinación de:
+    --   - compañía
+    --   - segmento
+    --   - tipo persona
+    --   - tomador
+    --   - fecha proceso
+    --   - valor transacción
+    --
+    -- En caso de repetición, se conserva la póliza con mayor
+    -- número en orden descendente.
+    -- ========================================================
+    SELECT *
+    FROM (
+        SELECT
+            a.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY
+                    COMPANIA,
+                    SEGMENTO,
+                    TIPO_PERSONA_SEGMENTO,
+                    KEY_ID_TOMADOR,
+                    FECHA_PROCESO,
+                    VALOR_TRANSACCION
+                ORDER BY NUMERO_POLIZA DESC
+            ) AS RN_ALERTA
+        FROM alertas_pre a
+    )
+    WHERE RN_ALERTA = 1
+
+)
+
+-- ============================================================
+-- RESULTADO FINAL A INSERTAR
+-- Se inserta únicamente si el registro no existe previamente
+-- en la tabla destino.
+-- ============================================================
+SELECT
+    a.COMPANIA,
+    a.SEGMENTO,
+    a.TIPO_PERSONA_SEGMENTO,
+    a.KEY_ID_TOMADOR,
+    a.TIPO_DOCUMENTO_TOMADOR,
+    a.NOMBRE_TOMADOR,
+    a.NUMERO_POLIZA,
+    a.CODIGO_RAMO_CONTABLE,
+    a.CODIGO_PRODUCTO,
+    a.FECHA_PROCESO,
+    a.VALOR_TRANSACCION,
+    a.UMBRAL_TRANSACCIONAL,
+    a.EXCESO_SOBRE_UMBRAL,
+    a.NOMBRE_SUB_TRANSACCION,
+    a.DETALLE_OPERACION_EMMASCARADO,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM alertas a
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_cliente_2_y_3_prod` t
+    WHERE t.COMPANIA = a.COMPANIA
+      AND t.SEGMENTO = a.SEGMENTO
+      AND t.TIPO_PERSONA_SEGMENTO = a.TIPO_PERSONA_SEGMENTO
+      AND t.KEY_ID_TOMADOR = a.KEY_ID_TOMADOR
+      AND t.NUMERO_POLIZA = a.NUMERO_POLIZA
+      AND t.FECHA_PROCESO = a.FECHA_PROCESO
+      AND t.VALOR_TRANSACCION = a.VALOR_TRANSACCION
+)
 ORDER BY
-    COMPANIA,
-    SEGMENTO,
-    TIPO_PERSONA_SEGMENTO,
-    VALOR_TRANSACCION DESC;
+    a.COMPANIA,
+    a.SEGMENTO,
+    a.TIPO_PERSONA_SEGMENTO,
+    a.VALOR_TRANSACCION DESC;
