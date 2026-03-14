@@ -1,0 +1,229 @@
+-- ============================================================
+-- OBJETIVO:
+-- Calcular el percentil 99.7 del valor LIQUIDADO_BOLIVAR
+-- de los siniestros ocurridos desde el 2025-01-01 en adelante,
+-- agrupando por:
+--   - COMPAÑIA
+--   - TIPO_PERSONA_SEGMENTO (PN / PJ)
+--   - SEGMENTO
+--
+-- Adicionalmente:
+--   - contar cuántos registros superan el percentil 99.7
+--     dentro del periodo evaluado.
+-- ============================================================
+
+WITH siniestros_base AS (
+
+    -- ========================================================
+    -- 1) BASE DE SINIESTROS
+    -- Se extraen los siniestros desde el 2025-01-01 en adelante,
+    -- únicamente aquellos que ya tienen fecha de orden de pago.
+    -- ========================================================
+    SELECT
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,
+        DATE(FECHA_SINIESTRO) AS FECHA_SINIESTRO,
+        DATE(FECHA_SUSCRIPCION) AS FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        DATE(FECHA_ORDEN_PAGO) AS FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE DATE(FECHA_SINIESTRO) >= DATE '2025-01-01'
+      AND FECHA_ORDEN_PAGO IS NOT NULL
+      AND KEY_ID_TOMADOR IS NOT NULL
+      AND LIQUIDADO_BOLIVAR IS NOT NULL
+
+),
+
+segmentacion_clientes AS (
+
+    -- ========================================================
+    -- 2) SEGMENTACIÓN DE CLIENTES
+    -- Se identifica por cada KEY_ID_TOMADOR:
+    --   - la compañía
+    --   - el segmento
+    --   - el tipo de persona segmentado (PN / PJ)
+    -- ========================================================
+    SELECT DISTINCT
+        KEY_ID_TOMADOR,
+        COMPANIA,
+        SEGMENTO,
+        MODELO,
+        CASE
+            WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+            WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+            ELSE 'NO_IDENTIFICADO'
+        END AS TIPO_PERSONA_SEGMENTO
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+    WHERE KEY_ID_TOMADOR IS NOT NULL
+
+),
+
+siniestros_con_cluster AS (
+
+    -- ========================================================
+    -- 3) UNIÓN DE SINIESTROS CON SEGMENTACIÓN
+    -- Se asocia a cada siniestro el cluster del KEY_ID_TOMADOR.
+    -- ========================================================
+    SELECT
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_EMISION,
+        s.NOMBRE_RAMO_EMISION,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+        s.NUMERO_SECUENCIA_POLIZA,
+        s.NUMERO_POLIZA,
+        s.TIPO_DOCUMENTO_TOMADOR,
+        s.KEY_ID_TOMADOR,
+        s.KEY_ID_ASEGURADO,
+        s.KEY_ID_BENEFICIARIO,
+        s.FECHA_SINIESTRO,
+        s.FECHA_SUSCRIPCION,
+        s.ESTADO_SINIESTRO,
+        s.FECHA_ORDEN_PAGO,
+        s.LIQUIDADO_BOLIVAR,
+        c.COMPANIA,
+        c.SEGMENTO,
+        c.TIPO_PERSONA_SEGMENTO,
+        c.MODELO
+    FROM siniestros_base s
+    INNER JOIN segmentacion_clientes c
+        ON s.KEY_ID_TOMADOR = c.KEY_ID_TOMADOR
+       AND s.CODIGO_COMPANIA = c.COMPANIA
+
+),
+
+siniestros_filtrados AS (
+
+    -- ========================================================
+    -- 4) FILTRO DE CLUSTERS VÁLIDOS
+    -- Se conservan únicamente los registros pertenecientes a los
+    -- clusters permitidos para las compañías 2 y 3,
+    -- diferenciando PN y PJ.
+    -- ========================================================
+    SELECT *
+    FROM siniestros_con_cluster
+    WHERE
+        (
+            COMPANIA = 2
+            AND (
+                (
+                    TIPO_PERSONA_SEGMENTO = 'PN'
+                    AND SEGMENTO IN (
+                        'cluster_0','cluster_1','cluster_2','cluster_4',
+                        'cluster_6','cluster_11','cluster_14','cluster_16',
+                        'cluster_23','cluster_24','cluster_outliers'
+                    )
+                )
+                OR
+                (
+                    TIPO_PERSONA_SEGMENTO = 'PJ'
+                    AND SEGMENTO IN ('cluster_outliers')
+                )
+            )
+        )
+        OR
+        (
+            COMPANIA = 3
+            AND (
+                (
+                    TIPO_PERSONA_SEGMENTO = 'PN'
+                    AND SEGMENTO IN (
+                        'cluster_3','cluster_11','cluster_13',
+                        'cluster_14','cluster_17','cluster_19'
+                    )
+                )
+                OR
+                (
+                    TIPO_PERSONA_SEGMENTO = 'PJ'
+                    AND SEGMENTO IN (
+                        'cluster_0','cluster_17','cluster_18',
+                        'cluster_19','cluster_20'
+                    )
+                )
+            )
+        )
+
+),
+
+percentiles AS (
+
+    -- ========================================================
+    -- 5) CÁLCULO DEL PERCENTIL 99.7 POR GRUPO
+    -- Para aproximar P99.7 se generan 1000 cuantiles y se toma
+    -- la posición 997.
+    -- ========================================================
+    SELECT
+        COMPANIA,
+        TIPO_PERSONA_SEGMENTO,
+        SEGMENTO,
+        COUNT(*) AS TOTAL_SINIESTROS,
+        MIN(LIQUIDADO_BOLIVAR) AS VALOR_MINIMO,
+        AVG(LIQUIDADO_BOLIVAR) AS VALOR_PROMEDIO,
+        MAX(LIQUIDADO_BOLIVAR) AS VALOR_MAXIMO,
+        APPROX_QUANTILES(LIQUIDADO_BOLIVAR, 1000)[OFFSET(997)] AS PERCENTIL_99_7
+    FROM siniestros_filtrados
+    GROUP BY
+        COMPANIA,
+        TIPO_PERSONA_SEGMENTO,
+        SEGMENTO
+
+),
+
+conteo_superan_percentil AS (
+
+    -- ========================================================
+    -- 6) CONTEO DE REGISTROS QUE SUPERAN EL PERCENTIL 99.7
+    -- Se cuenta cuántos siniestros del periodo evaluado tienen
+    -- un valor LIQUIDADO_BOLIVAR superior al percentil 99.7
+    -- de su mismo grupo.
+    -- ========================================================
+    SELECT
+        f.COMPANIA,
+        f.TIPO_PERSONA_SEGMENTO,
+        f.SEGMENTO,
+        COUNT(*) AS REGISTROS_SUPERAN_PERCENTIL_99_7
+    FROM siniestros_filtrados f
+    INNER JOIN percentiles p
+        ON f.COMPANIA = p.COMPANIA
+       AND f.TIPO_PERSONA_SEGMENTO = p.TIPO_PERSONA_SEGMENTO
+       AND f.SEGMENTO = p.SEGMENTO
+    WHERE f.LIQUIDADO_BOLIVAR > p.PERCENTIL_99_7
+    GROUP BY
+        f.COMPANIA,
+        f.TIPO_PERSONA_SEGMENTO,
+        f.SEGMENTO
+
+)
+
+-- ============================================================
+-- 7) RESULTADO FINAL
+-- ============================================================
+SELECT
+    p.COMPANIA,
+    p.TIPO_PERSONA_SEGMENTO,
+    p.SEGMENTO,
+    p.TOTAL_SINIESTROS,
+    p.VALOR_MINIMO,
+    p.VALOR_PROMEDIO,
+    p.VALOR_MAXIMO,
+    p.PERCENTIL_99_7,
+    COALESCE(c.REGISTROS_SUPERAN_PERCENTIL_99_7, 0) AS REGISTROS_SUPERAN_PERCENTIL_99_7
+FROM percentiles p
+LEFT JOIN conteo_superan_percentil c
+    ON p.COMPANIA = c.COMPANIA
+   AND p.TIPO_PERSONA_SEGMENTO = c.TIPO_PERSONA_SEGMENTO
+   AND p.SEGMENTO = c.SEGMENTO
+ORDER BY
+    p.COMPANIA,
+    p.TIPO_PERSONA_SEGMENTO,
+    p.SEGMENTO;
