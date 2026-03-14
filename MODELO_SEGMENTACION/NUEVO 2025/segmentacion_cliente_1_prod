@@ -1,0 +1,180 @@
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_cliente_1_prod AS 
+WITH
+
+-- ============================================================
+-- 1) TÍTULOS VIGENTES
+-- Se identifican únicamente los títulos vigentes.
+-- ============================================================
+titulos_vigentes AS (
+  SELECT DISTINCT
+    NUMERO_TITULO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_historico_titulos_capitalizacion`
+  WHERE ESTADO_TITULO = 1
+),
+
+-- ============================================================
+-- 2) CLIENTE ASOCIADO A CADA TÍTULO
+-- Se trae el cliente relacionado con cada título.
+-- ============================================================
+clientes_por_titulo AS (
+  SELECT DISTINCT
+    TITULO AS NUMERO_TITULO,
+    KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora`
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+    AND TIPO_DOCUMENTO IS NOT NULL
+),
+
+-- ============================================================
+-- 3) MOVIMIENTOS DESDE EL 01-03-2026
+-- Se conservan todos los movimientos transaccionales desde
+-- el 1 de marzo de 2026.
+-- ============================================================
+movimientos_desde_marzo_2026 AS (
+  SELECT
+    p.CODIGO_COMPANIA,
+    p.NUMERO_TITULO,
+    DATE(p.FECHA_TRANSACCION) AS FECHA_TRANSACCION,
+    p.CODIGO_TIPO_MOVIMIENTO,
+    p.NUMERO_TRANSACCION,
+    p.VALOR_TRANSACCION,
+    p.CODIGO_AGENCIA,
+    p.AGRUPAMIENTO_CODIGO,
+    p.SIGNO_MOVIMIENTO,
+    p.DESCRIPCION_TIPO_MOVIMIENTO,
+    p.ABREVIATURA_TIPO_MOVIMIENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` p
+  WHERE DATE(p.FECHA_TRANSACCION) >= DATE '2026-03-01'
+),
+
+-- ============================================================
+-- 4) SEGMENTACIÓN DE CLIENTES
+-- Se trae el cluster por KEY_ID_TOMADOR, compañía y tipo persona,
+-- filtrando únicamente los segmentos autorizados.
+-- ============================================================
+segmentacion_clientes AS (
+  SELECT DISTINCT
+    KEY_ID_TOMADOR,
+    COMPANIA,
+    SEGMENTO,
+    CASE
+      WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+      WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+      ELSE 'NO_IDENTIFICADO'
+    END AS TIPO_PERSONA_SEGMENTO
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+  WHERE
+    (
+      COMPANIA = 1
+      AND (
+        (
+          LOWER(MODELO) LIKE '%_pn_%'
+          AND SEGMENTO IN (
+            'cluster_0','cluster_1','cluster_4','cluster_11',
+            'cluster_13','cluster_16','cluster_19','Cluster_Outliers'
+          )
+        )
+        OR
+        (
+          LOWER(MODELO) LIKE '%_pj_%'
+          AND SEGMENTO IN (
+            'cluster_2','cluster_15','cluster_18',
+            'cluster_24','cluster_27','cluster_19','Cluster_Outliers'
+          )
+        )
+      )
+    )
+),
+
+-- ============================================================
+-- 5) UMBRALES POR CLUSTER
+-- Se parametrizan los umbrales transaccionales por cluster y
+-- tipo de persona.
+--
+-- Reglas solicitadas:
+--   - cluster_0  PN = 200000
+--   - cluster_11 PN = 200000
+--   - cluster_19 PN = 150000
+--   - resto de clusters permitidos = 100000
+-- ============================================================
+umbrales AS (
+
+  -- =========================
+  -- PN
+  -- =========================
+  SELECT 1 AS COMPANIA, 'cluster_0'         AS SEGMENTO, 'PN' AS TIPO_PERSONA_SEGMENTO, 200000 AS UMBRAL_TRANSACCIONAL UNION ALL
+  SELECT 1,               'cluster_1',                        'PN',                       100000 UNION ALL
+  SELECT 1,               'cluster_4',                        'PN',                       100000 UNION ALL
+  SELECT 1,               'cluster_11',                       'PN',                       200000 UNION ALL
+  SELECT 1,               'cluster_13',                       'PN',                       100000 UNION ALL
+  SELECT 1,               'cluster_16',                       'PN',                       100000 UNION ALL
+  SELECT 1,               'cluster_19',                       'PN',                       150000 UNION ALL
+  SELECT 1,               'Cluster_Outliers',                 'PN',                       100000 UNION ALL
+
+  -- =========================
+  -- PJ
+  -- =========================
+  SELECT 1,               'cluster_2',                        'PJ',                       100000 UNION ALL
+  SELECT 1,               'cluster_15',                       'PJ',                       100000 UNION ALL
+  SELECT 1,               'cluster_18',                       'PJ',                       100000 UNION ALL
+  SELECT 1,               'cluster_24',                       'PJ',                       100000 UNION ALL
+  SELECT 1,               'cluster_27',                       'PJ',                       100000 UNION ALL
+  SELECT 1,               'cluster_19',                       'PJ',                       100000 UNION ALL
+  SELECT 1,               'Cluster_Outliers',                 'PJ',                       100000
+),
+
+-- ============================================================
+-- 6) BASE TRANSACCIONAL ENRIQUECIDA
+-- Se cruzan:
+--   - movimientos desde 01-03-2026
+--   - títulos vigentes
+--   - cliente por título
+--   - segmentación por cliente y compañía
+--   - umbral por cluster
+-- ============================================================
+base_final AS (
+  SELECT
+    m.CODIGO_COMPANIA,
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID_TOMADOR,
+    s.TIPO_PERSONA_SEGMENTO,
+    s.SEGMENTO,
+    u.UMBRAL_TRANSACCIONAL,
+    m.NUMERO_TITULO,
+    m.FECHA_TRANSACCION,
+    m.CODIGO_TIPO_MOVIMIENTO,
+    m.NUMERO_TRANSACCION,
+    m.VALOR_TRANSACCION,
+    m.CODIGO_AGENCIA,
+    m.AGRUPAMIENTO_CODIGO,
+    m.SIGNO_MOVIMIENTO,
+    m.DESCRIPCION_TIPO_MOVIMIENTO,
+    m.ABREVIATURA_TIPO_MOVIMIENTO,
+    CASE
+      WHEN m.VALOR_TRANSACCION > u.UMBRAL_TRANSACCIONAL THEN 1
+      ELSE 0
+    END AS SUPERA_UMBRAL
+  FROM movimientos_desde_marzo_2026 m
+  INNER JOIN titulos_vigentes tv
+    ON m.NUMERO_TITULO = tv.NUMERO_TITULO
+  LEFT JOIN clientes_por_titulo c
+    ON m.NUMERO_TITULO = c.NUMERO_TITULO
+  INNER JOIN segmentacion_clientes s
+    ON c.KEY_ID_TOMADOR = s.KEY_ID_TOMADOR
+   AND m.CODIGO_COMPANIA = s.COMPANIA
+  INNER JOIN umbrales u
+    ON s.COMPANIA = u.COMPANIA
+   AND s.SEGMENTO = u.SEGMENTO
+   AND s.TIPO_PERSONA_SEGMENTO = u.TIPO_PERSONA_SEGMENTO
+)
+
+-- ============================================================
+-- 7) RESULTADO FINAL
+-- Solo quedan clientes que sí pertenezcan a los clusters filtrados,
+-- incluyendo su umbral y si la transacción lo supera o no.
+-- ============================================================
+SELECT *
+FROM base_final
+ORDER BY FECHA_TRANSACCION DESC;
