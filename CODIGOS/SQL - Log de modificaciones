@@ -15,3 +15,24 @@ INNER JOIN naturales n
 
 WHERE h.FECHA_MODIFICACION >= DATE '2026-02-01'
   AND h.FECHA_MODIFICACION <  DATE '2026-03-01';
+
+
+
+
+
+
+select * from naturales
+where numero_documento  = 16548724 -- 45700
+
+ select * from medios_comunicacion
+ where NAT_SECUENCIA = 45700
+ 
+ 
+ select *
+ from historico_medios_comunicacion
+ where  medcom_secuencia = 28525825
+ 
+ --28525825
+ ---28467005
+ select * 
+ from detalle_cuenta_multifondo 
