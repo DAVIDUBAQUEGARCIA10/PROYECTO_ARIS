@@ -1,0 +1,89 @@
+-- ============================================================
+-- 1) DESCRIPCIÓN DE LA CONSULTA
+-- Esta consulta calcula el total de clientes únicos
+-- y el total de pólizas por compañía y tipo de persona
+-- (Natural o Jurídica), usando la base depurada.
+--
+-- 2) FUENTE DE LOS DATOS
+-- Tabla fuente:
+-- `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+--
+-- 3) REGLAS DE NEGOCIO IMPLEMENTADAS
+-- - Se excluyen pólizas anuladas
+-- - Se consideran vigentes según FECHA_FIN_POLIZA >= '2026-03-01'
+-- - Se conserva solo una fila por NUMERO_POLIZA
+-- - Clasificación de persona:
+--      NT o NE  → JURIDICO
+--      resto    → NATURAL
+--
+-- 4) CONDICIONES DE FILTRADO
+-- - MCA_ANU_POLIZA != 'S'
+-- - FECHA_FIN_POLIZA >= '2026-03-01' o NULL
+--
+-- 5) ESTRUCTURA DE LA SALIDA
+-- - CODIGO_COMPANIA
+-- - TIPO_PERSONA
+-- - TOTAL_CLIENTES_UNICOS
+-- - TOTAL_POLIZAS
+--
+-- 6) VALIDACIONES ADICIONALES
+-- - COUNT(*) representa total de pólizas porque la base
+--   quedó deduplicada por NUMERO_POLIZA
+--
+-- 7) BITÁCORA DE MODIFICACIONES
+-- - Se añade clasificación de persona
+-- - Se agrupa por compañía y tipo de persona
+-- ============================================================
+
+WITH BASE_POLIZAS AS (
+
+  SELECT
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_INICIO_ENDOSO,
+    FECHA_FIN_POLIZA,
+    MCA_ANU_POLIZA
+  FROM (
+    SELECT *,
+      ROW_NUMBER() OVER(
+        PARTITION BY NUMERO_POLIZA
+        ORDER BY FECHA_INICIO_ENDOSO DESC
+      ) AS RN
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+    WHERE MCA_ANU_POLIZA != 'S'
+      AND (FECHA_FIN_POLIZA >= '2026-03-01' OR FECHA_FIN_POLIZA IS NULL)
+  )
+  WHERE RN = 1
+
+),
+
+BASE_CLASIFICADA AS (
+
+SELECT
+  CODIGO_COMPANIA,
+  NUMERO_POLIZA,
+  KEY_ID_TOMADOR,
+
+  CASE 
+    WHEN TIPO_DOCUMENTO_TOMADOR IN ('NT','NE') THEN 'JURIDICO'
+    ELSE 'NATURAL'
+  END AS TIPO_PERSONA
+
+FROM BASE_POLIZAS
+
+)
+
+SELECT
+  CODIGO_COMPANIA,
+  TIPO_PERSONA,
+  COUNT(DISTINCT KEY_ID_TOMADOR) AS TOTAL_CLIENTES_UNICOS,
+  COUNT(*) AS TOTAL_POLIZAS
+FROM BASE_CLASIFICADA
+GROUP BY
+  CODIGO_COMPANIA,
+  TIPO_PERSONA
+ORDER BY
+  CODIGO_COMPANIA,
+  TIPO_PERSONA;
