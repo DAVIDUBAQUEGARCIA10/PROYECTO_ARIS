@@ -1,0 +1,131 @@
+-- ============================================================
+-- 1) DESCRIPCIÓN DE LA CONSULTA
+-- Esta consulta calcula el total de clientes únicos,
+-- el total de pólizas y el total de clientes en listas
+-- restrictivas por compañía y tipo de persona
+-- (Natural o Jurídica), usando la base depurada.
+--
+-- 2) FUENTE DE LOS DATOS
+-- Tabla base de pólizas:
+-- `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+--
+-- Tabla de clientes restringidos:
+-- `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos_con_davivienda`
+--
+-- 3) REGLAS DE NEGOCIO IMPLEMENTADAS
+-- - Se excluyen pólizas anuladas
+-- - Se consideran vigentes según FECHA_FIN_POLIZA >= '2026-03-01'
+--   o FECHA_FIN_POLIZA nula
+-- - Se conserva solo una fila por NUMERO_POLIZA
+-- - Clasificación de persona:
+--      NT o NE  → JURIDICO
+--      resto    → NATURAL
+-- - Se identifica cliente en listas cuando existe cruce por:
+--      TIPO_DOCUMENTO_TOMADOR = TIPO_IDENTIFICACION
+--      KEY_ID_TOMADOR         = KEY_ID
+-- - Solo se consideran registros activos en listas restrictivas
+--
+-- 4) CONDICIONES DE FILTRADO
+-- Base pólizas:
+-- - MCA_ANU_POLIZA != 'S'
+-- - FECHA_FIN_POLIZA >= '2026-03-01' o NULL
+--
+-- Base restringidos:
+-- - FUENTE != 'PJ_DATOS_BASICOS'
+-- - CODIGO_RESTRICCION IS NOT NULL
+-- - FECHA_BAJA IS NULL
+--
+-- 5) ESTRUCTURA DE LA SALIDA
+-- - CODIGO_COMPANIA
+-- - TIPO_PERSONA
+-- - TOTAL_CLIENTES_UNICOS
+-- - TOTAL_POLIZAS
+-- - TOTAL_CLIENTES_EN_LISTAS
+--
+-- 6) VALIDACIONES ADICIONALES
+-- - COUNT(*) representa total de pólizas porque la base
+--   quedó deduplicada por NUMERO_POLIZA
+-- - COUNT(DISTINCT CASE WHEN ...) evita duplicar clientes
+--   si un mismo tercero tiene varias marcaciones en listas
+--
+-- 7) BITÁCORA DE MODIFICACIONES
+-- - Se añade clasificación de persona
+-- - Se agrupa por compañía y tipo de persona
+-- - Se incorpora columna de clientes en listas restrictivas
+-- ============================================================
+
+WITH BASE_POLIZAS AS (
+
+  SELECT
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_INICIO_ENDOSO,
+    FECHA_FIN_POLIZA,
+    MCA_ANU_POLIZA
+  FROM (
+    SELECT *,
+      ROW_NUMBER() OVER(
+        PARTITION BY NUMERO_POLIZA
+        ORDER BY FECHA_INICIO_ENDOSO DESC
+      ) AS RN
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+    WHERE MCA_ANU_POLIZA != 'S'
+      AND (FECHA_FIN_POLIZA >= '2026-03-01' OR FECHA_FIN_POLIZA IS NULL)
+  )
+  WHERE RN = 1
+
+),
+
+CLIENTES_RESTRINGIDOS AS (
+
+  SELECT DISTINCT
+    TIPO_IDENTIFICACION,
+    KEY_ID
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos_con_davivienda`
+  WHERE FUENTE != 'PJ_DATOS_BASICOS'
+    AND CODIGO_RESTRICCION IS NOT NULL
+    AND FECHA_BAJA IS NULL
+    AND CODIGO_RESTRICCION IN ("20","23")
+
+),
+
+BASE_CLASIFICADA AS (
+
+  SELECT
+    A.CODIGO_COMPANIA,
+    A.NUMERO_POLIZA,
+    A.TIPO_DOCUMENTO_TOMADOR,
+    A.KEY_ID_TOMADOR,
+
+    CASE 
+      WHEN A.TIPO_DOCUMENTO_TOMADOR IN ('NT', 'NE') THEN 'JURIDICO'
+      ELSE 'NATURAL'
+    END AS TIPO_PERSONA,
+
+    CASE
+      WHEN B.KEY_ID IS NOT NULL THEN 1
+      ELSE 0
+    END AS FLG_CLIENTE_EN_LISTAS
+
+  FROM BASE_POLIZAS A
+  LEFT JOIN CLIENTES_RESTRINGIDOS B
+    ON A.TIPO_DOCUMENTO_TOMADOR = B.TIPO_IDENTIFICACION
+   AND A.KEY_ID_TOMADOR = B.KEY_ID
+
+)
+
+SELECT
+  CODIGO_COMPANIA,
+  TIPO_PERSONA,
+  COUNT(DISTINCT KEY_ID_TOMADOR) AS TOTAL_CLIENTES_UNICOS,
+  COUNT(*) AS TOTAL_POLIZAS,
+  COUNT(DISTINCT CASE WHEN FLG_CLIENTE_EN_LISTAS = 1 THEN KEY_ID_TOMADOR END) AS TOTAL_CLIENTES_EN_LISTAS_PEP
+FROM BASE_CLASIFICADA
+GROUP BY
+  CODIGO_COMPANIA,
+  TIPO_PERSONA
+ORDER BY
+  CODIGO_COMPANIA,
+  TIPO_PERSONA;
