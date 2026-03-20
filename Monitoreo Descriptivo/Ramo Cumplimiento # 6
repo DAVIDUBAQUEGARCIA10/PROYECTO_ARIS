@@ -1,0 +1,135 @@
+-- ============================================================
+-- 1) DESCRIPCIÓN DE LA CONSULTA
+-- Esta consulta identifica la cantidad de clientes únicos
+-- que presentan coincidencia en listas restrictivas, agrupados
+-- por código y descripción de restricción.
+--
+-- 2) FUENTE DE LOS DATOS
+-- Tabla base de pólizas:
+-- `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+--
+-- Tabla de listas restrictivas:
+-- `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos_con_davivienda`
+--
+-- 3) REGLAS DE NEGOCIO IMPLEMENTADAS
+-- - Se excluyen pólizas anuladas
+-- - Se consideran pólizas con FECHA_FIN_POLIZA >= '2026-03-01'
+--   o FECHA_FIN_POLIZA nula
+-- - Se conserva solo una fila por NUMERO_POLIZA
+-- - Se cruza el tomador de la póliza contra la tabla de
+--   terceros restringidos por:
+--      * TIPO_DOCUMENTO_TOMADOR = TIPO_IDENTIFICACION
+--      * KEY_ID_TOMADOR         = KEY_ID
+-- - Se consideran solo restricciones activas:
+--      * FUENTE != 'PJ_DATOS_BASICOS'
+--      * CODIGO_RESTRICCION IS NOT NULL
+--      * FECHA_BAJA IS NULL
+--
+-- 4) CONDICIONES DE FILTRADO
+-- Base pólizas:
+-- - MCA_ANU_POLIZA != 'S'
+-- - (FECHA_FIN_POLIZA >= '2026-03-01' OR FECHA_FIN_POLIZA IS NULL)
+--
+-- Base de restringidos:
+-- - FUENTE != 'PJ_DATOS_BASICOS'
+-- - CODIGO_RESTRICCION IS NOT NULL
+-- - FECHA_BAJA IS NULL
+--
+-- 5) ESTRUCTURA DE LA SALIDA
+-- - CODIGO_RESTRICCION
+-- - DESCRIPCION_RESTRICCION
+-- - CANTIDAD_CLIENTES_COINCIDENTES
+--
+-- 6) VALIDACIONES ADICIONALES
+-- - Se usa COUNT(DISTINCT KEY_ID_TOMADOR) para contar clientes
+--   únicos por restricción y evitar duplicidades por múltiples
+--   pólizas o múltiples registros del mismo cliente
+--
+-- 7) BITÁCORA DE MODIFICACIONES
+-- - Se reestructura la consulta para devolver únicamente
+--   la cantidad de clientes por restricción
+-- ============================================================
+
+WITH BASE_POLIZAS AS (
+
+  -- ==========================================================
+  -- Se construye la base de pólizas depurada, conservando
+  -- una sola fila por NUMERO_POLIZA, específicamente la más
+  -- reciente según FECHA_INICIO_ENDOSO.
+  -- ==========================================================
+  SELECT
+    CODIGO_COMPANIA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_INICIO_ENDOSO,
+    FECHA_FIN_POLIZA,
+    MCA_ANU_POLIZA
+  FROM (
+    SELECT
+      *,
+      ROW_NUMBER() OVER (
+        PARTITION BY NUMERO_POLIZA
+        ORDER BY FECHA_INICIO_ENDOSO DESC
+      ) AS RN
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+    WHERE MCA_ANU_POLIZA != 'S'
+      AND (FECHA_FIN_POLIZA >= '2026-03-01' OR FECHA_FIN_POLIZA IS NULL)
+  )
+  WHERE RN = 1
+
+),
+
+CLIENTES_RESTRINGIDOS AS (
+
+  -- ==========================================================
+  -- Se toma únicamente la información relevante de terceros
+  -- restringidos, dejando solo registros activos con código
+  -- de restricción válido.
+  -- ==========================================================
+  SELECT DISTINCT
+    TIPO_IDENTIFICACION,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION_RESTRICCION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos_con_davivienda`
+  WHERE FUENTE != 'PJ_DATOS_BASICOS'
+    AND CODIGO_RESTRICCION IS NOT NULL
+    AND FECHA_BAJA IS NULL
+
+),
+
+CRUCE_CLIENTES AS (
+
+  -- ==========================================================
+  -- Se realiza el cruce entre la base de pólizas y la base de
+  -- restringidos para identificar qué clientes tomadores tienen
+  -- coincidencias en listas restrictivas.
+  -- ==========================================================
+  SELECT
+    B.KEY_ID_TOMADOR,
+    R.CODIGO_RESTRICCION,
+    R.DESCRIPCION_RESTRICCION
+  FROM BASE_POLIZAS B
+  INNER JOIN CLIENTES_RESTRINGIDOS R
+    ON B.TIPO_DOCUMENTO_TOMADOR = R.TIPO_IDENTIFICACION
+   AND B.KEY_ID_TOMADOR = R.KEY_ID
+
+)
+
+-- ============================================================
+-- Resultado final:
+-- Se cuenta cuántos clientes únicos coinciden por cada código
+-- y descripción de restricción.
+-- ============================================================
+SELECT
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION,
+  COUNT(DISTINCT KEY_ID_TOMADOR) AS CANTIDAD_CLIENTES_COINCIDENTES
+FROM CRUCE_CLIENTES
+GROUP BY
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION
+ORDER BY
+  CANTIDAD_CLIENTES_COINCIDENTES DESC,
+  CODIGO_RESTRICCION;
