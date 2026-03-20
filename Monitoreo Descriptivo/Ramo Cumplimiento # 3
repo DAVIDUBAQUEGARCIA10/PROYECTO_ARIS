@@ -1,0 +1,69 @@
+-- ============================================================
+-- 1) DESCRIPCIÓN DE LA CONSULTA
+-- Esta consulta calcula la cantidad de pólizas aperturadas
+-- por mes y año usando FECHA_INICIO_ENDOSO.
+--
+-- 2) FUENTE DE LOS DATOS
+-- Tabla fuente:
+-- `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+--
+-- 3) REGLAS DE NEGOCIO IMPLEMENTADAS
+-- - Se excluyen pólizas anuladas
+-- - Se consideran pólizas con FECHA_FIN_POLIZA >= '2026-03-01'
+-- - Se elimina duplicidad por NUMERO_POLIZA
+--
+-- 4) CONDICIONES DE FILTRADO
+-- - MCA_ANU_POLIZA != 'S'
+-- - FECHA_FIN_POLIZA >= '2026-03-01'
+-- - FECHA_INICIO_ENDOSO IS NOT NULL
+--
+-- 5) ESTRUCTURA DE LA SALIDA
+-- - PERIODO_MES
+-- - TOTAL_POLIZAS_APERTURADAS
+--
+-- 6) VALIDACIONES ADICIONALES
+-- - Se usa FORMAT_DATE('%Y-%m', DATE(FECHA_INICIO_ENDOSO))
+--   para consolidar la apertura por mes calendario
+--
+-- 7) BITÁCORA DE MODIFICACIONES
+-- - Se adapta la cuantificación mensual a la base deduplicada
+-- ============================================================
+
+WITH BASE_POLIZAS AS (
+
+  SELECT
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    FECHA_EMISION_ENDOSO,
+    FECHA_INICIO_ENDOSO,
+    FECHA_FIN_POLIZA,
+    MCA_ANU_POLIZA
+  FROM (
+    SELECT *,
+      ROW_NUMBER() OVER(
+        PARTITION BY NUMERO_POLIZA
+        ORDER BY FECHA_INICIO_ENDOSO DESC
+      ) AS RN
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026`
+    WHERE MCA_ANU_POLIZA != 'S'
+      AND FECHA_FIN_POLIZA >= '2026-03-01' or FECHA_FIN_POLIZA is null
+  )
+  WHERE RN = 1
+
+)
+
+SELECT
+  FORMAT_DATE('%Y-%m', DATE(FECHA_EMISION_ENDOSO)) AS PERIODO_MES,
+  COUNT(*) AS TOTAL_POLIZAS_APERTURADAS
+FROM BASE_POLIZAS
+WHERE FECHA_INICIO_ENDOSO IS NOT NULL
+GROUP BY
+  PERIODO_MES
+ORDER BY
+  PERIODO_MES;
