@@ -1,0 +1,29 @@
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.log_actualizacion_cumplimiento_prod as
+SELECT
+  table_id AS tabla,
+  TIMESTAMP_MILLIS(last_modified_time) AS fecha_ultima_modificacion,
+  row_count AS numero_filas,
+
+  -- Calcular días desde la última actualización
+  DATE_DIFF(
+      CURRENT_DATE(),
+      DATE(TIMESTAMP_MILLIS(last_modified_time)),
+      DAY
+  ) AS dias_sin_actualizar,
+
+  -- Semáforo de actualización
+  CASE
+    WHEN DATE_DIFF(
+            CURRENT_DATE(),
+            DATE(TIMESTAMP_MILLIS(last_modified_time)),
+            DAY
+         ) > 31
+      THEN '🔴 Alerta ojo revisar Data'
+    ELSE '🟢 Data actualizada'
+  END AS estado_actualizacion
+
+FROM
+  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.__TABLES__`
+
+ORDER BY
+  last_modified_time DESC;
