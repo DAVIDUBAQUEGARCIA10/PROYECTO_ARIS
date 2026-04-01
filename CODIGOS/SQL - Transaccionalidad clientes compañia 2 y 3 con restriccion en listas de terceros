@@ -1,0 +1,61 @@
+SELECT 
+    -- Datos del cliente
+    pol.COD_CIA,
+    pol.tdoc_tercero,
+    pol.nro_documto,
+    pol.NUM_POL1,
+    pol.cod_ramo,
+    pol.fecha_Emi,
+    pol.fecha_emi_end,
+    pol.FECHA_VENC_POL,
+    pol.COD_SECC          AS RAMO,
+    pol.COD_RAMO          AS PRODUCTO,
+
+    -- Datos de restricción
+    cr.NOMBRES,
+    fr.CODIGO             AS CODIGO_RESTRICCION,   -- ← era cr., debe ser fr.
+    fr.DESCRIPCION        AS DESCRIPCION_RESTRICCION,
+
+    -- Transaccionalidad
+    tx.CUENTA_FONDO,
+    tx.SECUENCIA,
+    tx.TRANSACCION,
+    tx.FECHA_PROCESO,
+    tx.VLR_TRANSACCION,
+    tx.UNIDADES_TOTALES,
+    tx.SUB_TRANSACCION,
+    CASE TO_NUMBER(tx.SUB_TRANSACCION)
+        WHEN 1  THEN 'APORTE AFILIADO (CAJAS BOLIVAR)'
+        WHEN 2  THEN 'RETIRO RIESGO'
+        WHEN 3  THEN 'APORTE EXTRAORDINARIO'
+        WHEN 4  THEN 'APORTE CONVENIO'
+        WHEN 5  THEN 'APORTE TRASLADO FPU'
+        WHEN 6  THEN 'APORTE CONVERSION'
+        WHEN 7  THEN 'TRASL.DISPONIBLE RIESGO A FPU'
+        WHEN 8  THEN 'TRASL.DISPON.RIESGO'
+        WHEN 9  THEN 'AJUSTE RENDIMIENTOS'
+        WHEN 10 THEN 'DEVOLUCION RECAUDO'
+        WHEN 11 THEN 'DEVOLUCION RIESGO NO APLICADO'
+        WHEN 12 THEN 'REVERSION RETIRO'
+        ELSE    'SIN HOMOLOGACION'
+    END AS NOMBRE_SUB_TRANSACCION
+
+FROM clientes_restringidos cr
+JOIN fuentes_restriccion fr
+    ON cr.FUERES_CODIGO = fr.CODIGO
+   AND cr.FECHA_BAJA IS NULL
+
+JOIN A2000030 pol
+    ON  pol.nro_documto  = cr.NUMERO_DOCUMENTO
+    AND pol.tdoc_tercero = cr.TIPDOC_CODIGO
+    AND pol.FECHA_VENC_POL >= TRUNC(SYSDATE)
+    AND pol.MCA_ANU_POL  != 'S'
+
+JOIN detalle_cuenta_multifondo tx
+    ON tx.CUENTA_FONDO = TRUNC(pol.NUM_POL1 / 100)
+    AND tx.FECHA_ULT_MODIFICACION >= TO_DATE('01/01/2026', 'DD/MM/YYYY')
+
+ORDER BY
+    pol.nro_documto,
+    pol.NUM_POL1,
+    tx.FECHA_PROCESO DESC;
