@@ -1,5 +1,126 @@
-WITH CTE AS (
-    SELECT DISTINCT
+WITH 
+
+-- Paso 1: Pre-filtrar restringidos activos UNA sola vez
+RESTRINGIDOS AS (
+    SELECT 
+        cr.NUMERO_DOCUMENTO,
+        cr.TIPDOC_CODIGO,
+        cr.NOMBRES          AS NOMBRE_RESTRINGIDO,
+        fr.CODIGO           AS CODIGO_RESTRICCION,
+        fr.DESCRIPCION      AS DESCRIPCION_RESTRICCION
+    FROM clientes_restringidos cr
+    JOIN fuentes_restriccion fr
+        ON cr.FUERES_CODIGO = fr.CODIGO
+    WHERE cr.FECHA_BAJA IS NULL
+),
+
+-- Paso 2: Consolidar movimientos solo de clientes restringidos
+CONS AS (
+    SELECT 
+        TDOC_TERCERO,
+        COD_BENEF,
+        COD_CIA,
+        NULL          AS CONCEPTO,
+        NULL          AS COD_OFIC_CONTAB,
+        NULL          AS COD_SECC,
+        NULL          AS COD_RAMO,
+        NULL          AS NUM_POL1,
+        NULL          AS NUM_FACTURA,
+        1             AS COD_MON,
+        FEC_ASIENTO,
+        'FOR_PAGO'    AS COD_PAGO,
+        IMP_MON_PAIS  AS VALOR_MOVIMIENTO,
+        'P'           AS COD_COBRO,
+        NULL          AS MOVIMIENTO,
+        NULL          AS DESCRIPCION_TIPO_MOV,
+        NULL          AS DOCUMENTO_ORIGEN
+    FROM A5021604
+    WHERE FEC_ASIENTO >= TO_DATE('01/01/2026', 'DD/MM/YYYY')
+      AND IMP_MON_PAIS IS NOT NULL
+      -- Pre-filtro temprano: solo restringidos
+      AND EXISTS (
+            SELECT 1 FROM RESTRINGIDOS r
+            WHERE r.NUMERO_DOCUMENTO = COD_BENEF
+              AND r.TIPDOC_CODIGO    = TDOC_TERCERO
+      )
+
+    UNION ALL
+
+    SELECT 
+        TDOC_TERCERO,
+        COD_BENEF,
+        COD_CIA,
+        CONCEPTO,
+        COD_OFIC_CONTAB,
+        COD_SECC,
+        COD_RAMO,
+        NUM_POL1,
+        NUM_FACTURA,
+        COD_MON,
+        FEC_ASIENTO,
+        NULL                                                AS COD_PAGO,
+        (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0))      AS VALOR_MOVIMIENTO,
+        DECODE(TIPO_ACTU, 'DP', 'P', 'C')                  AS COD_COBRO,
+        TIPO_ACTU                                           AS MOVIMIENTO,
+        CASE TIPO_ACTU
+            WHEN 'AC' THEN 'ANULADOS DE COBRO'
+            WHEN 'AD' THEN 'ANULAC.PAGO DEV.'
+            WHEN 'AE' THEN 'ANULACION PAGOS SARH'
+            WHEN 'AL' THEN 'ANULADO SEG.ARRENDAMIENTO'
+            WHEN 'AN' THEN 'ANULADO DE PENSIONES'
+            WHEN 'AP' THEN 'ANULADO PAGO SINIESTROS.'
+            WHEN 'AR' THEN 'ANULADO COBRO RECUPERO.'
+            WHEN 'AS' THEN 'ANULACION SIFVE'
+            WHEN 'AT' THEN 'ANULADO GIRO TITULOS'
+            WHEN 'CA' THEN 'COBROS ANTICIPADOS.'
+            WHEN 'CB' THEN 'COMPENSACIONES.'
+            WHEN 'CG' THEN 'CUENTAS DE GESTION.'
+            WHEN 'CP' THEN 'COBROS PARCIALES.'
+            WHEN 'CR' THEN 'REINTEGRO SINIESTROS'
+            WHEN 'CS' THEN 'COBRO SALVAM.Y RECOBROS STROS'
+            WHEN 'CT' THEN 'COBRO RECIBOS.'
+            WHEN 'CV' THEN 'COBROS VARIOS.'
+            WHEN 'DC' THEN 'DESCUENTO DE COMISIONES.'
+            WHEN 'DP' THEN 'DEVOLUCION DE PRIMAS.'
+            WHEN 'EA' THEN 'CTA.CTE.REASEGURO EXTERIOR AUTOMATICO'
+            WHEN 'EF' THEN 'COBRO REASEGURO EXTERIOR FACULTATIVO'
+            WHEN 'IA' THEN 'CTA.CTE.REASEGURO INTERIOR AUTOMATICO.'
+            WHEN 'IF' THEN 'COBRO REASEGURO INTERIOR FACUL.'
+            WHEN 'MA' THEN 'MVTOS.CTA.CORRIENTE COAS.RECIBIDO'
+            WHEN 'MC' THEN 'MVTOS.CTA.CTE.COASEGURO.'
+            WHEN 'MP' THEN 'MVTOS.CTA.CORRIENTE AGENTES.'
+            WHEN 'ND' THEN 'ANTICIPO COMISIONES NOMINA DIARIA'
+            WHEN 'P'  THEN 'PAGOS VARIOS'
+            WHEN 'PA' THEN 'COBROS CON CHEQUES POST-FECHADOS.'
+            WHEN 'PC' THEN 'ANTICIPO DE COMISIONES.'
+            WHEN 'PD' THEN 'PAGO DEVOLUCIONES ARRENDAMIENTOS'
+            WHEN 'PE' THEN 'TRANSITORIA PAGOS SARH'
+            WHEN 'PF' THEN 'PAGOS SIFVE'
+            WHEN 'PG' THEN 'PAGOS CAI'
+            WHEN 'PL' THEN 'PAGO SEG.ARRENDAMIENTO'
+            WHEN 'PN' THEN 'PAGO DE PENSIONES'
+            WHEN 'PS' THEN 'PAGO DE SINIESTROS.'
+            WHEN 'PT' THEN 'PAGOS TITULOS'
+            WHEN 'PV' THEN 'PAGOS VARIOS.'
+            WHEN 'RT' THEN 'RECAUDO TITULOS SE'
+            WHEN 'TT' THEN 'TRASPASO DE TESORERIA.'
+            ELSE          'DESCRIPCIÓN NO DISPONIBLE'
+        END AS DESCRIPCION_TIPO_MOV,
+        RECIBO AS DOCUMENTO_ORIGEN
+    FROM A5021900
+    WHERE FEC_ASIENTO >= TO_DATE('01/01/2026', 'DD/MM/YYYY')  -- ⚠️ estaba en 2020, ajusta si es intencional
+      AND (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0)) IS NOT NULL
+      -- Pre-filtro temprano: solo restringidos
+      AND EXISTS (
+            SELECT 1 FROM RESTRINGIDOS r
+            WHERE r.NUMERO_DOCUMENTO = COD_BENEF
+              AND r.TIPDOC_CODIGO    = TDOC_TERCERO
+      )
+),
+
+-- Paso 3: Enriquecer y deduplicar
+CTE AS (
+    SELECT
         CONS.TDOC_TERCERO,
         CONS.COD_BENEF,
         CONS.COD_CIA,
@@ -9,7 +130,7 @@ WITH CTE AS (
         CONS.COD_RAMO,
         CONS.NUM_POL1,
         CONS.NUM_FACTURA,
-        CONS.DOCUMENTO_ORIGEN,  
+        CONS.DOCUMENTO_ORIGEN,
         CONS.FEC_ASIENTO,
         CONS.COD_MON,
         CONS.COD_PAGO,
@@ -25,7 +146,6 @@ WITH CTE AS (
         A200.FEC_ANU_END,
         A200.TIPO_END,
         b.txt_red,
-        -- Campos de la tabla NATURALES
         NAT.PRIMER_NOMBRE,
         NAT.SEGUNDO_NOMBRE,
         NAT.PRIMER_APELLIDO,
@@ -36,117 +156,28 @@ WITH CTE AS (
         NAT.PUBLICAMENTE_EXPUESTA,
         NAT.VINCULO_PERSONA_RECONOCIDA,
         NAT.OPERACIONES_INTERNACIONALES,
-        -- Campos de la tabla JURIDICOS
         JUR.RAZON_SOCIAL,
         JUR.NOMBRE_COMERCIAL,
-        JUR.FECHA_NACIMIENTO AS FECHA_NACIMIENTO_JURIDICO,
-        JUR.NAZ_CODIGO AS TIPO_DE_EMPRESA,
+        JUR.FECHA_NACIMIENTO        AS FECHA_NACIMIENTO_JURIDICO,
+        JUR.NAZ_CODIGO              AS TIPO_DE_EMPRESA,
         JUR.REPRESENTANTE_LEGAL,
         JUR.NUMERO_DOCUMENTO_REPRESENTANTE,
         JUR.TIPDOC_CODIGO_IDENTIFICADO_POR,
-        JUR.PUBLICAMENTE_EXPUESTA AS PUBLICAMENTE_EXPUESTA_JURIDICO,
+        JUR.PUBLICAMENTE_EXPUESTA   AS PUBLICAMENTE_EXPUESTA_JURIDICO,
         JUR.VINCULO_PERSONA_RECONOCIDA AS VINCULO_PERSONA_RECONOCIDA_JURIDICO,
-        -- Datos de restricción
-        cr.NOMBRES                AS NOMBRE_RESTRINGIDO,
-        fr.CODIGO                 AS CODIGO_RESTRICCION,
-        fr.DESCRIPCION            AS DESCRIPCION_RESTRICCION,
+        R.NOMBRE_RESTRINGIDO,
+        R.CODIGO_RESTRICCION,
+        R.DESCRIPCION_RESTRICCION,
         ROW_NUMBER() OVER (
-            PARTITION BY CONS.VALOR_MOVIMIENTO, CONS.COD_BENEF, CONS.NUM_POL1, 
-                         CONS.COD_OFIC_CONTAB, CONS.FEC_ASIENTO 
+            PARTITION BY CONS.VALOR_MOVIMIENTO, CONS.COD_BENEF, CONS.NUM_POL1,
+                         CONS.COD_OFIC_CONTAB,  CONS.FEC_ASIENTO
             ORDER BY A200.FECHA_EMI DESC
         ) AS rn
-    FROM 
-        (
-            SELECT 
-                TDOC_TERCERO,
-                COD_BENEF,
-                COD_CIA,
-                NULL AS CONCEPTO,
-                NULL AS COD_OFIC_CONTAB,
-                NULL AS COD_SECC,
-                NULL AS COD_RAMO,
-                NULL AS NUM_POL1,
-                NULL AS NUM_FACTURA,
-                1 AS COD_MON,
-                FEC_ASIENTO,
-                'FOR_PAGO' AS COD_PAGO,
-                IMP_MON_PAIS AS VALOR_MOVIMIENTO,
-                'P' AS COD_COBRO,
-                NULL AS MOVIMIENTO,
-                NULL AS DESCRIPCION_TIPO_MOV,
-                NULL AS DOCUMENTO_ORIGEN  
-            FROM A5021604
-            WHERE FEC_ASIENTO >= TO_DATE('01/01/26', 'DD/MM/YY')
-              AND IMP_MON_PAIS IS NOT NULL
-
-            UNION ALL
-
-            SELECT 
-                TDOC_TERCERO,
-                COD_BENEF,
-                COD_CIA,
-                CONCEPTO,
-                COD_OFIC_CONTAB,
-                COD_SECC,
-                COD_RAMO,
-                NUM_POL1,
-                NUM_FACTURA,
-                COD_MON,
-                FEC_ASIENTO,
-                NULL AS COD_PAGO,
-                (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0)) AS VALOR_MOVIMIENTO,
-                DECODE(TIPO_ACTU, 'DP', 'P', 'C') AS COD_COBRO,
-                TIPO_ACTU AS MOVIMIENTO,
-                CASE TIPO_ACTU
-                    WHEN 'AC' THEN 'ANULADOS DE COBRO'
-                    WHEN 'AD' THEN 'ANULAC.PAGO DEV.'
-                    WHEN 'AE' THEN 'ANULACION PAGOS SARH'
-                    WHEN 'AL' THEN 'ANULADO SEG.ARRENDAMIENTO'
-                    WHEN 'AN' THEN 'ANULADO DE PENSIONES'
-                    WHEN 'AP' THEN 'ANULADO PAGO SINIESTROS.'
-                    WHEN 'AR' THEN 'ANULADO COBRO RECUPERO.'
-                    WHEN 'AS' THEN 'ANULACION SIFVE'
-                    WHEN 'AT' THEN 'ANULADO GIRO TITULOS'
-                    WHEN 'CA' THEN 'COBROS ANTICIPADOS.'
-                    WHEN 'CB' THEN 'COMPENSACIONES.'
-                    WHEN 'CG' THEN 'CUENTAS DE GESTION.'
-                    WHEN 'CP' THEN 'COBROS PARCIALES.'
-                    WHEN 'CR' THEN 'REINTEGRO SINIESTROS'
-                    WHEN 'CS' THEN 'COBRO SALVAM.Y RECOBROS STROS'
-                    WHEN 'CT' THEN 'COBRO RECIBOS.'
-                    WHEN 'CV' THEN 'COBROS VARIOS.'
-                    WHEN 'DC' THEN 'DESCUENTO DE COMISIONES.'
-                    WHEN 'DP' THEN 'DEVOLUCION DE PRIMAS.'
-                    WHEN 'EA' THEN 'CTA.CTE.REASEGURO EXTERIOR AUTOMATICO'
-                    WHEN 'EF' THEN 'COBRO REASEGURO EXTERIOR FACULTATIVO'
-                    WHEN 'IA' THEN 'CTA.CTE.REASEGURO INTERIOR AUTOMATICO.'
-                    WHEN 'IF' THEN 'COBRO REASEGURO INTERIOR FACUL.'
-                    WHEN 'MA' THEN 'MVTOS.CTA.CORRIENTE COAS.RECIBIDO'
-                    WHEN 'MC' THEN 'MVTOS.CTA.CTE.COASEGURO.'
-                    WHEN 'MP' THEN 'MVTOS.CTA.CORRIENTE AGENTES.'
-                    WHEN 'ND' THEN 'ANTICIPO COMISIONES NOMINA DIARIA'
-                    WHEN 'P'  THEN 'PAGOS VARIOS'
-                    WHEN 'PA' THEN 'COBROS CON CHEQUES POST-FECHADOS.'
-                    WHEN 'PC' THEN 'ANTICIPO DE COMISIONES.'
-                    WHEN 'PD' THEN 'PAGO DEVOLUCIONES ARRENDAMIENTOS'
-                    WHEN 'PE' THEN 'TRANSITORIA PAGOS SARH'
-                    WHEN 'PF' THEN 'PAGOS SIFVE'
-                    WHEN 'PG' THEN 'PAGOS CAI'
-                    WHEN 'PL' THEN 'PAGO SEG.ARRENDAMIENTO'
-                    WHEN 'PN' THEN 'PAGO DE PENSIONES'
-                    WHEN 'PS' THEN 'PAGO DE SINIESTROS.'
-                    WHEN 'PT' THEN 'PAGOS TITULOS'
-                    WHEN 'PV' THEN 'PAGOS VARIOS.'
-                    WHEN 'RT' THEN 'RECAUDO TITULOS SE'
-                    WHEN 'TT' THEN 'TRASPASO DE TESORERIA.'
-                    ELSE 'DESCRIPCIÓN NO DISPONIBLE'
-                END AS DESCRIPCION_TIPO_MOV,
-                RECIBO AS DOCUMENTO_ORIGEN  
-            FROM A5021900
-            WHERE FEC_ASIENTO >= TO_DATE('01/01/20', 'DD/MM/YY')
-              AND (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0)) IS NOT NULL
-        ) CONS
-
+    FROM CONS
+    -- Traer datos de restricción ya calculados (sin re-leer las tablas)
+    JOIN RESTRINGIDOS R
+        ON  CONS.COD_BENEF    = R.NUMERO_DOCUMENTO
+        AND CONS.TDOC_TERCERO = R.TIPDOC_CODIGO
     LEFT JOIN A2000030 A200
         ON CONS.NUM_POL1 = A200.NUM_POL1
     LEFT JOIN A1001800 b
@@ -155,16 +186,7 @@ WITH CTE AS (
         ON CONS.COD_BENEF = NAT.NUMERO_DOCUMENTO AND CONS.TDOC_TERCERO = NAT.TIPDOC_CODIGO
     LEFT JOIN JURIDICOS JUR
         ON CONS.COD_BENEF = JUR.NUMERO_DOCUMENTO AND CONS.TDOC_TERCERO = JUR.TIPDOC_CODIGO
-
-    -- FILTRO RESTRICCIONES: INNER JOIN para traer solo restringidos activos
-    JOIN clientes_restringidos cr
-        ON  CONS.COD_BENEF    = cr.NUMERO_DOCUMENTO
-        AND CONS.TDOC_TERCERO = cr.TIPDOC_CODIGO
-        AND cr.FECHA_BAJA     IS NULL
-    JOIN fuentes_restriccion fr
-        ON cr.FUERES_CODIGO = fr.CODIGO
-
-    WHERE CONS.TDOC_TERCERO IS NOT NULL
+    WHERE CONS.TDOC_TERCERO    IS NOT NULL
       AND CONS.VALOR_MOVIMIENTO > 0
 )
 
