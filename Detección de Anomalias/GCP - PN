@@ -8,7 +8,10 @@ WITH alertas_filtradas AS (
         anomaly_score,
         CAST(FLOOR(SAFE_CAST(NUMERO_POLIZA AS INT64) / 100) AS INT64) AS NUMERO_CUENTA_FONDO_ALERTA
     FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_seg_pn`
-    WHERE ANO_MES = 202603
+    WHERE  ANO_MES = (
+        SELECT MAX(ANO_MES)
+        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_seg_pn`
+    )
       AND causa_principal != 'Comportamiento normal'
 ),
 
