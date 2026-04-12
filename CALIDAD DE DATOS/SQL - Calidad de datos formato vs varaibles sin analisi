@@ -1,0 +1,165 @@
+
+WITH correos_juridicos AS (
+    SELECT
+        j.tipdoc_codigo AS tipo_documento,
+        j.numero_documento AS numero_documento,
+        CASE 
+            WHEN mcj.descripcion LIKE '%@%' THEN mcj.descripcion
+            WHEN mcn.descripcion LIKE '%@%' THEN mcn.descripcion
+            ELSE NULL
+        END AS correo_unificado,
+        ROW_NUMBER() OVER (
+            PARTITION BY j.tipdoc_codigo, j.numero_documento
+            ORDER BY 
+                CASE 
+                    WHEN mcj.descripcion LIKE '%@%' THEN 1
+                    WHEN mcn.descripcion LIKE '%@%' THEN 2
+                    ELSE 3
+                END,
+                mcj.secuencia,
+                mcn.secuencia
+        ) AS rn
+    FROM juridicos j
+    LEFT JOIN naturales n 
+        ON n.numero_documento = j.numero_documento_representante
+       AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+    LEFT JOIN medios_comunicacion mcj 
+        ON mcj.jur_secuencia = j.secuencia
+    LEFT JOIN tipos_medios_comunicacion tmcj 
+        ON tmcj.secuencia = mcj.tipmedcom_codigo
+    LEFT JOIN medios_comunicacion mcn 
+        ON mcn.nat_secuencia = n.secuencia
+    LEFT JOIN tipos_medios_comunicacion tmcn 
+        ON tmcn.secuencia = mcn.tipmedcom_codigo
+    WHERE (
+            (tmcj.descripcion LIKE '%EMAIL%' AND mcj.descripcion LIKE '%@%')
+         OR (tmcn.descripcion LIKE '%EMAIL%' AND mcn.descripcion LIKE '%@%')
+          )
+),
+correos_naturales AS (
+    SELECT
+        n.tipdoc_codigo AS tipo_documento,
+        n.numero_documento AS numero_documento,
+        mcn.descripcion AS correo_unificado,
+        ROW_NUMBER() OVER (
+            PARTITION BY n.tipdoc_codigo, n.numero_documento
+            ORDER BY mcn.secuencia
+        ) AS rn
+    FROM naturales n
+    LEFT JOIN medios_comunicacion mcn 
+        ON mcn.nat_secuencia = n.secuencia
+    LEFT JOIN tipos_medios_comunicacion tmcn 
+        ON tmcn.secuencia = mcn.tipmedcom_codigo
+    WHERE tmcn.descripcion LIKE '%EMAIL%'
+      AND mcn.descripcion LIKE '%@%'
+),
+correos_unificados AS (
+    SELECT tipo_documento, numero_documento, correo_unificado
+    FROM correos_juridicos
+    WHERE rn = 1
+
+    UNION
+
+    SELECT tipo_documento, numero_documento, correo_unificado
+    FROM correos_naturales
+    WHERE rn = 1
+)
+SELECT DISTINCT
+    rf.exrf_nombre_cli_razon_social AS Nombre_Cliente,
+    rf.exrf_cod_tip_doc AS Cod_Tipo_Doc,
+    rf.exrf_desc_tip_doc AS Tipo_Doc,
+    rf.exrf_num_id_cliente AS Num_Id,
+
+    cu.correo_unificado AS Correo_Unificado,
+
+    rf.exrf_cod_ciudad_nacim AS Cod_Ciudad_Nacimiento,
+    REPLACE(rf.exrf_desc_ciudad_nacim, ';', '') AS Ciudad_Nacimiento,
+    TO_CHAR(rf.exrf_fecha_nacim, 'dd/mm/yyyy') AS Fecha_Nacimiento,
+
+    REPLACE(rf.exrf_direccion_resid, ';', '') AS Direccion_Residencia,
+    rf.exrf_cod_ciudad_resid AS Cod_Ciudad_Residencia,
+    REPLACE(rf.exrf_desc_ciudad_resid, ';', '') AS Ciudad_Residencia,
+    rf.exrf_telefono_residencia AS Telefono_Residencia,
+
+    rf.exrf_cod_profesion AS Cod_Profesion,
+    REPLACE(rf.exrf_desc_profesion, ';', '') AS Profesion,
+
+    rf.exrf_cod_ocupacion AS Cod_Ocupacion,
+    REPLACE(rf.exrf_desc_ocupacion, ';', '') AS Ocupacion,
+
+    rf.exrf_cod_act_economica AS Cod_Act_Economica,
+    REPLACE(rf.exrf_desc_act_economica, ';', '') AS Act_Economica,
+
+    rf.exrf_vlr_ingresos AS Vlr_Ingresos,
+    rf.exrf_vlr_egresos AS Vlr_Egresos,
+    rf.exrf_vlr_activos AS Vlr_Activos,
+    rf.exrf_vlr_pasivos AS Vlr_Pasivos,
+    rf.exrf_vlr_patrimonio AS Vlr_Patrimonio,
+
+    rf.exrf_cod_cia AS Cod_Compania,
+    rf.exrf_nom_cia AS Compania,
+
+    rf.exrf_cod_ramo_emi AS Cod_Ramo,
+    rf.exrf_nom_ramo_emi AS Ramo,
+
+    rf.exrf_cod_producto AS Cod_Producto,
+    rf.exrf_nom_producto AS Producto,
+
+    rf.exrf_cod_loc_neg AS Cod_Localidad,
+    rf.exrf_nom_loc_neg AS Localidad,
+
+    TO_CHAR(rf.exrf_fecha_creacion_terc, 'dd/mm/yyyy') AS Fecha_Vinculacion_Cliente,
+    TO_CHAR(rf.exrf_fecha_act_financiera, 'dd/mm/yyyy') AS Fecha_Act_Financiera,
+
+    rf.exrf_desc_pers_ppubrec AS Politicamente_Expuesta,
+    rf.exrf_desc_vinc_ppubrec AS Vinculo_PEP,
+
+    rf.exrf_cod_oper_moned_ext AS Cod_Oper_Moned_Ext,
+    rf.exrf_desc_oper_moned_ext AS Oper_Moned_Ext,
+
+    rf.exrf_ult_formato_conocimiento AS Ultimo_Formato_Conocimiento,
+    rf.exrf_fecha_ultimo_formato AS Fecha_Ultimo_Formato,
+    rf.exrf_usuario_ultimo_formato AS Usuario_Ultimo_Formato,
+
+    rf.exrf_cod_estrategia_neg AS Codigo_Estrategia,
+    rf.exrf_desc_estrategia_neg AS Descripcion_Estrategia,
+    rf.exrf_cod_entidad_estrategia AS Codigo_Entidad_Estrategia,
+    rf.exrf_entidad_estrategia_neg AS Entidad_Estrategia,
+    rf.exrf_version_estrategia_neg AS Version_Estrategia,
+
+    rf.exrf_desc_replegal_pep AS RepLegal_Politicamente_Expuesta,
+    rf.exrf_desc_replegal_vinc_pep AS RepLegal_Vinculo_PEP,
+
+    t.FECHA_TRANSACCION,
+    t.USUARIO_TRANSACCION,
+    t.FORMULARIO_TRANSACCION,
+    t.RESULTADO_TRANSACCION,
+    v.DESCRIPCION AS Descripcion_Formulario
+
+FROM dc_ext_revisoria_fiscal rf
+
+LEFT JOIN atgc_log_transacciones t
+    ON rf.exrf_cod_tip_doc = t.TIPO_DOCUMENTO_CLIENTE
+   AND rf.exrf_num_id_cliente = t.NUMERO_DOCUMENTO_CLIENTE
+
+LEFT JOIN validaciones v
+    ON t.FORMULARIO_TRANSACCION = v.VALOR2
+   AND v.categoria = 'SARLAFT_DOMINIOS'
+   AND v.VALOR1 = 'FORMULARIO'
+
+LEFT JOIN correos_unificados cu
+    ON rf.exrf_cod_tip_doc = cu.tipo_documento
+   AND rf.exrf_num_id_cliente = cu.numero_documento
+
+WHERE t.FECHA_TRANSACCION >= TO_DATE('01/01/2026', 'DD/MM/YYYY');
+
+DE ACUERDO A LA COLUMNA ULTIMO_FORMATO_CONOCIMIENTO QUIERO QUE ME EVALUES SI ES ORDINARIO QUIERO 3 COLUMNA QUE ME DIGAS EL% DE COMPLETITUD DE ESOS CAMPOS ES DECIR CUANDO TIENE BUENOS,
+CUANTOS VACIOS Y EL % LAS VARAIBLES A EVALUAR ES  NOMBRE_CLIENTE, CIUDAD_NACIMIENTO, FECHA_NACIMIENTO, DIRECCION_RESIDENCIA, COD_CIUDAD_RESIDENCIA, CIUDAD_RESIDENCIA, TELEFONO_RESIDENCIA, Correo_Unificado,
+COD_ACT_ECONOMICA, ACT_ECONOMICA, VLR_INGRESOS, VLR_EGRESOS, VLR_ACTIVOS, VLR_PASIVOS, VLR_PATRIMONIO SI ES SIMPLIFICADO TOMALO CON LAS SIGUIETNES VARIABLE IGUAL AGREGA 3 COLUMNAS NOMBRE_CLIENTE, 
+CIUDAD_NACIMIENTO, FECHA_NACIMIENTO, DIRECCION_RESIDENCIA, COD_CIUDAD_RESIDENCIA, CIUDAD_RESIDENCIA, TELEFONO_RESIDENCIA,Correo_Unificado, COD_ACT_ECONOMICA, ACT_ECONOMICA AHORA AGREGA 3 COLUMNAS MAS OARA ORDINARIO  y 3
+para simplicida, en donde estas nuevas 3 sean no por completitud sino por calida, es decir que 
+
+que telefono realmente sea un telefono colombiano TELEFONO_RESIDENCIA no se acepta 1111 1223445 es decir debe cumplir con la cantidad de digitos de un fijo o cedular colombianos y otras valdiaciones que consideres , 
+que la direccione ste completa tipo direcciones de colombia DIRECCION_RESIDENCIA
+que realmente el Correo_Unificado se un correo con @ y caracteristicas de un corre 
+que las variables financieras cuando es ordinario sean logicas mayor a 1 VLR_INGRESOS, VLR_EGRESOS, VLR_ACTIVOS, VLR_PASIVOS, VLR_PATRIMONIO
