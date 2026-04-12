@@ -1,0 +1,472 @@
+SELECT *
+FROM (
+    WITH correos_juridicos AS (
+        SELECT
+            j.tipdoc_codigo AS tipo_documento,
+            j.numero_documento AS numero_documento,
+            CASE 
+                WHEN mcj.descripcion LIKE '%@%' THEN mcj.descripcion
+                WHEN mcn.descripcion LIKE '%@%' THEN mcn.descripcion
+                ELSE NULL
+            END AS correo_unificado,
+            ROW_NUMBER() OVER (
+                PARTITION BY j.tipdoc_codigo, j.numero_documento
+                ORDER BY 
+                    CASE 
+                        WHEN mcj.descripcion LIKE '%@%' THEN 1
+                        WHEN mcn.descripcion LIKE '%@%' THEN 2
+                        ELSE 3
+                    END,
+                    mcj.secuencia,
+                    mcn.secuencia
+            ) AS rn
+        FROM juridicos j
+        LEFT JOIN naturales n 
+            ON n.numero_documento = j.numero_documento_representante
+           AND n.tipdoc_codigo = j.tipdoc_codigo_identificado_por
+        LEFT JOIN medios_comunicacion mcj 
+            ON mcj.jur_secuencia = j.secuencia
+        LEFT JOIN tipos_medios_comunicacion tmcj 
+            ON tmcj.secuencia = mcj.tipmedcom_codigo
+        LEFT JOIN medios_comunicacion mcn 
+            ON mcn.nat_secuencia = n.secuencia
+        LEFT JOIN tipos_medios_comunicacion tmcn 
+            ON tmcn.secuencia = mcn.tipmedcom_codigo
+        WHERE (
+                (tmcj.descripcion LIKE '%EMAIL%' AND mcj.descripcion LIKE '%@%')
+             OR (tmcn.descripcion LIKE '%EMAIL%' AND mcn.descripcion LIKE '%@%')
+              )
+    ),
+    correos_naturales AS (
+        SELECT
+            n.tipdoc_codigo AS tipo_documento,
+            n.numero_documento AS numero_documento,
+            mcn.descripcion AS correo_unificado,
+            ROW_NUMBER() OVER (
+                PARTITION BY n.tipdoc_codigo, n.numero_documento
+                ORDER BY mcn.secuencia
+            ) AS rn
+        FROM naturales n
+        LEFT JOIN medios_comunicacion mcn 
+            ON mcn.nat_secuencia = n.secuencia
+        LEFT JOIN tipos_medios_comunicacion tmcn 
+            ON tmcn.secuencia = mcn.tipmedcom_codigo
+        WHERE tmcn.descripcion LIKE '%EMAIL%'
+          AND mcn.descripcion LIKE '%@%'
+    ),
+    correos_unificados AS (
+        SELECT tipo_documento, numero_documento, correo_unificado
+        FROM correos_juridicos
+        WHERE rn = 1
+
+        UNION
+
+        SELECT tipo_documento, numero_documento, correo_unificado
+        FROM correos_naturales
+        WHERE rn = 1
+    ),
+    base AS (
+        SELECT DISTINCT
+            rf.exrf_nombre_cli_razon_social AS Nombre_Cliente,
+            rf.exrf_cod_tip_doc AS Cod_Tipo_Doc,
+            rf.exrf_desc_tip_doc AS Tipo_Doc,
+            rf.exrf_num_id_cliente AS Num_Id,
+
+            cu.correo_unificado AS Correo_Unificado,
+
+            rf.exrf_cod_ciudad_nacim AS Cod_Ciudad_Nacimiento,
+            REPLACE(rf.exrf_desc_ciudad_nacim, ';', '') AS Ciudad_Nacimiento,
+            TO_CHAR(rf.exrf_fecha_nacim, 'dd/mm/yyyy') AS Fecha_Nacimiento,
+
+            REPLACE(rf.exrf_direccion_resid, ';', '') AS Direccion_Residencia,
+            rf.exrf_cod_ciudad_resid AS Cod_Ciudad_Residencia,
+            REPLACE(rf.exrf_desc_ciudad_resid, ';', '') AS Ciudad_Residencia,
+            rf.exrf_telefono_residencia AS Telefono_Residencia,
+
+            rf.exrf_cod_profesion AS Cod_Profesion,
+            REPLACE(rf.exrf_desc_profesion, ';', '') AS Profesion,
+
+            rf.exrf_cod_ocupacion AS Cod_Ocupacion,
+            REPLACE(rf.exrf_desc_ocupacion, ';', '') AS Ocupacion,
+
+            rf.exrf_cod_act_economica AS Cod_Act_Economica,
+            REPLACE(rf.exrf_desc_act_economica, ';', '') AS Act_Economica,
+
+            rf.exrf_vlr_ingresos AS Vlr_Ingresos,
+            rf.exrf_vlr_egresos AS Vlr_Egresos,
+            rf.exrf_vlr_activos AS Vlr_Activos,
+            rf.exrf_vlr_pasivos AS Vlr_Pasivos,
+            rf.exrf_vlr_patrimonio AS Vlr_Patrimonio,
+
+            rf.exrf_cod_cia AS Cod_Compania,
+            rf.exrf_nom_cia AS Compania,
+
+            rf.exrf_cod_ramo_emi AS Cod_Ramo,
+            rf.exrf_nom_ramo_emi AS Ramo,
+
+            rf.exrf_cod_producto AS Cod_Producto,
+            rf.exrf_nom_producto AS Producto,
+
+            rf.exrf_cod_loc_neg AS Cod_Localidad,
+            rf.exrf_nom_loc_neg AS Localidad,
+
+            TO_CHAR(rf.exrf_fecha_creacion_terc, 'dd/mm/yyyy') AS Fecha_Vinculacion_Cliente,
+            TO_CHAR(rf.exrf_fecha_act_financiera, 'dd/mm/yyyy') AS Fecha_Act_Financiera,
+
+            rf.exrf_desc_pers_ppubrec AS Politicamente_Expuesta,
+            rf.exrf_desc_vinc_ppubrec AS Vinculo_PEP,
+
+            rf.exrf_cod_oper_moned_ext AS Cod_Oper_Moned_Ext,
+            rf.exrf_desc_oper_moned_ext AS Oper_Moned_Ext,
+
+            UPPER(TRIM(rf.exrf_ult_formato_conocimiento)) AS Ultimo_Formato_Conocimiento,
+            rf.exrf_fecha_ultimo_formato AS Fecha_Ultimo_Formato,
+            rf.exrf_usuario_ultimo_formato AS Usuario_Ultimo_Formato,
+
+            rf.exrf_cod_estrategia_neg AS Codigo_Estrategia,
+            rf.exrf_desc_estrategia_neg AS Descripcion_Estrategia,
+            rf.exrf_cod_entidad_estrategia AS Codigo_Entidad_Estrategia,
+            rf.exrf_entidad_estrategia_neg AS Entidad_Estrategia,
+            rf.exrf_version_estrategia_neg AS Version_Estrategia,
+
+            rf.exrf_desc_replegal_pep AS RepLegal_Politicamente_Expuesta,
+            rf.exrf_desc_replegal_vinc_pep AS RepLegal_Vinculo_PEP,
+
+            t.FECHA_TRANSACCION,
+            t.USUARIO_TRANSACCION,
+            t.FORMULARIO_TRANSACCION,
+            t.RESULTADO_TRANSACCION,
+            UPPER(TRIM(v.DESCRIPCION)) AS Descripcion_Formulario
+        FROM dc_ext_revisoria_fiscal rf
+        LEFT JOIN atgc_log_transacciones t
+            ON rf.exrf_cod_tip_doc = t.TIPO_DOCUMENTO_CLIENTE
+           AND rf.exrf_num_id_cliente = t.NUMERO_DOCUMENTO_CLIENTE
+        LEFT JOIN validaciones v
+            ON t.FORMULARIO_TRANSACCION = v.VALOR2
+           AND v.categoria = 'SARLAFT_DOMINIOS'
+           AND v.VALOR1 = 'FORMULARIO'
+        LEFT JOIN correos_unificados cu
+            ON rf.exrf_cod_tip_doc = cu.tipo_documento
+           AND rf.exrf_num_id_cliente = cu.numero_documento
+        WHERE t.FECHA_TRANSACCION >= TO_DATE('01/01/2026', 'DD/MM/YYYY')
+          AND t.FECHA_TRANSACCION < TO_DATE('01/04/2026', 'DD/MM/YYYY')
+    ),
+    flags AS (
+        SELECT
+            b.*,
+
+            CASE
+                WHEN REGEXP_LIKE(REGEXP_REPLACE(NVL(b.Telefono_Residencia, ''), '[^0-9]', ''), '^3[0-9]{9}$')
+                  OR REGEXP_LIKE(REGEXP_REPLACE(NVL(b.Telefono_Residencia, ''), '[^0-9]', ''), '^[1-9][0-9]{6,9}$')
+                THEN 1 ELSE 0
+            END AS flg_telefono_valido,
+
+            CASE
+                WHEN REGEXP_LIKE(
+                    NVL(b.Correo_Unificado, ''),
+                    '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+                )
+                THEN 1 ELSE 0
+            END AS flg_correo_valido,
+
+            CASE
+                WHEN NULLIF(TRIM(b.Direccion_Residencia), '') IS NULL THEN 0
+                WHEN REGEXP_LIKE(
+                    UPPER(NVL(b.Direccion_Residencia, '')),
+                    '(^|[[:space:]])(NO[[:space:]]+DEFINIDA|SIN[[:space:]]+DIRECCION|NO[[:space:]]+REGISTRA|SIN[[:space:]]+ESPECIFICAR|NO[[:space:]]+ESPECIFICADA|DESCONOCIDA|DESCONOCIDO|N/A|NA|SD|S/D)([[:space:]]|$)'
+                ) THEN 0
+                WHEN LENGTH(TRIM(NVL(b.Direccion_Residencia, ''))) < 6 THEN 0
+                WHEN REGEXP_LIKE(
+                    UPPER(TRIM(NVL(b.Direccion_Residencia, ''))),
+                    '^(CL|CLL|CALLE|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CA|C)[[:space:]]+[0-9A-Z]+$'
+                ) THEN 0
+                WHEN (
+                    REGEXP_LIKE(
+                        UPPER(NVL(b.Direccion_Residencia, '')),
+                        '(^|[[:space:]])(CL|CLL|CALLE|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CA|C|KM|KILOMETRO|VEREDA|FINCA|PARCELACION|PARCELACIÓN|SECTOR|VIA|VÍA|CONJ|CONJUNTO|CONDOMINIO|RESIDENCIAL|ED|EDIFICIO|TORRE|MZ|MANZANA|LT|LOTE|CS|CASA|BRR|BARRIO|URBANIZACION|URBANIZACIÓN|AP|APT|APTO|INT|INTERIOR|BL|BLOQUE|ET|ETAPA|PI|PISO)([[:space:]]|$)'
+                    )
+                    OR REGEXP_LIKE(UPPER(NVL(b.Direccion_Residencia, '')), '[0-9]')
+                )
+                THEN 1
+                ELSE 0
+            END AS flg_direccion_valida,
+
+            CASE
+                WHEN NVL(b.Vlr_Ingresos, 0) = 0
+                 AND NVL(b.Vlr_Egresos, 0) = 0
+                 AND NVL(b.Vlr_Activos, 0) = 0
+                 AND NVL(b.Vlr_Pasivos, 0) = 0
+                 AND NVL(b.Vlr_Patrimonio, 0) = 0
+                THEN 0
+                ELSE 1
+            END AS flg_finanzas_validas
+        FROM base b
+    )
+    SELECT
+        f.*,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(
+                    CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN f.Vlr_Ingresos IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN f.Vlr_Egresos IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN f.Vlr_Activos IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN f.Vlr_Pasivos IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN f.Vlr_Patrimonio IS NOT NULL THEN 1 ELSE 0 END
+                )
+            ELSE 'NO APLICA'
+        END AS CAMPOS_BUENOS_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(
+                    13 - (
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN f.Vlr_Ingresos IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN f.Vlr_Egresos IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN f.Vlr_Activos IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN f.Vlr_Pasivos IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN f.Vlr_Patrimonio IS NOT NULL THEN 1 ELSE 0 END
+                    )
+                )
+            ELSE 'NO APLICA'
+        END AS CAMPOS_VACIOS_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(
+                    ROUND(
+                        (
+                            (
+                                CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN f.Vlr_Ingresos IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN f.Vlr_Egresos IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN f.Vlr_Activos IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN f.Vlr_Pasivos IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN f.Vlr_Patrimonio IS NOT NULL THEN 1 ELSE 0 END
+                            ) / 13
+                        ) * 100,
+                        2
+                    )
+                )
+            ELSE 'NO APLICA'
+        END AS PCT_COMPLETITUD_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(
+                    CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                    CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END
+                )
+            ELSE 'NO APLICA'
+        END AS CAMPOS_BUENOS_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(
+                    8 - (
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END
+                    )
+                )
+            ELSE 'NO APLICA'
+        END AS CAMPOS_VACIOS_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(
+                    ROUND(
+                        (
+                            (
+                                CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NOT NULL THEN 1 ELSE 0 END +
+                                CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NOT NULL THEN 1 ELSE 0 END
+                            ) / 8
+                        ) * 100,
+                        2
+                    )
+                )
+            ELSE 'NO APLICA'
+        END AS PCT_COMPLETITUD_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido + f.flg_finanzas_validas)
+            ELSE 'NO APLICA'
+        END AS CAMPOS_VALIDOS_CALIDAD_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(4 - (f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido + f.flg_finanzas_validas))
+            ELSE 'NO APLICA'
+        END AS CAMPOS_INVALIDOS_CALIDAD_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                TO_CHAR(ROUND(((f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido + f.flg_finanzas_validas) / 4) * 100, 2))
+            ELSE 'NO APLICA'
+        END AS PCT_CALIDAD_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido)
+            ELSE 'NO APLICA'
+        END AS CAMPOS_VALIDOS_CALIDAD_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(3 - (f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido))
+            ELSE 'NO APLICA'
+        END AS CAMPOS_INVALIDOS_CALIDAD_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                TO_CHAR(ROUND(((f.flg_telefono_valido + f.flg_direccion_valida + f.flg_correo_valido) / 3) * 100, 2))
+            ELSE 'NO APLICA'
+        END AS PCT_CALIDAD_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                CASE 
+                    WHEN NULLIF(TRIM(
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NULL THEN ' | NOMBRE_CLIENTE' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NULL THEN ' | CIUDAD_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NULL THEN ' | FECHA_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NULL THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NULL THEN ' | CIUDAD_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NULL THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NULL THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NULL THEN ' | ACT_ECONOMICA' ELSE '' END ||
+                        CASE WHEN f.Vlr_Ingresos IS NULL THEN ' | VLR_INGRESOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Egresos IS NULL THEN ' | VLR_EGRESOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Activos IS NULL THEN ' | VLR_ACTIVOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Pasivos IS NULL THEN ' | VLR_PASIVOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Patrimonio IS NULL THEN ' | VLR_PATRIMONIO' ELSE '' END
+                    ), '') IS NULL THEN 'OK'
+                    ELSE LTRIM(
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NULL THEN ' | NOMBRE_CLIENTE' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NULL THEN ' | CIUDAD_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NULL THEN ' | FECHA_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NULL THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NULL THEN ' | CIUDAD_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NULL THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NULL THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NULL THEN ' | ACT_ECONOMICA' ELSE '' END ||
+                        CASE WHEN f.Vlr_Ingresos IS NULL THEN ' | VLR_INGRESOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Egresos IS NULL THEN ' | VLR_EGRESOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Activos IS NULL THEN ' | VLR_ACTIVOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Pasivos IS NULL THEN ' | VLR_PASIVOS' ELSE '' END ||
+                        CASE WHEN f.Vlr_Patrimonio IS NULL THEN ' | VLR_PATRIMONIO' ELSE '' END
+                    , ' | ')
+                END
+            ELSE 'NO APLICA'
+        END AS DETALLE_CAMPOS_VACIOS_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                CASE 
+                    WHEN NULLIF(TRIM(
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NULL THEN ' | NOMBRE_CLIENTE' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NULL THEN ' | CIUDAD_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NULL THEN ' | FECHA_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NULL THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NULL THEN ' | CIUDAD_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NULL THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NULL THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NULL THEN ' | ACT_ECONOMICA' ELSE '' END
+                    ), '') IS NULL THEN 'OK'
+                    ELSE LTRIM(
+                        CASE WHEN NULLIF(TRIM(f.Nombre_Cliente), '') IS NULL THEN ' | NOMBRE_CLIENTE' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Nacimiento), '') IS NULL THEN ' | CIUDAD_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Fecha_Nacimiento), '') IS NULL THEN ' | FECHA_NACIMIENTO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Direccion_Residencia), '') IS NULL THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Ciudad_Residencia), '') IS NULL THEN ' | CIUDAD_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Telefono_Residencia), '') IS NULL THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Correo_Unificado), '') IS NULL THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN NULLIF(TRIM(f.Act_Economica), '') IS NULL THEN ' | ACT_ECONOMICA' ELSE '' END
+                    , ' | ')
+                END
+            ELSE 'NO APLICA'
+        END AS DETALLE_CAMPOS_VACIOS_SIMPLIFICADO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%ORDINARIO%' THEN
+                CASE 
+                    WHEN NULLIF(TRIM(
+                        CASE WHEN f.flg_telefono_valido = 0 THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_direccion_valida = 0 THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_correo_valido = 0 THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN f.flg_finanzas_validas = 0 THEN ' | VARIABLES_FINANCIERAS' ELSE '' END
+                    ), '') IS NULL THEN 'OK'
+                    ELSE LTRIM(
+                        CASE WHEN f.flg_telefono_valido = 0 THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_direccion_valida = 0 THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_correo_valido = 0 THEN ' | CORREO_UNIFICADO' ELSE '' END ||
+                        CASE WHEN f.flg_finanzas_validas = 0 THEN ' | VARIABLES_FINANCIERAS' ELSE '' END
+                    , ' | ')
+                END
+            ELSE 'NO APLICA'
+        END AS DETALLE_CAMPOS_INVALIDOS_CALIDAD_ORDINARIO,
+
+        CASE 
+            WHEN f.Descripcion_Formulario LIKE '%SIMPLIFICADO%' THEN
+                CASE 
+                    WHEN NULLIF(TRIM(
+                        CASE WHEN f.flg_telefono_valido = 0 THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_direccion_valida = 0 THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_correo_valido = 0 THEN ' | CORREO_UNIFICADO' ELSE '' END
+                    ), '') IS NULL THEN 'OK'
+                    ELSE LTRIM(
+                        CASE WHEN f.flg_telefono_valido = 0 THEN ' | TELEFONO_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_direccion_valida = 0 THEN ' | DIRECCION_RESIDENCIA' ELSE '' END ||
+                        CASE WHEN f.flg_correo_valido = 0 THEN ' | CORREO_UNIFICADO' ELSE '' END
+                    , ' | ')
+                END
+            ELSE 'NO APLICA'
+        END AS DETALLE_CAMPOS_INVALIDOS_CALIDAD_SIMPLIFICADO
+
+    FROM flags f
+) q
+WHERE NVL(q.DETALLE_CAMPOS_VACIOS_ORDINARIO, 'NO APLICA') NOT IN ('OK', 'NO APLICA')
+   OR NVL(q.DETALLE_CAMPOS_VACIOS_SIMPLIFICADO, 'NO APLICA') NOT IN ('OK', 'NO APLICA')
+   OR NVL(q.DETALLE_CAMPOS_INVALIDOS_CALIDAD_ORDINARIO, 'NO APLICA') NOT IN ('OK', 'NO APLICA')
+   OR NVL(q.DETALLE_CAMPOS_INVALIDOS_CALIDAD_SIMPLIFICADO, 'NO APLICA') NOT IN ('OK', 'NO APLICA');
