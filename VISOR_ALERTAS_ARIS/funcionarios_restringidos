@@ -1,0 +1,104 @@
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos
+
+WITH COLABORADORES AS (
+  SELECT distinct
+
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FUENTE,
+    EMPRESA_RELACION,
+    EMPRESA_CONTRATANTE_NOMBRE,
+    CLASE_VINCULACION,
+    DESCRIPCION_TIPO_RELACION,
+    NOMBRE_DEPARTAMENTO_EMPRESA
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+  where FECHA_CIERRE = (
+  SELECT MAX(FECHA_CIERRE)
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+  
+) and KEY_ID not in ('901097473',
+'caBSLjRvGzyYWpN3eleestQ4bnyvPitF/7dCoz+nyvez3oeLZSLocSS8X0BfysHyBqedE+aYXOz6fJXvEEpCxw==',
+'R144hFl6Q44TYjf1yt7n5LVfiDo97HAMNzcImQGd0LbqSabz+Zr4miV2P1Prg5/ocSKFIoz2axQwkF0aHWGQWg==',
+'lCnhMiEtd8HDKuJrvbGIuZlC+OddXYVXzKgiXWHAVlBx34d4FEaY3JFC74qAb09NhWp81Ij9FpiuHwQ9rDabNg==',
+'zIodNB67QLY596vJeBGyxASSxE0OUYemC7zgijuA/DkKjjltSAufR07gOUG296mnW2VhtBIg4eDVVMnzXXZdXQ==',
+'J0vinjJXaKrS7f5WbF+F4V6ym35xCV8EJ/5OFiic5l9XqCuX4juSl9gorJnsHtrsWxC5xre6rfJqfPF1ICtWcA==',
+'G0a/TOueDd2ECqJOKXmZObXVMs4HQppHgScH6bQOiPa6Bm61LLcwrHclhF5D2ia0gOcjdVuFyslxBK+lcTBWxg==',
+'Jj+AnutTlcpq1d7y7sRawGAzXevbRCjDf27Bj9Zw/nGqTPlxjLiPDvduvhN40Eaw/fMuQPG1Duj8hwO6jU9RKg==',
+'j7r3GRDi1tvI5xfBHGxDTO/+glNc3xp28aEwMzzQTZiswYdNMZBQ9BImOUedhhAnj1yLMN4DaUQGMq3JgM3Z0g==',
+'tXDgCiDvHWby/O3JNufqj0UgZV9EFPnIuMntkLgx9k7VoWwzRAUQ2kNwQURbieVMo0dsIspUWf3jNIvYjIquHA==',
+'RiGo88gSA2xuhQV1FMLMYVTpYgtNKMUPOu8pjOq5/L8MIkljLX+9VTbI2zVzJ+7H8tyLeWEO7QeXaQsy7N9msA==',
+'ZL7x8PHN4d91cL3E7tN2KeYFLiTbziT0vRJY22GNvoo4JrhDvZExAAIzxTq6DCI5JpY2m+Mzw7LDnofvWHyopg==',
+'VFe/sLtxjGtzgn9FnjehX+Cul4pF6c7OVCnwx3bdL/8cAySQYA8l5CI1rXRvus/SBcRMRgKtx4QA06DQkjLZcA==',
+'GvnpT7LgAIMPyeAROPmID8LEbet6SnZDSMW2jrREPraGRLrUx27x0b6cm4hmvCmfcVwZafbbR2oLdtrItNeqrQ==',
+'kdPx3XaBWVfCZMauS4+I9NtAEtKl4pmr1q2dsgT6+sP7z0+WqQTHePMqaStmc/0WHabXcEFQpqwcJI7QxvW51w==',
+'uV3CZ+1LnvgkK6EigpXwVTQozYYrr72MY1xBK8y+Mijo+2TjKlUEbsiz1SL7hpTgqyuCaBC1RzpkDH2ezJypOA==',
+'B78FNNQI39dXmCG2+yRdwXK9zx6es8PUyx7pB/rlICZ2oucMplc53dUU4bG5Xa94uCdAu/ZWjifdEgjNdq4LDw==',
+'mtVez7wDh/VbasM5zKCjwKZio8oMZSgqdLmQ2PzTuP0bl4ji9gtk3XAQ108vAyhEvzHdzb9uo69vL7WPakyyPg==',
+'C048cjW+BmHy/PSf19VCd0/04xpb8CZBZKIYpgIt17YFevSVTPMexngZoM4zInOxkVV0STBXFB1rt8YKfzFpFQ==',
+'uNg6ajv7Avr2i6U6ld+lgky7sljeZtkYbEc49wJYeLSsWLSHz7srylW2jrh1zcC3t0rwgPOTd0j8q+slEwPacw==',
+'0gLVCm6QL8kbSYsk5LS69MCbUBqdQgbobW13Bi+YOl0aNmayh3Tg/q3FGXJpiMxCYPxH55p3bJpm0YnD/9qjrg==',
+'901200575',
+'dXceA8ILHNr7JD3D/ypbGTPIFeoxnVMd1/XudX5qhvE2kGLIo8rM4FujSxpa+4k3fzLzSSXADHQVJiAzIthK0g==',
+'900298372',
+'900604350',
+'800088702',
+'900226715',
+'800140949',
+'890000381',
+'830003564',
+'890500675',
+'900156264',
+'860045904',
+'890903407',
+'890102044',
+'824001398',
+'891600091',
+'860066942',
+'800112806',
+'860043186',
+'890303093',
+'800130907',
+'800251440',
+'806008394',
+'805001157',
+'900914254',
+'899999239') and DESCRIPCION_TIPO_RELACION != "Pensionado"
+),
+
+RESTRINGIDOS_ACTIVOS AS (
+  SELECT distinct 
+    TIPO_DOCUMENTO_TERCERO,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_BAJA,
+    FECHA_CREACION,
+    FECHA_MODIFICACION,
+    VALOR_RIESGO,
+    NIVEL_ALERTA,
+    MARCA_ACTIVO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE FECHA_BAJA IS NULL
+)
+
+SELECT distinct 
+
+  c.*,
+  r.CODIGO_RESTRICCION,
+  r.DESCRIPCION AS DESCRIPCION_RESTRICCION,
+  r.FECHA_CREACION AS FECHA_CREACION_RESTRICCION,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes de generación de la alerta en formato YYYY-MM
+  CURRENT_DATE() AS FECHA_ALERTA  # Fecha actual como fecha de generación de la alerta
+
+FROM COLABORADORES c
+LEFT JOIN RESTRINGIDOS_ACTIVOS r
+  ON r.KEY_ID = c.KEY_ID
+ AND r.TIPO_DOCUMENTO_TERCERO = c.TIPO_DOCUMENTO
+where CODIGO_RESTRICCION is not null
+AND NOT EXISTS (
+  SELECT 1
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos` t
+  WHERE t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    AND t.KEY_ID = c.KEY_ID
+    AND t.CODIGO_RESTRICCION = r.CODIGO_RESTRICCION
+);
