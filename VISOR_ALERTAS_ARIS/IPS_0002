@@ -1,0 +1,124 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0002`
+(
+  nit_compania,
+  nro_factura,
+  fecha_emision_factura,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  ACTIVIDAD_ECONOMICA,
+  CODIGO_CIIU,
+  CODIGO_LUGAR_NACIMIENTO,
+  NOMBRE_LUGAR_NACIMIENTO,
+  FECHA_MODIFICACION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+
+WITH facturas_marzo AS (
+
+  SELECT DISTINCT
+    nit_compania,
+    nro_factura,
+    DATE(fec_emision_factura) AS fecha_emision_factura,
+    tip_doc_proveedor,
+    key_id_proveedor,
+    vlr_total_factura,
+    fecha_estado_proceso
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.evento_factura_electronica`
+  WHERE nit_compania = 901267811
+    AND DATE(fec_emision_factura) >= DATE '2026-03-01'
+
+),
+
+clientes AS (
+
+  SELECT * 
+  FROM (
+      SELECT DISTINCT
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          ACTIVIDAD_ECONOMICA,
+          CODIGO_CIIU,
+          CODIGO_LUGAR_NACIMIENTO,
+          NOMBRE_LUGAR_NACIMIENTO,
+          FECHA_MODIFICACION
+      FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+
+      UNION ALL
+
+      SELECT DISTINCT
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          ACTIVIDAD_ECONOMICA, 
+          CODIGO_CIIU,
+          CODIGO_LUGAR_NACIMIENTO,
+          NOMBRE_LUGAR_NACIMIENTO,
+          FECHA_MODIFICACION
+      FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+  ) AS clientes
+
+),
+
+resultado AS (
+
+  SELECT DISTINCT
+    f.nit_compania,
+    f.nro_factura,
+    f.fecha_emision_factura,
+    f.tip_doc_proveedor,
+    f.key_id_proveedor,
+    f.vlr_total_factura,
+    f.fecha_estado_proceso,
+    c.ACTIVIDAD_ECONOMICA,
+    c.CODIGO_CIIU,
+    c.CODIGO_LUGAR_NACIMIENTO,
+    c.NOMBRE_LUGAR_NACIMIENTO,
+    c.FECHA_MODIFICACION,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+  FROM facturas_marzo f
+  LEFT JOIN clientes c
+    ON f.tip_doc_proveedor = c.TIPO_DOCUMENTO
+   AND f.key_id_proveedor = c.KEY_ID
+  WHERE c.FECHA_MODIFICACION IS NOT NULL
+    AND DATE(c.FECHA_MODIFICACION) < DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR)
+
+),
+
+numeradas AS (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY tip_doc_proveedor, key_id_proveedor
+           ORDER BY fecha_emision_factura DESC, vlr_total_factura DESC
+         ) AS rn
+  FROM resultado
+)
+
+SELECT
+  nit_compania,
+  nro_factura,
+  fecha_emision_factura,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  ACTIVIDAD_ECONOMICA,
+  CODIGO_CIIU,
+  CODIGO_LUGAR_NACIMIENTO,
+  NOMBRE_LUGAR_NACIMIENTO,
+  FECHA_MODIFICACION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM numeradas
+WHERE rn = 1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0002` t
+    WHERE t.tip_doc_proveedor = numeradas.tip_doc_proveedor
+      AND t.key_id_proveedor = numeradas.key_id_proveedor
+      AND t.nro_factura = numeradas.nro_factura
+      AND t.fecha_emision_factura = numeradas.fecha_emision_factura
+  )
+ORDER BY fecha_emision_factura DESC, vlr_total_factura DESC;
