@@ -1,0 +1,159 @@
+-- Inserta únicamente los registros nuevos en la tabla destino de la alerta SEG_0014
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod`
+
+-- CTE principal: construye la base de siniestros cruzada con pólizas vigentes
+WITH RankedSiniestros AS (
+    SELECT DISTINCT
+        -- Datos generales de compañía, ramo y producto
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_CONTABLE,
+        s.NOMBRE_RAMO_CONTABLE,
+        s.CODIGO_RAMO_EMISION,
+        s.NOMBRE_RAMO_EMISION,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+
+        -- Fechas relevantes del siniestro
+        s.FECHA_SUSCRIPCION,
+        s.FECHA_SINIESTRO,
+        s.FECHA_MOVIMIENTO,
+        s.CODIGO_CANAL,
+        s.FECHA_ORDEN_PAGO,
+
+        -- Valor liquidado del siniestro
+        s.LIQUIDADO_BOLIVAR,
+
+        -- Fechas de la póliza convertidas a STRING para evitar conflictos de tipo
+        CAST(p.FECHA_INICIO_POLIZA AS STRING) AS FECHA_INICIO_POLIZA,
+        CAST(p.FECHA_FIN_POLIZA AS STRING) AS FECHA_FIN_POLIZA,
+
+        -- Identificadores principales
+        p.NUMERO_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR,
+        p.KEY_ID_ASEGURADO,
+
+        -- Beneficiario registrado en la póliza
+        p.KEY_ID_BENEFICIARIO AS BENEFICIARIO_POLIZA,
+
+        -- Beneficiario registrado en el siniestro
+        s.KEY_ID_BENEFICIARIO AS BENEFICIARIO_SINIESTRO,
+
+        -- Se deja el registro más reciente por tomador
+        ROW_NUMBER() OVER (
+            PARTITION BY p.KEY_ID_TOMADOR
+            ORDER BY s.FECHA_SUSCRIPCION DESC
+        ) AS rn
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros` s
+
+    -- Cruce con la tabla de pólizas vigentes
+    LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes` p
+        ON s.NUMERO_POLIZA = p.NUMERO_POLIZA
+       AND s.KEY_ID_TOMADOR = p.KEY_ID_TOMADOR
+       AND s.KEY_ID_ASEGURADO = p.KEY_ID_ASEGURADO
+
+    WHERE
+        -- Se toman siniestros desde 2025 en adelante
+        s.FECHA_SUSCRIPCION >= '2025-01-01'
+
+        -- Se valida que la póliza esté dentro del rango temporal requerido
+        AND p.FECHA_INICIO_POLIZA >= '2025-01-01'
+        AND p.FECHA_FIN_POLIZA >= '2025-01-01'
+
+        -- Solo compañía 2
+        AND s.CODIGO_COMPANIA = 2
+
+        -- Exclusión de ramos no aplicables
+        AND p.CODIGO_RAMO_EMISION NOT IN (18,20,21,22,24,29,32,33,34,70,5,23,39,42)
+
+        -- Exclusión de tomadores no deseados
+        AND s.KEY_ID_TOMADOR NOT IN (
+            '860034313', '860002503', '900311092', '8600343137', '860028601',
+            '900977629', '860034594'
+        )
+
+        -- Exclusión de asegurados no deseados
+        AND s.KEY_ID_ASEGURADO NOT IN (
+            '860034313', '860002503', '900311092', '8600343137', '860028601',
+            '900977629', '860034594'
+        )
+
+        -- Exclusión de beneficiarios del siniestro no deseados
+        AND s.KEY_ID_BENEFICIARIO NOT IN (
+            '860034313', '860002503', '900311092', '8600343137', '860028601',
+            '900977629', '860034594'
+        )
+
+        -- Exclusión de beneficiarios de póliza no deseados
+        AND p.KEY_ID_BENEFICIARIO NOT IN (
+            '860034313', '860002503', '900311092', '8600343137', '860028601',
+            '900977629', '860034594'
+        )
+
+        -- Regla clave:
+        -- El beneficiario del siniestro NO debe coincidir con:
+        -- 1. el tomador
+        -- 2. el asegurado
+        -- 3. el beneficiario registrado en la póliza
+        AND s.KEY_ID_BENEFICIARIO != p.KEY_ID_TOMADOR
+        AND s.KEY_ID_BENEFICIARIO != p.KEY_ID_ASEGURADO
+        AND s.KEY_ID_BENEFICIARIO != p.KEY_ID_BENEFICIARIO
+)
+
+-- Selección final de registros a insertar
+SELECT
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_CONTABLE,
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    FECHA_SUSCRIPCION,
+    FECHA_SINIESTRO,
+    FECHA_MOVIMIENTO,
+    CODIGO_CANAL,
+    FECHA_ORDEN_PAGO,
+    LIQUIDADO_BOLIVAR,
+    FECHA_INICIO_POLIZA,
+    FECHA_FIN_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    KEY_ID_ASEGURADO,
+    BENEFICIARIO_POLIZA,
+    BENEFICIARIO_SINIESTRO,
+
+    -- Mes de generación de la alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Fecha exacta de generación de la alerta
+    CURRENT_DATE() AS FECHA_ALERTA
+
+FROM RankedSiniestros
+
+WHERE
+    -- Se deja solo el registro más reciente por tomador
+    rn = 1
+
+    -- Exclusión adicional de ciertos ramos
+    AND CODIGO_RAMO_CONTABLE NOT IN (34,42)
+    AND CODIGO_RAMO_EMISION NOT IN (34,42)
+
+    -- Evita duplicados en la tabla destino
+    AND NOT EXISTS (
+        SELECT 1
+        FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0014_prod` t
+        WHERE t.NUMERO_POLIZA = RankedSiniestros.NUMERO_POLIZA
+          AND t.KEY_ID_TOMADOR = RankedSiniestros.KEY_ID_TOMADOR
+    )
+
+    -- Se valida nuevamente lista de exclusión
+    AND BENEFICIARIO_POLIZA NOT IN (
+        '860034313', '860002503', '900311092', '8600343137', '860028601',
+        '900977629', '860034594'
+    )
+
+    -- Solo siniestros con valor liquidado positivo
+    AND LIQUIDADO_BOLIVAR > 0;
