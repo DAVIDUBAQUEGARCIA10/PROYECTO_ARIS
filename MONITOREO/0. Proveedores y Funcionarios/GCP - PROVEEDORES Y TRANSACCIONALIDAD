@@ -1,23 +1,23 @@
 WITH homologacion_compania AS (
-  SELECT '800020762' AS COMPANIA_ORIGINAL, 'Multivive' AS COMPANIA_HOMOLOGADA UNION ALL
+  SELECT '800020762' AS COMPANIA_ORIGINAL, 'Inv. Anagrama' AS COMPANIA_HOMOLOGADA UNION ALL
   SELECT '830025448', 'Grupo Bolívar' UNION ALL
   SELECT '860002180', 'Seguros Comerciales Bolívar' UNION ALL
   SELECT '860002503', 'Seguros Bolívar' UNION ALL
   SELECT '860006359', 'Capitalizadora Bolívar' UNION ALL
   SELECT '860035977', 'El Libertador' UNION ALL
-  SELECT '860076173', 'Davivienda' UNION ALL
-  SELECT '900265108', 'Constructora Bolívar' UNION ALL
-  SELECT '900265156', 'Constructora Bolívar' UNION ALL
-  SELECT '900265163', 'Constructora Bolívar' UNION ALL
-  SELECT '900265170', 'CB Construcción' UNION ALL
-  SELECT '900265172', 'Infraestructura Bolívar' UNION ALL
+  SELECT '860076173', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT '900265108', 'Inv. Bolívar' UNION ALL
+  SELECT '900265156', 'Inv. Multiinversiones' UNION ALL
+  SELECT '900265163', 'Inv. Financiera Bolívar' UNION ALL
+  SELECT '900265170', 'Inv. Riesgo e Inversiones Bolivar' UNION ALL
+  SELECT '900265172', 'Contrucciones y Desarrollo Bolívar' UNION ALL
   SELECT '900311092', 'Servicios Bolívar' UNION ALL
-  SELECT '900411117', 'Sociedad Bolívar' UNION ALL
-  SELECT '900957271', 'Cobranzas Beta' UNION ALL
-  SELECT '901159545', 'Previsora Bolívar' UNION ALL
-  SELECT '901186943', 'Agencia de Seguros Bolívar' UNION ALL
-  SELECT '901267811', 'Asistencia Bolívar' UNION ALL
-  SELECT '901438242', 'Jurídico Bolívar' UNION ALL
+  SELECT '900411117', 'Inv. Sentido Empresarial' UNION ALL
+  SELECT '900957271', 'Proyectiva Seguros' UNION ALL
+  SELECT '901159545', 'Facilities' UNION ALL
+  SELECT '901186943', 'Fundación Cultivarte' UNION ALL
+  SELECT '901267811', 'Salud Bolívar IPS' UNION ALL
+  SELECT '901438242', 'Salud Bolívar EPS' UNION ALL
 
   -- Homologación códigos cortos / numéricos
   SELECT '01', 'Capitalizadora Bolívar' UNION ALL
@@ -28,8 +28,8 @@ WITH homologacion_compania AS (
   SELECT '3', 'Seguros Comerciales Bolívar' UNION ALL
   SELECT '4', 'Davivienda' UNION ALL
   SELECT '7', 'El Libertador' UNION ALL
-  SELECT '9', 'Multinversiones Bolívar' UNION ALL
-  SELECT '25', 'Soluciones Bolívar SAS' UNION ALL
+  SELECT '9', 'Inv. Multiinversiones' UNION ALL
+  SELECT '25', 'Inv. Soluciones Bolívar SAS' UNION ALL
   SELECT '26', 'Inversiones Financieras' UNION ALL
   SELECT '27', 'Construcciones y Desarrollos Bolívar' UNION ALL
   SELECT '29', 'Inversora Bolívar SAS' UNION ALL
@@ -208,11 +208,11 @@ base_final AS (
   FROM base_proveedores bp
   LEFT JOIN homologacion_compania hc
     ON TRIM(CAST(bp.COMPANIA AS STRING)) = TRIM(hc.COMPANIA_ORIGINAL)
-  WHERE bp.FECHA_TRANSACCION >= TIMESTAMP('2026-01-01')
+  WHERE bp.FECHA_TRANSACCION >= TIMESTAMP('2026-03-01')
     AND bp.KEY_ID_PROVEEDOR IS NOT NULL
     ORDER BY FECHA_TRANSACCION DESC
 )
-
 SELECT *
 FROM base_final
-WHERE KEY_ID_PROVEEDOR = 'sNRICpDU2iRFIvCQy6QZXAwg1f5yeoRNwKhKImRMIzc3Y/8atF2HYaWQ2hN+vuuob9noJ5hlkDIww08OBBxdAQ=='
+WHERE COMPANIA_HOMOLOGADA = "Facilities"
+--WHERE KEY_ID_PROVEEDOR = '901054197'
