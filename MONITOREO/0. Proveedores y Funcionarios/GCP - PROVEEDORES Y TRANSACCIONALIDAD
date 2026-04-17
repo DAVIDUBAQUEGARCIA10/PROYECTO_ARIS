@@ -18,6 +18,28 @@ WITH homologacion_compania AS (
   SELECT '901186943', 'Agencia de Seguros Bolívar' UNION ALL
   SELECT '901267811', 'Asistencia Bolívar' UNION ALL
   SELECT '901438242', 'Jurídico Bolívar' UNION ALL
+
+  -- Homologación códigos cortos / numéricos
+  SELECT '01', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '1', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '02', 'Seguros Bolívar' UNION ALL
+  SELECT '2', 'Seguros Bolívar' UNION ALL
+  SELECT '03', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '3', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '4', 'Davivienda' UNION ALL
+  SELECT '7', 'El Libertador' UNION ALL
+  SELECT '9', 'Multinversiones Bolívar' UNION ALL
+  SELECT '25', 'Soluciones Bolívar SAS' UNION ALL
+  SELECT '26', 'Inversiones Financieras' UNION ALL
+  SELECT '27', 'Construcciones y Desarrollos Bolívar' UNION ALL
+  SELECT '29', 'Inversora Bolívar SAS' UNION ALL
+  SELECT '75', 'El Libertador' UNION ALL
+  SELECT '80', 'Salud Bolívar IPS' UNION ALL
+  SELECT '87', 'Salud Bolívar EPS' UNION ALL
+  SELECT '97', 'Servicios Bolívar' UNION ALL
+  SELECT '99', 'Servicios Bolívar' UNION ALL
+
+  -- Homologación nombres texto
   SELECT 'Bolívar Salud IPS S.A.S.', 'Salud Bolívar IPS' UNION ALL
   SELECT 'Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
   SELECT 'Compañía de Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
@@ -46,8 +68,10 @@ WITH homologacion_compania AS (
   SELECT 'Servicios Bolívar S.A.', 'Servicios Bolívar' UNION ALL
   SELECT 'Agencia de Seguros El Libertador Ltda', 'El Libertador'
 ),
-
 base_proveedores AS (
+
+
+----COUPA
 
   SELECT DISTINCT
     'COUPA' AS FUENTE,
@@ -80,6 +104,10 @@ base_proveedores AS (
 
   UNION ALL
 
+
+
+----FACTURACION ELECTRONICA
+
   SELECT DISTINCT
     'FACTURA_ELECTRONICA' AS FUENTE,
     CAST(fec_emision_factura AS TIMESTAMP) AS FECHA_TRANSACCION,
@@ -103,6 +131,55 @@ base_proveedores AS (
 
   UNION ALL
 
+
+----ORDENES DE PAGO
+SELECT DISTINCT
+  'ORDEN_PAGO' AS FUENTE,
+  CAST(FECHA_PAGO_REAL AS TIMESTAMP) AS FECHA_TRANSACCION,
+  CAST(TIPO_DOCUMENTO_BENEFICIARIO AS STRING) AS TIPO_DOCUMENTO_PROVEEDOR,
+  CAST(NULL AS STRING) AS NOMBRE_PROVEEDOR,
+  CAST(NUMERO_DOCUMENTO_BENEFICIARIO AS STRING) AS KEY_ID_PROVEEDOR,
+  CAST(NULL AS STRING) AS MONEDA,
+  CAST(NUMERO_ORDEN_PAGO AS STRING) AS ORDEN_FACTURA,
+  CAST(COMPANIA_ORIGEN AS STRING) AS COMPANIA,
+  CAST(VALOR_TOTAL_PAGO AS NUMERIC) AS VALOR_SIN_IMPUESTOS,
+  CAST(VALOR_TOTAL_PAGO AS NUMERIC) AS VALOR_CON_IMPUESTOS,
+  CAST(NULL AS STRING) AS AREA_SOLICITANTE,
+  CAST(NULL AS STRING) AS CIUDAD_PROVEEDOR,
+  CAST(
+    CONCAT(
+      'FORMA_PAGO: ', IFNULL(DESCRIPCION_FORMA_PAGO, ''),
+      ' - ESTADO: ', IFNULL(DESCRIPCION_ESTADO_PAGO, ''),
+      ' - ESTADO_TRANSFERENCIA: ', IFNULL(ESTADO_TRANSFERENCIA_BANCARIA, ''),
+      ' - CONCEPTO: ', IFNULL(DESCRIPCION_CONCEPTO_CONTABLE, ''),
+      ' - FACTURA: ', IFNULL(NUMERO_FACTURA_PAGADA, '')
+    ) AS STRING
+  ) AS DETALLE
+FROM (
+  SELECT *
+  FROM (
+    SELECT
+      t.*,
+      ROW_NUMBER() OVER (
+        PARTITION BY NUMERO_ORDEN_PAGO, NUMERO_DOCUMENTO_BENEFICIARIO
+        ORDER BY
+          CASE
+            WHEN DESCRIPCION_CONCEPTO_CONTABLE IS NOT NULL
+                 AND TRIM(DESCRIPCION_CONCEPTO_CONTABLE) <> '' THEN 1
+            ELSE 2
+          END,
+          FECHA_PAGO_REAL DESC
+      ) AS RN
+    FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_ordenes_pago_con_restriccion` t
+    WHERE FECHA_PAGO_REAL >= '2025-01-01'
+  )
+  WHERE RN = 1
+)
+
+  UNION ALL
+
+
+----CUENTA DE COBRO
   SELECT
     'CUENTA_COBRO' AS FUENTE,
     CAST(fecha_emision AS TIMESTAMP) AS FECHA_TRANSACCION,
@@ -131,10 +208,11 @@ base_final AS (
   FROM base_proveedores bp
   LEFT JOIN homologacion_compania hc
     ON TRIM(CAST(bp.COMPANIA AS STRING)) = TRIM(hc.COMPANIA_ORIGINAL)
-  WHERE bp.FECHA_TRANSACCION >= TIMESTAMP('2025-01-01')
+  WHERE bp.FECHA_TRANSACCION >= TIMESTAMP('2026-01-01')
     AND bp.KEY_ID_PROVEEDOR IS NOT NULL
+    ORDER BY FECHA_TRANSACCION DESC
 )
 
 SELECT *
 FROM base_final
-where KEY_ID_PROVEEDOR = "900699885"
+WHERE KEY_ID_PROVEEDOR = 'sNRICpDU2iRFIvCQy6QZXAwg1f5yeoRNwKhKImRMIzc3Y/8atF2HYaWQ2hN+vuuob9noJ5hlkDIww08OBBxdAQ=='
