@@ -1,0 +1,263 @@
+WITH homologacion_compania AS (
+  SELECT '800020762' AS COMPANIA_ORIGINAL, 'Inv. Anagrama' AS COMPANIA_HOMOLOGADA UNION ALL
+  SELECT '830025448', 'Grupo Bolívar' UNION ALL
+  SELECT '860002180', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '860002503', 'Seguros Bolívar' UNION ALL
+  SELECT '860006359', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '860035977', 'El Libertador' UNION ALL
+  SELECT '860076173', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT '900265108', 'Inv. Bolívar' UNION ALL
+  SELECT '900265156', 'Inv. Multiinversiones' UNION ALL
+  SELECT '900265163', 'Inv. Financiera Bolívar' UNION ALL
+  SELECT '900265170', 'Inv. Riesgo e Inversiones Bolivar' UNION ALL
+  SELECT '900265172', 'Contrucciones y Desarrollo Bolívar' UNION ALL
+  SELECT '900311092', 'Servicios Bolívar' UNION ALL
+  SELECT '900411117', 'Inv. Sentido Empresarial' UNION ALL
+  SELECT '900957271', 'Proyectiva Seguros' UNION ALL
+  SELECT '900844740', 'Sociedades Bolivar' UNION ALL
+  SELECT '901159545', 'Facilities' UNION ALL
+  SELECT '901186943', 'Fundación Cultivarte' UNION ALL
+  SELECT '901267811', 'Salud Bolívar IPS' UNION ALL
+  SELECT '901438242', 'Salud Bolívar EPS' UNION ALL
+
+  SELECT '01', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '1', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '02', 'Seguros Bolívar' UNION ALL
+  SELECT '2', 'Seguros Bolívar' UNION ALL
+  SELECT '03', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '3', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '4', 'Davivienda' UNION ALL
+  SELECT '7', 'El Libertador' UNION ALL
+  SELECT '9', 'Inv. Multiinversiones' UNION ALL
+  SELECT '25', 'Inv. Soluciones Bolívar SAS' UNION ALL
+  SELECT '26', 'Inversiones Financieras' UNION ALL
+  SELECT '27', 'Construcciones y Desarrollos Bolívar' UNION ALL
+  SELECT '29', 'Inversora Bolívar SAS' UNION ALL
+  SELECT '75', 'El Libertador' UNION ALL
+  SELECT '80', 'Salud Bolívar IPS' UNION ALL
+  SELECT '87', 'Salud Bolívar EPS' UNION ALL
+  SELECT '97', 'Servicios Bolívar' UNION ALL
+  SELECT '99', 'Servicios Bolívar' UNION ALL
+
+  SELECT 'Bolívar Salud IPS S.A.S.', 'Salud Bolívar IPS' UNION ALL
+  SELECT 'Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'Compañía de Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'FBIEN Bienes - Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'FCULT Bienes / Servicios Fundación Cultivarte', 'Fundación Cultivarte' UNION ALL
+  SELECT 'FSERV Servicios - Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'Fundación Cultiva el Arte y la Cultura', 'Fundación Cultivarte' UNION ALL
+  SELECT 'Grupo Bolívar S.A.', 'Grupo Bolívar' UNION ALL
+  SELECT 'Inversiones Financieras Bolívar S.A.S.', 'Inversiones Financieras' UNION ALL
+  SELECT 'Investigaciones Y Cobranzas El Libertador S.A.', 'El Libertador' UNION ALL
+  SELECT 'Investigaciones y Cobranzas El Libertador S.A.', 'El Libertador' UNION ALL
+  SELECT 'POCB2 Bienes - Compañía De Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'POCC1 Bienes - Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'POCC3 Bienes - Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'POOB2 Servicios - Compañía De Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'POOC1 Servicios - Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'POOC3 Servicios - Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'Proyectiva Agencia De Seguros LTDA', 'Proyectiva Seguros' UNION ALL
+  SELECT 'Proyectiva agencia de seguros Ltda', 'Proyectiva Seguros' UNION ALL
+  SELECT 'Salud Bolívar EPS', 'Salud Bolívar EPS' UNION ALL
+  SELECT 'Salud Bolívar IPS S.A.S', 'Salud Bolívar IPS' UNION ALL
+  SELECT 'Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'Servicios Bolívar Facilities S.A.S', 'Facilities' UNION ALL
+  SELECT 'Servicios Bolívar Facilities S.A.S.', 'Facilities' UNION ALL
+  SELECT 'Servicios Bolívar S.A.', 'Servicios Bolívar' UNION ALL
+  SELECT 'Agencia de Seguros El Libertador Ltda', 'El Libertador'
+),
+
+base_proveedores AS (
+
+  SELECT DISTINCT
+    'COUPA' AS FUENTE,
+    CAST(FECHA_REQUERIDA_ENTREGA_ITEM AS TIMESTAMP) AS FECHA_TRANSACCION,
+    TIPO_DOCUMENTO_PROVEEDOR AS TIPO_DOCUMENTO_PROVEEDOR,
+    NOMBRE_PROVEEDOR_ENCRIPTADO AS NOMBRE_PROVEEDOR,
+    CAST(KEY_ID_PROVEEDOR AS STRING) AS KEY_ID_PROVEEDOR,
+    COD_MONEDA_TRANSACCION AS MONEDA,
+    NUMERO_ORDEN_COMPRA AS ORDEN_FACTURA,
+    CAST(NOMBRE_UNIDAD_DE_NEGOCIO AS STRING) AS COMPANIA,
+    CAST(VALOR_TOTAL_ORDEN_COMPRA AS NUMERIC) AS VALOR_SIN_IMPUESTOS,
+    CAST(VALOR_TOTAL_ORDEN_INCLUYENDO_IMPUESTOS_ESTIMADOS AS NUMERIC) AS VALOR_CON_IMPUESTOS,
+    NOMBRE_AREA_SOLICITANTE_COMPRA AS AREA_SOLICITANTE,
+    CIUDAD_PROVEEDOR AS CIUDAD_PROVEEDOR,
+    CONCAT(
+      IFNULL(NOMBRE_CATEGORIA_BIEN_SERVICIO, ''),
+      ' - ',
+      IFNULL(DESCRIPCION_DETALLE_ITEM_COMPRA, ''),
+      ' - ',
+      IFNULL(NOMBRE_CUENTA_CONTABLE_ASOCIADA, ''),
+      ' - CENTRO DE COSTOS: ',
+      IFNULL(CAST(COD_SEGMENTO_CONTABLE_SECUNDARIO AS STRING), '')
+    ) AS DETALLE
+  FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_transacciones_proveedores` t
+  WHERE CAST(NUMERO_LINEA_ITEM_COMPRA AS INT64) = (
+    SELECT MAX(CAST(NUMERO_LINEA_ITEM_COMPRA AS INT64))
+    FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_transacciones_proveedores`
+    WHERE NUMERO_ORDEN_COMPRA = t.NUMERO_ORDEN_COMPRA
+  )
+
+  UNION ALL
+
+  SELECT DISTINCT
+    'FACTURA_ELECTRONICA' AS FUENTE,
+    CAST(fec_emision_factura AS TIMESTAMP) AS FECHA_TRANSACCION,
+    tip_doc_proveedor AS TIPO_DOCUMENTO_PROVEEDOR,
+    razon_social_proveedor AS NOMBRE_PROVEEDOR,
+    CAST(key_id_proveedor AS STRING) AS KEY_ID_PROVEEDOR,
+    CAST(cod_moneda AS STRING) AS MONEDA,
+    nro_factura AS ORDEN_FACTURA,
+    CAST(nit_compania AS STRING) AS COMPANIA,
+    CAST(vlr_sin_impto AS NUMERIC) AS VALOR_SIN_IMPUESTOS,
+    CAST(vlr_total_factura AS NUMERIC) AS VALOR_CON_IMPUESTOS,
+    CAST(cod_area_responsable AS STRING) AS AREA_SOLICITANTE,
+    nom_ciudad AS CIUDAD_PROVEEDOR,
+    CONCAT(
+      'CUFE: ', IFNULL(cufe_factura, ''),
+      ' - TIPO FACTURA: ', IFNULL(cod_tipo_factura, ''),
+      ' - EVENTO: ', IFNULL(codigo_evento, ''),
+      ' - ESTADO: ', IFNULL(descripcion_estado_proceso, '')
+    ) AS DETALLE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.evento_factura_electronica`
+
+  UNION ALL
+
+  SELECT DISTINCT
+    'ORDEN_PAGO' AS FUENTE,
+    CAST(FECHA_PAGO_REAL AS TIMESTAMP) AS FECHA_TRANSACCION,
+    CAST(TIPO_DOCUMENTO_BENEFICIARIO AS STRING) AS TIPO_DOCUMENTO_PROVEEDOR,
+    CAST(NULL AS STRING) AS NOMBRE_PROVEEDOR,
+    CAST(NUMERO_DOCUMENTO_BENEFICIARIO AS STRING) AS KEY_ID_PROVEEDOR,
+    CAST(NULL AS STRING) AS MONEDA,
+    CAST(NUMERO_ORDEN_PAGO AS STRING) AS ORDEN_FACTURA,
+    CAST(COMPANIA_ORIGEN AS STRING) AS COMPANIA,
+    CAST(VALOR_TOTAL_PAGO AS NUMERIC) AS VALOR_SIN_IMPUESTOS,
+    CAST(VALOR_TOTAL_PAGO AS NUMERIC) AS VALOR_CON_IMPUESTOS,
+    CAST(NULL AS STRING) AS AREA_SOLICITANTE,
+    CAST(NULL AS STRING) AS CIUDAD_PROVEEDOR,
+    CAST(
+      CONCAT(
+        'FORMA_PAGO: ', IFNULL(DESCRIPCION_FORMA_PAGO, ''),
+        ' - ESTADO: ', IFNULL(DESCRIPCION_ESTADO_PAGO, ''),
+        ' - ESTADO_TRANSFERENCIA: ', IFNULL(ESTADO_TRANSFERENCIA_BANCARIA, ''),
+        ' - CONCEPTO: ', IFNULL(DESCRIPCION_CONCEPTO_CONTABLE, ''),
+        ' - FACTURA: ', IFNULL(NUMERO_FACTURA_PAGADA, '')
+      ) AS STRING
+    ) AS DETALLE
+  FROM (
+    SELECT *
+    FROM (
+      SELECT
+        t.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY NUMERO_ORDEN_PAGO, NUMERO_DOCUMENTO_BENEFICIARIO
+          ORDER BY
+            CASE
+              WHEN DESCRIPCION_CONCEPTO_CONTABLE IS NOT NULL
+                   AND TRIM(DESCRIPCION_CONCEPTO_CONTABLE) <> '' THEN 1
+              ELSE 2
+            END,
+            FECHA_PAGO_REAL DESC
+        ) AS RN
+      FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_ordenes_pago_con_restriccion` t
+      WHERE FECHA_PAGO_REAL >= '2025-01-01'
+    )
+    WHERE RN = 1
+  )
+
+  UNION ALL
+
+  SELECT
+    'CUENTA_COBRO' AS FUENTE,
+    CAST(fecha_emision AS TIMESTAMP) AS FECHA_TRANSACCION,
+    codigo_tipo_identificacion_emisor AS TIPO_DOCUMENTO_PROVEEDOR,
+    razon_social_emisor AS NOMBRE_PROVEEDOR,
+    CAST(key_id_emisor AS STRING) AS KEY_ID_PROVEEDOR,
+    codigo_iso_moneda AS MONEDA,
+    numero_documento AS ORDEN_FACTURA,
+    CAST(razon_social_cia AS STRING) AS COMPANIA,
+    CAST(valor_base AS NUMERIC) AS VALOR_SIN_IMPUESTOS,
+    CAST((valor_base + IFNULL(valor_iva, 0)) AS NUMERIC) AS VALOR_CON_IMPUESTOS,
+    nombres_lider_proceso AS AREA_SOLICITANTE,
+    nombre_ciudad AS CIUDAD_PROVEEDOR,
+    CONCAT(
+      'CONCEPTO: ', IFNULL(concepto_cobro, ''),
+      ' - DESCRIPCION: ', IFNULL(descripcion_bien_servicio, ''),
+      ' - ESTADO: ', IFNULL(descripcion_estado, '')
+    ) AS DETALLE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores`
+),
+
+base_final AS (
+  SELECT DISTINCT
+    bp.*,
+    COALESCE(hc.COMPANIA_HOMOLOGADA, bp.COMPANIA) AS COMPANIA_HOMOLOGADA,
+    CASE
+      WHEN UPPER(TRIM(bp.TIPO_DOCUMENTO_PROVEEDOR)) IN ('NT', 'NE') THEN 'JURIDICO'
+      ELSE 'NATURAL'
+    END AS TIPO_PERSONA
+  FROM base_proveedores bp
+  LEFT JOIN homologacion_compania hc
+    ON TRIM(CAST(bp.COMPANIA AS STRING)) = TRIM(hc.COMPANIA_ORIGINAL)
+  WHERE bp.KEY_ID_PROVEEDOR IS NOT NULL
+),
+
+base_ultimo_anio AS (
+  SELECT *
+  FROM base_final
+  WHERE DATE(FECHA_TRANSACCION) >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR)
+    AND VALOR_CON_IMPUESTOS IS NOT NULL
+),
+
+percentiles_ultimo_anio AS (
+  SELECT
+    COMPANIA_HOMOLOGADA,
+    FUENTE,
+    TIPO_PERSONA,
+    APPROX_QUANTILES(VALOR_CON_IMPUESTOS, 100)[OFFSET(98)] AS PERCENTIL_98,
+    COUNT(*) AS CANTIDAD_REGISTROS_ULTIMO_ANIO
+  FROM base_ultimo_anio
+  GROUP BY
+    COMPANIA_HOMOLOGADA,
+    FUENTE,
+    TIPO_PERSONA
+),
+
+conteo_superan_percentil AS (
+  SELECT
+    b.COMPANIA_HOMOLOGADA,
+    b.FUENTE,
+    b.TIPO_PERSONA,
+    COUNT(*) AS CANTIDAD_SUPERAN_P98
+  FROM base_ultimo_anio b
+  INNER JOIN percentiles_ultimo_anio p
+    ON b.COMPANIA_HOMOLOGADA = p.COMPANIA_HOMOLOGADA
+   AND b.FUENTE = p.FUENTE
+   AND b.TIPO_PERSONA = p.TIPO_PERSONA
+  WHERE b.VALOR_CON_IMPUESTOS > p.PERCENTIL_98
+  GROUP BY
+    b.COMPANIA_HOMOLOGADA,
+    b.FUENTE,
+    b.TIPO_PERSONA
+),
+
+resultado_final AS (
+  SELECT
+    p.COMPANIA_HOMOLOGADA,
+    p.FUENTE,
+    p.TIPO_PERSONA,
+    p.PERCENTIL_98,
+    p.CANTIDAD_REGISTROS_ULTIMO_ANIO,
+    IFNULL(c.CANTIDAD_SUPERAN_P98, 0) AS CANTIDAD_SUPERAN_P98
+  FROM percentiles_ultimo_anio p
+  LEFT JOIN conteo_superan_percentil c
+    ON p.COMPANIA_HOMOLOGADA = c.COMPANIA_HOMOLOGADA
+   AND p.FUENTE = c.FUENTE
+   AND p.TIPO_PERSONA = c.TIPO_PERSONA
+)
+
+SELECT *
+FROM resultado_final
+ORDER BY COMPANIA_HOMOLOGADA, FUENTE, TIPO_PERSONA;
