@@ -1,0 +1,50 @@
+DECLARE periodo_max_primas DATE;
+
+SET periodo_max_primas = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+WITH base AS (
+  SELECT DISTINCT
+    p.CODIGO_COMPANIA,
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+    p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO,
+    p.NUMERO_POLIZA,
+    p.FECHA_INICIO_ENDOSO,
+    p.FECHA_FIN_ENDOSO,
+    p.FECHA_FIN_POLIZA,
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.NOMBRE,
+    c.TIPO_EMPRESA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+   AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+  WHERE c.TIPO_EMPRESA = 2
+    AND DATE(p.FECHA_PROCESO) = periodo_max_primas
+    AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.MCA_ANU_POLIZA != "S"
+),
+
+base_numerada AS (
+  SELECT
+    *,
+    ROW_NUMBER() OVER (
+      ORDER BY
+        NUMERO_POLIZA,
+        KEY_ID,
+        CODIGO_PRODUCTO,
+        FECHA_INICIO_ENDOSO
+    ) AS rn
+  FROM base
+)
+
+SELECT *
+FROM base_numerada
+WHERE rn BETWEEN 1 AND 40000
+ORDER BY rn;
