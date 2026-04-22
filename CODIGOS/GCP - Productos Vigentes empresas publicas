@@ -1,10 +1,20 @@
+-- ============================================================
+-- 1. DECLARAR VARIABLE
+-- ============================================================
 DECLARE periodo_max_primas DATE;
 
+-- ============================================================
+-- 2. ASIGNAR VALOR (FECHA MÁXIMA DE PROCESO)
+-- ============================================================
 SET periodo_max_primas = (
   SELECT MAX(DATE(FECHA_PROCESO))
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
 );
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PREUAB_ELIMINAR` AS
 
+-- ============================================================
+-- 3. CONSULTA PRINCIPAL
+-- ============================================================
 WITH base AS (
   SELECT DISTINCT
     p.CODIGO_COMPANIA,
@@ -29,22 +39,10 @@ WITH base AS (
     AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
     AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
     AND p.MCA_ANU_POLIZA != "S"
-),
-
-base_numerada AS (
-  SELECT
-    *,
-    ROW_NUMBER() OVER (
-      ORDER BY
-        NUMERO_POLIZA,
-        KEY_ID,
-        CODIGO_PRODUCTO,
-        FECHA_INICIO_ENDOSO
-    ) AS rn
-  FROM base
 )
 
+-- ============================================================
+-- 4. RESULTADO FINAL
+-- ============================================================
 SELECT *
-FROM base_numerada
-WHERE rn BETWEEN 1 AND 40000
-ORDER BY rn;
+FROM base;
