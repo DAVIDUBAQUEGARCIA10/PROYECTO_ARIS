@@ -1,0 +1,53 @@
+WITH revisoria AS (
+  SELECT DISTINCT 
+    exrf_cod_tip_doc AS Cod_Tipo_Doc,
+    exrf_num_id_cliente AS Num_Id
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_cod_tip_doc IN ('NT','NE')
+),
+
+contactos_filtrados AS (
+  SELECT
+    NUMERO_DOCUMENTO,
+    TIPDOC_CODIGO,
+    TIPDOC_CODIGO_CONTACTO,
+    NUM_DOCUMENTO_CONTACTO,
+    NOMBRE_CONTACTO
+  FROM (
+    SELECT  
+      j.NUMERO_DOCUMENTO,
+      j.TIPDOC_CODIGO,
+      c."TIPDOC_CODIGO" AS TIPDOC_CODIGO_CONTACTO,    
+      c.NUMERO_DOCUMENTO AS NUM_DOCUMENTO_CONTACTO,
+      c."NOMBRE_CONTACTO",
+
+      ROW_NUMBER() OVER (
+        PARTITION BY j.NUMERO_DOCUMENTO, j.TIPDOC_CODIGO
+        ORDER BY c."SECUENCIA" DESC
+      ) AS rn
+
+    FROM contactos c
+    JOIN juridicos j 
+      ON j."SECUENCIA" = c."JUR_SECUENCIA"
+
+    WHERE c."PORCENTAJE_PARTICIPACION" IS NOT NULL
+      AND c."SECUENCIA" = (
+          SELECT MAX(c1."SECUENCIA")
+          FROM contactos c1
+          WHERE c1."JUR_SECUENCIA" = c."JUR_SECUENCIA"
+            AND c1."NUMERO_DOCUMENTO" = c."NUMERO_DOCUMENTO"
+            AND c1."TIPDOC_CODIGO" = c."TIPDOC_CODIGO"
+      )
+      AND c."MARCA_ACTIVO" = 'A'
+      AND c."PORCENTAJE_PARTICIPACION" > 1
+      AND c."PORCENTAJE_PARTICIPACION" < 100
+  )
+  WHERE rn = 1 
+)
+
+SELECT COD_TIPO_DOC,NUM_ID
+FROM revisoria r
+LEFT JOIN contactos_filtrados c
+  ON r.Cod_Tipo_Doc = c.TIPDOC_CODIGO
+ AND r.Num_Id = c.NUMERO_DOCUMENTO
+ WHERE  NUM_DOCUMENTO_CONTACTO IS  NULL
