@@ -1,0 +1,7 @@
+select * 
+from sb-ecosistemaanalitico-lago.el_libertador.t_solicitudes
+where key_id = "901390015" and fecha_corte  >= "2025-01-01"
+
+
+select * 
+from sb-ecosistemaanalitico-lago.el_libertador.t_historico_polizas_inmobiliarias
