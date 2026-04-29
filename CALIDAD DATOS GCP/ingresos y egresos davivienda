@@ -1,0 +1,55 @@
+-- ============================================================
+-- 1. DECLARAR VARIABLE
+-- ============================================================
+DECLARE periodo_max_primas DATE;
+
+-- ============================================================
+-- 2. ASIGNAR VALOR (FECHA MÁXIMA DE PROCESO)
+-- ============================================================
+SET periodo_max_primas = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+-- ============================================================
+-- 3. BASE PRINCIPAL (CLIENTES CON PRODUCTO VIGENTE)
+-- ============================================================
+WITH base AS (
+  SELECT DISTINCT
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.VALOR_ACTIVO,
+    c.VALOR_PASIVO,
+    c.VALOR_INGRESOS,
+    c.VALOR_EGRESOS,
+
+    -- Datos Davivienda
+    d.MONTO_TOTAL_ACTIVOS,
+    d.MONTO_TOTAL_PASIVOS
+
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+   AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+
+  -- LEFT JOIN correcto (sin recortar KEY_ID)
+  LEFT JOIN `sb-ecosistemaanalitico-lago.davivienda.t_pn_datos_basicos` d
+    ON c.KEY_ID = d.KEY_ID
+
+  WHERE p.MCA_ANU_POLIZA != "S"
+    AND DATE(p.FECHA_PROCESO) = periodo_max_primas
+    AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.TIPO_DOCUMENTO_TOMADOR NOT IN ("NT", "NE")
+)
+
+-- ============================================================
+-- 4. RESULTADO FINAL
+-- ============================================================
+SELECT *
+FROM base b
+WHERE 
+  (VALOR_ACTIVO <= 1000 OR VALOR_ACTIVO IS NULL)
+  AND (VALOR_PASIVO <= 1000 OR VALOR_PASIVO IS NULL)
+  AND (MONTO_TOTAL_ACTIVOS >= 1000 OR MONTO_TOTAL_ACTIVOS IS NOT NULL)
