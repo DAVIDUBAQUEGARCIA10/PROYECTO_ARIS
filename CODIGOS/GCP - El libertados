@@ -5,3 +5,31 @@ where key_id = "901390015" and fecha_corte  >= "2025-01-01"
 
 select * 
 from sb-ecosistemaanalitico-lago.el_libertador.t_historico_polizas_inmobiliarias
+
+
+
+
+SELECT
+    s.*,
+    s.KEY_ID,
+    s.TIPO_DOCUMENTO,
+    c.NUMERO_DOCUMENTO,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION,
+    CASE 
+        WHEN r.KEY_ID IS NOT NULL THEN 'SI'
+        ELSE 'NO'
+    END AS TIENE_RESTRICCION
+FROM `sb-ecosistemaanalitico-lago.el_libertador.t_solicitudes` s
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+    ON s.KEY_ID = r.KEY_ID
+    AND s.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
+    AND r.FECHA_BAJA IS NULL
+
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
+    ON s.KEY_ID = c.KEY_ID
+    AND s.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+WHERE DATE(s.FECHA_CORTE) >= DATE("2026-04-01")
+  AND r.CODIGO_RESTRICCION IS NOT NULL 
