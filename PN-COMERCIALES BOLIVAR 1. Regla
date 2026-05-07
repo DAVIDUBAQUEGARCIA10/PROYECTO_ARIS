@@ -1,0 +1,115 @@
+WITH alertas_filtradas AS (
+
+    SELECT
+        NUMERO_POLIZA,
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO_TOMADOR,
+        ANO_MES,
+
+        Justificacion_Anomalia,
+        causa_principal,
+
+        anomaly_score
+
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pn`
+
+    WHERE ANO_MES = (
+        SELECT MAX(ANO_MES)
+        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pn`
+    )
+
+    AND causa_principal != 'Comportamiento normal'
+
+    AND TIPO_DOCUMENTO_TOMADOR = 'CC'
+),
+
+polizas_recientes AS (
+
+    SELECT
+        p.CODIGO_COMPANIA,
+
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+
+        p.NUMERO_POLIZA,
+
+        p.MARCA_ANULACION,
+
+        p.FECHA_PROCESO
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+    QUALIFY ROW_NUMBER() OVER (
+
+        PARTITION BY p.NUMERO_POLIZA
+
+        ORDER BY p.FECHA_PROCESO DESC
+
+    ) = 1
+)
+
+SELECT
+
+    -- ====================================================
+    -- ALERTA
+    -- ====================================================
+
+    a.NUMERO_POLIZA,
+
+    a.KEY_ID_TOMADOR,
+
+    a.TIPO_DOCUMENTO_TOMADOR,
+
+    a.ANO_MES,
+
+    a.Justificacion_Anomalia,
+
+    a.causa_principal,
+
+    a.anomaly_score,
+
+    -- ====================================================
+    -- PÓLIZA
+    -- ====================================================
+
+    p.CODIGO_COMPANIA AS CODIGO_COMPANIA_POLIZA,
+
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+
+    p.CODIGO_PRODUCTO,
+    p.NOMBRE_PRODUCTO,
+
+    p.MARCA_ANULACION,
+
+    p.FECHA_PROCESO AS FECHA_PROCESO_POLIZA
+
+FROM alertas_filtradas a
+
+INNER JOIN polizas_recientes p
+
+    ON SAFE_CAST(a.NUMERO_POLIZA AS STRING)
+    =
+    SAFE_CAST(p.NUMERO_POLIZA AS STRING)
+
+WHERE p.MARCA_ANULACION != "S"
+
+QUALIFY ROW_NUMBER() OVER (
+
+    PARTITION BY
+        a.KEY_ID_TOMADOR,
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.ANO_MES
+
+    ORDER BY
+        a.anomaly_score ASC
+
+) = 1
+
+ORDER BY
+    a.KEY_ID_TOMADOR,
+    a.TIPO_DOCUMENTO_TOMADOR,
+    a.ANO_MES
