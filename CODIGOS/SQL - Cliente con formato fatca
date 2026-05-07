@@ -3,3 +3,15 @@ from  fatca_natural
 
 select *
 from  fatca_juridica
+
+
+
+select n.numero_documento, n.tipdoc_codigo,f.fecha_diligenciamiento
+from  fatca_natural  f
+join naturales  n
+on f.nat_secuencia = n.secuencia
+union
+select  n.numero_documento, n.tipdoc_codigo,f.fecha_diligenciamiento
+from  fatca_juridica  f
+join juridicos  n
+on f.jur_secuencia = n.secuencia
