@@ -1,0 +1,84 @@
+-- ============================================================
+-- 1. DECLARAR VARIABLE
+-- ============================================================
+DECLARE periodo_max_davivienda DATE;
+
+-- ============================================================
+-- 2. OBTENER ÚLTIMO PERIODO DAVIVIENDA
+-- ============================================================
+SET periodo_max_davivienda = (
+    SELECT MAX(DATE(FECHA_PROCESO))
+    FROM `sb-ecosistemaanalitico-lago.davivienda.t_clientes_pn`
+);
+
+-- ============================================================
+-- 3. DAVIVIENDA PN DEPURADO
+-- ============================================================
+WITH davivienda_pn AS (
+
+    SELECT
+        KEY_ID,
+        INGRESO_2,
+        FECHA_INGRESO_2,
+        FECHA_PROCESO
+
+    FROM (
+
+        SELECT
+            KEY_ID,
+            INGRESO_2,
+            FECHA_INGRESO_2,
+            FECHA_PROCESO,
+
+            ROW_NUMBER() OVER (
+                PARTITION BY KEY_ID
+                ORDER BY FECHA_INGRESO_2 DESC
+            ) AS rn
+
+        FROM `sb-ecosistemaanalitico-lago.davivienda.t_clientes_pn`
+
+        WHERE DATE(FECHA_PROCESO) = periodo_max_davivienda
+          AND INGRESO_2 IS NOT NULL
+
+    )
+
+    WHERE rn = 1
+),
+
+-- ============================================================
+-- 4. BASE PRINCIPAL
+-- ============================================================
+base AS (
+
+    SELECT DISTINCT
+        t.TIPO_DOCUMENTO,
+        t.KEY_ID,
+
+        IF(t.VALOR_INGRESOS < 1000, NULL, t.VALOR_INGRESOS) AS VALOR_INGRESOS,
+
+        d.INGRESO_2,
+        d.FECHA_INGRESO_2,
+        d.FECHA_PROCESO
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_trazabilidad_formatos_servicios_marcas` t
+
+    LEFT JOIN davivienda_pn d
+        ON t.KEY_ID = d.KEY_ID
+
+    WHERE t.TIPO_DOCUMENTO NOT IN ('NT', 'NE')
+)
+
+-- ============================================================
+-- 5. RESULTADO FINAL
+-- ============================================================
+SELECT DISTINCT 
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    VALOR_INGRESOS,
+    INGRESO_2,
+
+FROM base
+
+WHERE
+    (VALOR_INGRESOS <= 1000 OR VALOR_INGRESOS IS NULL)
+    AND   INGRESO_2 IS NOT NULL
