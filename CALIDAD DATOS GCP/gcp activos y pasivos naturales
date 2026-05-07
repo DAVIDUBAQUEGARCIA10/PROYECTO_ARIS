@@ -1,0 +1,71 @@
+-- ============================================================
+-- 1. BASE PRINCIPAL TRAZABILIDAD
+-- ============================================================
+WITH base AS (
+
+    SELECT DISTINCT
+        TIPO_DOCUMENTO,
+        KEY_ID,
+
+        CASE
+            WHEN VALOR_ACTIVOS < 1000 THEN NULL
+            ELSE VALOR_ACTIVOS
+        END AS VALOR_ACTIVOS,
+
+        CASE
+            WHEN VALOR_PASIVOS < 1000 THEN NULL
+            ELSE VALOR_PASIVOS
+        END AS VALOR_PASIVOS
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_trazabilidad_formatos_servicios_marcas`
+
+    WHERE TIPO_DOCUMENTO NOT IN ('NT', 'NE')
+),
+
+-- ============================================================
+-- 2. DAVIVIENDA DATOS BÁSICOS
+-- ============================================================
+davivienda AS (
+
+    SELECT
+        KEY_ID,
+
+        CASE
+            WHEN MONTO_TOTAL_ACTIVOS < 1000 THEN NULL
+            ELSE MONTO_TOTAL_ACTIVOS
+        END AS MONTO_TOTAL_ACTIVOS,
+
+        CASE
+            WHEN MONTO_TOTAL_PASIVOS < 1000 THEN NULL
+            ELSE MONTO_TOTAL_PASIVOS
+        END AS MONTO_TOTAL_PASIVOS
+
+    FROM `sb-ecosistemaanalitico-lago.davivienda.t_pn_datos_basicos`
+)
+
+-- ============================================================
+-- 3. RESULTADO FINAL
+-- ============================================================
+SELECT
+    b.TIPO_DOCUMENTO,
+    b.KEY_ID,
+    b.VALOR_ACTIVOS,
+    b.VALOR_PASIVOS,
+    d.MONTO_TOTAL_ACTIVOS,
+    d.MONTO_TOTAL_PASIVOS
+
+FROM base b
+
+LEFT JOIN davivienda d
+    ON b.KEY_ID = d.KEY_ID
+
+WHERE
+    (
+        b.VALOR_ACTIVOS IS NULL
+        OR b.VALOR_PASIVOS IS NULL
+    )
+    AND
+    (
+        d.MONTO_TOTAL_ACTIVOS IS NOT NULL
+        OR d.MONTO_TOTAL_PASIVOS IS NOT NULL
+    );
