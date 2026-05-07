@@ -1,0 +1,157 @@
+WITH alertas_filtradas AS (
+
+    SELECT
+        NUMERO_TITULO,
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO,
+        ANO_MES,
+        Justificacion_Anomalia,
+        causa_principal,
+        anomaly_score
+
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_cap`
+
+    WHERE ANO_MES = (
+        SELECT MAX(ANO_MES)
+        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_cap`
+    )
+
+    AND causa_principal != 'Comportamiento normal'
+),
+
+movimientos_cap AS (
+
+    SELECT
+        NUMERO_TITULO,
+        FECHA_TRANSACCION,
+        VALOR_TRANSACCION,
+
+        DESCRIPCION_TIPO_MOVIMIENTO AS TIPO_TRANSACCION,
+
+        CODIGO_TIPO_MOVIMIENTO,
+        ABREVIATURA_TIPO_MOVIMIENTO,
+        SIGNO_MOVIMIENTO,
+
+        CODIGO_COMPANIA,
+        CODIGO_PLAN,
+
+        MARCA_ANULADO,
+        FECHA_CANCELACION,
+        FECHA_BLOQUEO,
+
+        NUMERO_TRANSACCION,
+        CODIGO_AGENCIA,
+        ENTIDAD_FINANCIERA,
+        CODIGO_BANCO
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora`
+
+    WHERE FECHA_TRANSACCION >= "2026-03-01"
+),
+
+titulos_recientes AS (
+
+    SELECT
+        t.TITULO,
+        t.KEY_ID_BENEFICIARIO,
+        t.TIPO_DOCUMENTO,
+        t.SALDO_PESOS,
+        t.FECHA_EMISION,
+        t.FECHA_REHABILITACION,
+        t.FECHA_ULT_CUOTA,
+        t.FECHA_CORTE
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` t
+
+    QUALIFY ROW_NUMBER() OVER(
+        PARTITION BY t.TITULO
+        ORDER BY t.FECHA_CORTE DESC
+    ) = 1
+)
+
+SELECT
+
+    -- ====================================================
+    -- ALERTA
+    -- ====================================================
+
+    a.NUMERO_TITULO,
+    a.KEY_ID_TOMADOR,
+    a.TIPO_DOCUMENTO,
+    a.ANO_MES,
+
+    a.Justificacion_Anomalia,
+    a.causa_principal,
+    a.anomaly_score,
+
+    -- ====================================================
+    -- MOVIMIENTO
+    -- ====================================================
+
+    m.FECHA_TRANSACCION,
+    m.VALOR_TRANSACCION,
+
+    m.TIPO_TRANSACCION,
+    m.CODIGO_TIPO_MOVIMIENTO,
+    m.ABREVIATURA_TIPO_MOVIMIENTO,
+
+    m.SIGNO_MOVIMIENTO,
+
+    m.CODIGO_PLAN,
+    m.CODIGO_COMPANIA,
+
+    m.NUMERO_TRANSACCION,
+    m.CODIGO_AGENCIA,
+
+    m.ENTIDAD_FINANCIERA,
+    m.CODIGO_BANCO,
+
+    m.MARCA_ANULADO,
+    m.FECHA_CANCELACION,
+    m.FECHA_BLOQUEO,
+
+    -- ====================================================
+    -- TÍTULO / CLIENTE
+    -- ====================================================
+
+    t.KEY_ID_BENEFICIARIO,
+    t.TIPO_DOCUMENTO AS TIPO_DOCUMENTO_BENEFICIARIO,
+
+    t.SALDO_PESOS,
+
+    t.FECHA_EMISION,
+    t.FECHA_REHABILITACION,
+    t.FECHA_ULT_CUOTA,
+
+    t.FECHA_CORTE
+
+FROM alertas_filtradas a
+
+INNER JOIN movimientos_cap m
+    ON SAFE_CAST(a.NUMERO_TITULO AS STRING)
+    =
+    SAFE_CAST(m.NUMERO_TITULO AS STRING)
+
+INNER JOIN titulos_recientes t
+    ON SAFE_CAST(a.NUMERO_TITULO AS STRING)
+    =
+    SAFE_CAST(t.TITULO AS STRING)
+
+WHERE
+    m.VALOR_TRANSACCION >= 3000000
+
+QUALIFY ROW_NUMBER() OVER(
+
+    PARTITION BY
+        a.KEY_ID_TOMADOR,
+        a.ANO_MES
+
+    ORDER BY
+        m.VALOR_TRANSACCION DESC,
+        m.FECHA_TRANSACCION DESC
+
+) = 1
+
+ORDER BY
+    a.KEY_ID_TOMADOR,
+    a.ANO_MES
