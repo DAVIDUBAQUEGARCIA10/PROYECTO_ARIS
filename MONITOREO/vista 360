@@ -1,0 +1,128 @@
+WITH polizas_consolidadas AS (
+
+    -- Capitalización
+    SELECT DISTINCT
+        1 AS CODIGO_COMPANIA,
+        tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+        801 AS CODIGO_RAMO_EMISION,
+        51 AS CODIGO_PRODUCTO,
+        'CAPITALIZADORA' AS NOMBRE_CANAL,
+        'TITULAR' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+    WHERE DATE(fecha_corte) = (
+        SELECT MAX(DATE(fecha_corte))
+        FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+    )
+
+    UNION ALL
+    -- Tomador de pólizas vigentes
+  SELECT DISTINCT
+      CODIGO_COMPANIA,
+      TIPO_DOCUMENTO_TOMADOR,
+      CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+      CODIGO_RAMO_EMISION,
+      CODIGO_PRODUCTO,
+      NOMBRE_CANAL,
+      'TOMADOR' AS ROL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND MCA_ANU_POLIZA != 'S'
+  QUALIFY FECHA_PROCESO = MAX(FECHA_PROCESO) OVER ()
+
+    UNION ALL
+
+    -- Asegurado de pólizas vigentes
+    SELECT DISTINCT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_ASEGURADO AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(KEY_ID_ASEGURADO AS STRING) AS KEY_ID_TOMADOR,
+        CODIGO_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_CANAL,
+        'ASEGURADO' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+    WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+      AND MCA_ANU_POLIZA != 'S'
+
+    UNION ALL
+
+    -- Beneficiario de pólizas vigentes
+    SELECT DISTINCT
+        CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_BENEFICIARIO AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(KEY_ID_BENEFICIARIO AS STRING) AS KEY_ID_TOMADOR,
+        CODIGO_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_CANAL,
+        'BENEFICIARIO' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_ben_vigentes`
+    WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+
+    UNION ALL
+
+    -- El Libertador / Inmobiliaria
+    SELECT
+        75 AS CODIGO_COMPANIA,
+        tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(key_id AS STRING) AS KEY_ID_TOMADOR,
+        0 AS CODIGO_RAMO_EMISION,
+        0 AS CODIGO_PRODUCTO,
+        'inmobiliaria' AS NOMBRE_CANAL,
+        'EL LIBERTADOR' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.el_libertador.t_solicitudes`
+    WHERE FECHA_CORTE >= '2026-04-01'
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY tipo_documento, key_id
+        ORDER BY FECHA_CORTE DESC
+    ) = 1
+
+    UNION ALL
+
+    -- Affinity tomador
+    SELECT
+        100 AS CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+        CODIGO_RAMO_CONTABLE AS CODIGO_RAMO_EMISION,
+        CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+        CAST(CODIGO_LOCALIDAD AS STRING) AS NOMBRE_CANAL,
+        'AFFINITYS TOMADOR' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.linea_negocio_bancaseguros_prod.t_clientes_vigentes_affinity_bs`
+    WHERE FECHA_CORTE = (
+        SELECT MAX(FECHA_CORTE)
+        FROM `sb-ecosistemaanalitico-lago.linea_negocio_bancaseguros_prod.t_clientes_vigentes_affinity_bs`
+    )
+
+    UNION ALL
+
+    -- Affinity asegurado
+    SELECT
+        100 AS CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_ASEGURADO AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(KEY_ID_ASEGURADO AS STRING) AS KEY_ID_TOMADOR,
+        CODIGO_RAMO_CONTABLE AS CODIGO_RAMO_EMISION,
+        CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+        CAST(CODIGO_LOCALIDAD AS STRING) AS NOMBRE_CANAL,
+        'AFFINITYS ASEGURADO' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.linea_negocio_bancaseguros_prod.t_clientes_vigentes_affinity_bs`
+    WHERE FECHA_CORTE = (
+        SELECT MAX(FECHA_CORTE)
+        FROM `sb-ecosistemaanalitico-lago.linea_negocio_bancaseguros_prod.t_clientes_vigentes_affinity_bs`
+    )
+
+)
+---sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje
+--sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_datos_polizas_arl
+--sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl
+--Beneficiario final
+--Proveedores
+--Funcionarios
+--sb-ecosistemaanalitico-lago.bienestar_prod.t_securitas_pens_beneficiarios
+--servicios
+--
+
+--
+SELECT *
+FROM polizas_consolidadas
+WHERE TIPO_DOCUMENTO_TOMADOR = 'E53du5XH2FYio6xblV1ts7JOwSrZ9pxFMUM4ce7ujc/56a4JxAsE06d+AXPnsHCvwVWQmth8PLTo0RYceZOhBA==';
