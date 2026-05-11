@@ -1,4 +1,5 @@
-CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PRUEBA_PROVEEDORES` AS 
+---CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PRUEBA_PROVEEDORES` AS 
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.proveedores_grupo_bolivar` AS 
 WITH homologacion_compania AS (
   SELECT '800020762' AS COMPANIA_ORIGINAL, 'Inv. Anagrama' AS COMPANIA_HOMOLOGADA UNION ALL
   SELECT '830025448', 'Grupo Bolívar' UNION ALL
