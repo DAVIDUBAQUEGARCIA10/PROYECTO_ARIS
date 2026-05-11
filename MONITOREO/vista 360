@@ -111,18 +111,133 @@ WITH polizas_consolidadas AS (
         FROM `sb-ecosistemaanalitico-lago.linea_negocio_bancaseguros_prod.t_clientes_vigentes_affinity_bs`
     )
 
+    UNION ALL
+
+    -- Benefiarios de Polizas    
+
+
+    SELECT
+        CODIGO_COMPANIA AS CODIGO_COMPANIA,
+        TIPO_DOCUMENTO_BENEFICIARIO AS TIPO_DOCUMENTO_TOMADOR,
+        CAST(KEY_ID_BENEFICIARIO AS STRING) AS KEY_ID_TOMADOR,
+        CODIGO_RAMO_EMISION AS CODIGO_RAMO_EMISION,
+        CODIGO_PRODUCTO AS CODIGO_PRODUCTO,
+        CAST(TIPO_BENEFICIARIO AS STRING) AS NOMBRE_CANAL,
+        'BENEFICIARIO DE SEGUROS' AS ROL
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje`
+
+
+
+    UNION ALL
+
+
+    -- Arl empresas  
+
+
+    SELECT DISTINCT 
+    COD_CIA AS CODIGO_COMPANIA,
+    TDOC_EMPRESA AS TIPO_DOCUMENTO_TOMADOR,
+    NIT_EMPRESA AS KEY_ID_TOMADOR,
+    COD_SECC AS CODIGO_RAMO_EMISION,
+    COD_RAMO AS CODIGO_PRODUCTO,
+    "ARL EMPRESAS" AS NOMBRE_CANAL,
+    "ARL EMPRESAS" AS ROL
+FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+WHERE ANIO_CORTE = (
+    SELECT MAX(ANIO_CORTE)
+    FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
 )
----sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje
---sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_datos_polizas_arl
---sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl
+AND MES_CORTE = (
+    SELECT MAX(MES_CORTE)
+    FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+    WHERE ANIO_CORTE = (
+        SELECT MAX(ANIO_CORTE)
+        FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+    )
+)
+
+    UNION ALL
+
+
+    -- Arl trabajadores  
+
+
+    SELECT DISTINCT 
+    COD_CIA AS CODIGO_COMPANIA,
+    IDE_NIT AS TIPO_DOCUMENTO_TOMADOR,
+    NIT AS KEY_ID_TOMADOR,
+    COD_SECC AS CODIGO_RAMO_EMISION,
+    COD_RAMO AS CODIGO_PRODUCTO,
+    "ARL - TRABAJADORES" AS NOMBRE_CANAL,
+    "ARL - TRABAJADORES" AS ROL
+FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+WHERE ANIO_CORTE = (
+    SELECT MAX(ANIO_CORTE)
+    FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+)
+AND MES_CORTE = (
+    SELECT MAX(MES_CORTE)
+    FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+    WHERE ANIO_CORTE = (
+        SELECT MAX(ANIO_CORTE)
+        FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+    )
+)
+
+
+UNION ALL 
+
+-- Securitas
+
+
+SELECT DISTINCT
+    2 AS CODIGO_COMPANIA,
+    ABREVIATURA AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    CASE
+        WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) >= 5 THEN 72
+        WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) < 5 THEN 72
+    END AS CODIGO_RAMO_EMISION,
+    CASE
+        WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) >= 5 THEN 272
+        WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) < 5 THEN 272
+    END AS CODIGO_PRODUCTO,
+    'Securitas' AS NOMBRE_CANAL,
+    CAST(
+        CASE
+            WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) >= 5 THEN 5
+            WHEN LENGTH(CAST(NUMERO_POLIZA AS STRING)) < 5 THEN 1
+        END AS STRING
+    ) AS ROL
+FROM `sb-ecosistemaanalitico-lago.bienestar_prod.t_securitas_pens_beneficiarios`
+
+
+UNION ALL
+
+
+-- Funcionarios del grupo
+
+SELECT DISTINCT
+    0 AS CODIGO_COMPANIA, 
+    TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID AS KEY_ID_TOMADOR,
+    0  AS CODIGO_RAMO_EMISION,
+    0  AS CODIGO_PRODUCTO,
+    'FUNCIONARIO' AS NOMBRE_CANAL,
+    EMPRESA_RELACION AS ROL
+FROM `sb-ecosistemaanalitico-lago.people_analytics_prod.v_colaboradores_activos`
+WHERE FECHA_CIERRE = (
+    SELECT MAX(FECHA_CIERRE)
+    FROM `sb-ecosistemaanalitico-lago.people_analytics_prod.v_colaboradores_activos`
+)
+
+)
+
+--roles
 --Beneficiario final
 --Proveedores
---Funcionarios
---sb-ecosistemaanalitico-lago.bienestar_prod.t_securitas_pens_beneficiarios
 --servicios
---
 
---
 SELECT *
 FROM polizas_consolidadas
-WHERE TIPO_DOCUMENTO_TOMADOR = 'E53du5XH2FYio6xblV1ts7JOwSrZ9pxFMUM4ce7ujc/56a4JxAsE06d+AXPnsHCvwVWQmth8PLTo0RYceZOhBA==';
+--WHERE TIPO_DOCUMENTO_TOMADOR = 'E53du5XH2FYio6xblV1ts7JOwSrZ9pxFMUM4ce7ujc/56a4JxAsE06d+AXPnsHCvwVWQmth8PLTo0RYceZOhBA==';
