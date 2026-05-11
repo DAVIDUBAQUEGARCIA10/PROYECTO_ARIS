@@ -46,7 +46,7 @@ movimientos_cap AS (
 
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora`
 
-    WHERE FECHA_TRANSACCION >= "2026-03-01"
+    WHERE FECHA_TRANSACCION BETWEEN '2025-03-01' AND '2026-04-01'
 ),
 
 titulos_recientes AS (
@@ -138,7 +138,7 @@ INNER JOIN titulos_recientes t
     SAFE_CAST(t.TITULO AS STRING)
 
 WHERE
-    m.VALOR_TRANSACCION >= 1000000.0
+    m.VALOR_TRANSACCION >= 500000.0
 
 QUALIFY ROW_NUMBER() OVER(
 
