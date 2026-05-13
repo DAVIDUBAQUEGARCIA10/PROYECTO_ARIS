@@ -1,0 +1,87 @@
+WITH base AS (
+
+    SELECT DISTINCT
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        SUBSTR(CAST(KEY_ID AS STRING), 1, 9) AS KEY_ID_SIN_DV,
+        KEY_ID_REPRESENTANTE_LEGAL
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_trazabilidad_formatos_servicios_marcas`
+
+    WHERE TIPO_DOCUMENTO IN ('NT', 'NE')
+),
+
+representante_legal AS (
+
+    SELECT
+        TIPO_DOCUMENTO_CLIENTE,
+        KEY_ID_CLIENTE,
+        TIPO_DOCUMENTO_RELACIONADO,
+        KEY_ID_RELACIONADO
+
+    FROM (
+        SELECT
+            TIPO_DOCUMENTO_CLIENTE,
+            SUBSTR(CAST(KEY_ID_CLIENTE AS STRING), 1, 9) AS KEY_ID_CLIENTE,
+            TIPO_DOCUMENTO_RELACIONADO,
+            KEY_ID_RELACIONADO,
+
+            ROW_NUMBER() OVER (
+                PARTITION BY SUBSTR(CAST(KEY_ID_CLIENTE AS STRING), 1, 9)
+                ORDER BY KEY_ID_RELACIONADO
+            ) AS rn
+
+        FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj`
+
+        WHERE ESTADO_DATO = 'VIGENTE'
+          AND DESCRIPCION_RELACION = 'REPRESENTANTE LEGAL'
+    )
+
+    WHERE rn = 1
+),
+
+resultado AS (
+
+    SELECT
+        b.TIPO_DOCUMENTO,
+        b.KEY_ID,
+        b.KEY_ID_SIN_DV,
+
+        b.KEY_ID_REPRESENTANTE_LEGAL,
+
+        r.TIPO_DOCUMENTO_RELACIONADO AS TIP_DOC_REPRESENTANTE_LEGAL_DAV,
+        r.KEY_ID_RELACIONADO AS KEY_ID_REPRESENTANTE_LEGAL_DAV,
+
+        CASE
+            WHEN b.KEY_ID_REPRESENTANTE_LEGAL IS NULL
+             AND r.KEY_ID_RELACIONADO IS NULL
+                THEN 'NULO_EN_AMBAS'
+
+            WHEN b.KEY_ID_REPRESENTANTE_LEGAL IS NULL
+             AND r.KEY_ID_RELACIONADO IS NOT NULL
+                THEN 'NULO_EN_BOLIVAR_CON_DATO_DAVIVIENDA'
+
+            WHEN b.KEY_ID_REPRESENTANTE_LEGAL IS NOT NULL
+             AND r.KEY_ID_RELACIONADO IS NULL
+                THEN 'CON_DATO_BOLIVAR_NULO_EN_DAVIVIENDA'
+
+            ELSE 'CON_DATO_EN_AMBAS'
+        END AS ESTADO_REPRESENTANTE_LEGAL
+
+    FROM base b
+
+    LEFT JOIN representante_legal r
+        ON b.KEY_ID_SIN_DV = r.KEY_ID_CLIENTE
+)
+
+SELECT
+    *
+
+FROM resultado
+
+-- Puedes cambiar este filtro según lo que necesites revisar
+WHERE ESTADO_REPRESENTANTE_LEGAL IN (
+   -- 'NULO_EN_AMBAS',
+    'NULO_EN_BOLIVAR_CON_DATO_DAVIVIENDA'
+  --  'CON_DATO_BOLIVAR_NULO_EN_DAVIVIENDA'
+);
