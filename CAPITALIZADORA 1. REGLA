@@ -6,7 +6,6 @@ WITH alertas_filtradas AS (
         TIPO_DOCUMENTO,
         ANO_MES,
         Justificacion_Anomalia,
-        causa_principal,
         anomaly_score
 
     FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_cap`
@@ -23,26 +22,9 @@ movimientos_cap AS (
 
     SELECT
         NUMERO_TITULO,
-        FECHA_TRANSACCION,
+        FECHA_TRANSACCION AS FECHA_APLICACION,
         VALOR_TRANSACCION,
-
-        DESCRIPCION_TIPO_MOVIMIENTO AS TIPO_TRANSACCION,
-
-        CODIGO_TIPO_MOVIMIENTO,
-        ABREVIATURA_TIPO_MOVIMIENTO,
-        SIGNO_MOVIMIENTO,
-
-        CODIGO_COMPANIA,
-        CODIGO_PLAN,
-
-        MARCA_ANULADO,
-        FECHA_CANCELACION,
-        FECHA_BLOQUEO,
-
-        NUMERO_TRANSACCION,
-        CODIGO_AGENCIA,
-        ENTIDAD_FINANCIERA,
-        CODIGO_BANCO
+        CODIGO_COMPANIA
 
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora`
 
@@ -53,13 +35,10 @@ titulos_recientes AS (
 
     SELECT
         t.TITULO,
-        t.KEY_ID_BENEFICIARIO,
-        t.TIPO_DOCUMENTO,
-        t.SALDO_PESOS,
+        t.FECHA_CORTE,
         t.FECHA_EMISION,
         t.FECHA_REHABILITACION,
-        t.FECHA_ULT_CUOTA,
-        t.FECHA_CORTE
+        t.FECHA_ULT_CUOTA
 
     FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` t
 
@@ -71,59 +50,23 @@ titulos_recientes AS (
 
 SELECT
 
-    -- ====================================================
-    -- ALERTA
-    -- ====================================================
-
-    a.NUMERO_TITULO,
-    a.KEY_ID_TOMADOR,
-    a.TIPO_DOCUMENTO,
-    a.ANO_MES,
-
-    a.Justificacion_Anomalia,
-    a.causa_principal,
-    a.anomaly_score,
-
-    -- ====================================================
-    -- MOVIMIENTO
-    -- ====================================================
-
-    m.FECHA_TRANSACCION,
-    m.VALOR_TRANSACCION,
-
-    m.TIPO_TRANSACCION,
-    m.CODIGO_TIPO_MOVIMIENTO,
-    m.ABREVIATURA_TIPO_MOVIMIENTO,
-
-    m.SIGNO_MOVIMIENTO,
-
-    m.CODIGO_PLAN,
     m.CODIGO_COMPANIA,
 
-    m.NUMERO_TRANSACCION,
-    m.CODIGO_AGENCIA,
+    a.TIPO_DOCUMENTO,
 
-    m.ENTIDAD_FINANCIERA,
-    m.CODIGO_BANCO,
+    a.NUMERO_TITULO,
 
-    m.MARCA_ANULADO,
-    m.FECHA_CANCELACION,
-    m.FECHA_BLOQUEO,
+    a.KEY_ID_TOMADOR,
 
-    -- ====================================================
-    -- TÍTULO / CLIENTE
-    -- ====================================================
+    m.VALOR_TRANSACCION,
 
-    t.KEY_ID_BENEFICIARIO,
-    t.TIPO_DOCUMENTO AS TIPO_DOCUMENTO_BENEFICIARIO,
+    m.FECHA_APLICACION,
 
-    t.SALDO_PESOS,
+    a.ANO_MES,
 
-    t.FECHA_EMISION,
-    t.FECHA_REHABILITACION,
-    t.FECHA_ULT_CUOTA,
+    a.anomaly_score,
 
-    t.FECHA_CORTE
+    a.Justificacion_Anomalia
 
 FROM alertas_filtradas a
 
@@ -148,10 +91,10 @@ QUALIFY ROW_NUMBER() OVER(
 
     ORDER BY
         m.VALOR_TRANSACCION DESC,
-        m.FECHA_TRANSACCION DESC
+        m.FECHA_APLICACION DESC
 
 ) = 1
 
 ORDER BY
     a.KEY_ID_TOMADOR,
-    a.ANO_MES
+    a.ANO_MES;
