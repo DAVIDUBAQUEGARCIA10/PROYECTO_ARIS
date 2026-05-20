@@ -1,129 +1,3 @@
----------------Modificacion por Chat GPT para mostrar resultados-------------------------------------
-
-WITH alertas_filtradas AS (
-
-    SELECT
-        NUMERO_POLIZA,
-        KEY_ID_TOMADOR,
-        TIPO_DOCUMENTO_TOMADOR,
-        ANO_MES,
-
-        Justificacion_Anomalia,
-        causa_principal,
-
-        anomaly_score
-
-    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pn`
-
-    WHERE ANO_MES = (
-        SELECT MAX(ANO_MES)
-        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pn`
-    )
-
-    AND causa_principal != 'Comportamiento normal'
-
-    AND TIPO_DOCUMENTO_TOMADOR = 'CC'
-),
-
-polizas_recientes AS (
-
-    SELECT
-        p.CODIGO_COMPANIA,
-
-        p.CODIGO_RAMO_EMISION,
-        p.NOMBRE_RAMO_EMISION,
-
-        p.CODIGO_PRODUCTO,
-        p.NOMBRE_PRODUCTO,
-
-        p.NUMERO_POLIZA,
-
-        p.MARCA_ANULACION,
-
-        p.FECHA_PROCESO
-
-    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
-
-    QUALIFY ROW_NUMBER() OVER (
-
-        PARTITION BY p.NUMERO_POLIZA
-
-        ORDER BY p.FECHA_PROCESO DESC
-
-    ) = 1
-)
-
-SELECT
-
-    -- ====================================================
-    -- ALERTA
-    -- ====================================================
-
-    a.NUMERO_POLIZA,
-
-    a.KEY_ID_TOMADOR,
-
-    a.TIPO_DOCUMENTO_TOMADOR,
-
-    a.ANO_MES,
-
-    a.Justificacion_Anomalia,
-
-    a.causa_principal,
-
-    a.anomaly_score,
-
-    -- ====================================================
-    -- PÓLIZA
-    -- ====================================================
-
-    p.CODIGO_COMPANIA AS CODIGO_COMPANIA_POLIZA,
-
-    p.CODIGO_RAMO_EMISION,
-    p.NOMBRE_RAMO_EMISION,
-
-    p.CODIGO_PRODUCTO,
-    p.NOMBRE_PRODUCTO,
-
-    p.MARCA_ANULACION,
-
-    p.FECHA_PROCESO AS FECHA_PROCESO_POLIZA
-
-FROM alertas_filtradas a
-
-INNER JOIN polizas_recientes p
-
-    ON SAFE_CAST(a.NUMERO_POLIZA AS STRING)
-    =
-    SAFE_CAST(p.NUMERO_POLIZA AS STRING)
-
-WHERE p.MARCA_ANULACION != "S"
-
-QUALIFY ROW_NUMBER() OVER (
-
-    PARTITION BY
-        a.KEY_ID_TOMADOR,
-        a.TIPO_DOCUMENTO_TOMADOR,
-        a.ANO_MES
-
-    ORDER BY
-        a.anomaly_score ASC
-
-) = 1
-
-ORDER BY
-    a.KEY_ID_TOMADOR,
-    a.TIPO_DOCUMENTO_TOMADOR,
-    a.ANO_MES
-
-
-
-
-
-
------------------------------------------- Modificacion Original------------------------------------------------
-
-
 WITH alertas_filtradas AS (
 
     SELECT
@@ -152,81 +26,14 @@ WITH alertas_filtradas AS (
 aportes_extraordinarios AS (
 
     SELECT
-        TIPO_DOCUMENTO_TOMADOR,
-        KEY_ID_TOMADOR,
-
         NUMERO_CUENTA_FONDO,
-
-        CLASE_SALDO,
-        CONSECUTIVO_OPERACION,
-
-        TRANSACCION,
-        SUB_TRANSACCION,
-
-        FECHA_PROCESO,
-
         VALOR_TRANSACCION,
-
-        UNIDADES_TOTALES,
-        UNIDADES_CONTINGENTE,
-
-        VALOR_CONTINGENTE,
-
-        ESTADO_PORTAFOLIO,
-
-        FECHA_INVERSION,
-
-        VALOR_PERDIDA,
-        VALOR_RENDIMIENTO,
-        VALOR_RETENCION,
-        VALOR_MULTA,
-
-        DIAS_MOVIMIENTO,
-
         FECHA_APLICACION,
-
-        CUENTA_FONDO_REFERENCIA,
-        CLASE_SALDO_REFERENCIA,
-
-        SECUENCIA_REFERENCIA,
-        TRANSACCION_REFERENCIA,
-
-        MULTA_SUB_TRANSACCION,
-
-        ESTADO_DETALLE,
-
-        CLASE_APORTE,
-
-        FECHA_ULTIMA_MODIFICACION,
-
-        SALDO_ANTERIOR_MULTIFONDO,
-
-        FACTOR_COMISION,
-
-        CONCEPTO_RETENCION,
-        PORCENTAJE_APLICADO,
-
-        FECHA_CONTINGENCIA,
-
-        NUMERO_OPERACION,
-
-        DETALLE_OPERACION_EMMASCARADO,
-
-        VALOR_CONTINGENTE_POR_PAGAR,
-
-        CODIGO_COMPANIA,
-
-        CODIGO_RAMO_EMISION,
-        NOMBRE_RAMO_EMISION,
-
-        CODIGO_PRODUCTO,
-        NOMBRE_PRODUCTO,
-
-        NOMBRE_SUB_TRANSACCION
+        CODIGO_COMPANIA
 
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
 
-    WHERE FECHA_PROCESO >= "2026-03-01"
+    WHERE FECHA_PROCESO >= '2026-03-01'
 ),
 
 polizas_objetivo AS (
@@ -240,17 +47,9 @@ polizas_recientes AS (
 
     SELECT
         p.CODIGO_COMPANIA,
-
-        p.CODIGO_RAMO_EMISION,
-        p.NOMBRE_RAMO_EMISION,
-
-        p.CODIGO_PRODUCTO,
-        p.NOMBRE_PRODUCTO,
-
         p.NUMERO_POLIZA,
-
+        p.NOMBRE_PRODUCTO AS NOMBRE_PRODUCTO_POLIZA,
         p.MARCA_ANULACION,
-
         p.FECHA_PROCESO
 
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
@@ -272,95 +71,25 @@ polizas_recientes AS (
 
 SELECT
 
-    -- ====================================================
-    -- ALERTA
-    -- ====================================================
-
-    a.NUMERO_POLIZA,
-
-    a.NUMERO_CUENTA_FONDO_ALERTA,
-
-    a.KEY_ID_TOMADOR,
+    p.CODIGO_COMPANIA,
 
     a.TIPO_DOCUMENTO_TOMADOR,
 
-    a.ANO_MES,
+    a.NUMERO_POLIZA,
 
-    a.Justificacion_Anomalia,
-
-    a.anomaly_score,
-
-    -- ====================================================
-    -- TRANSACCIÓN
-    -- ====================================================
-
-    t.NUMERO_CUENTA_FONDO,
-
-    t.CLASE_SALDO,
-
-    t.CONSECUTIVO_OPERACION,
-
-    t.TRANSACCION,
-    t.SUB_TRANSACCION,
-
-    t.FECHA_PROCESO AS FECHA_PROCESO_TRANSACCION,
+    a.KEY_ID_TOMADOR,
 
     t.VALOR_TRANSACCION,
 
-    t.UNIDADES_TOTALES,
-    t.UNIDADES_CONTINGENTE,
-
-    t.VALOR_CONTINGENTE,
-
-    t.ESTADO_PORTAFOLIO,
-
-    t.FECHA_INVERSION,
-
-    t.VALOR_PERDIDA,
-    t.VALOR_RENDIMIENTO,
-    t.VALOR_RETENCION,
-    t.VALOR_MULTA,
-
-    t.DIAS_MOVIMIENTO,
-
     t.FECHA_APLICACION,
 
-    t.CONCEPTO_RETENCION,
-    t.PORCENTAJE_APLICADO,
+    p.NOMBRE_PRODUCTO_POLIZA,
 
-    t.FECHA_CONTINGENCIA,
+    a.ANO_MES,
 
-    t.NUMERO_OPERACION,
+    a.anomaly_score,
 
-    t.DETALLE_OPERACION_EMMASCARADO,
-
-    t.VALOR_CONTINGENTE_POR_PAGAR,
-
-    t.CODIGO_COMPANIA AS CODIGO_COMPANIA_TRANSACCION,
-
-    t.CODIGO_RAMO_EMISION AS CODIGO_RAMO_EMISION_TRANSACCION,
-    t.NOMBRE_RAMO_EMISION AS NOMBRE_RAMO_EMISION_TRANSACCION,
-
-    t.CODIGO_PRODUCTO AS CODIGO_PRODUCTO_TRANSACCION,
-    t.NOMBRE_PRODUCTO AS NOMBRE_PRODUCTO_TRANSACCION,
-
-    t.NOMBRE_SUB_TRANSACCION,
-
-    -- ====================================================
-    -- PÓLIZA
-    -- ====================================================
-
-    p.CODIGO_COMPANIA AS CODIGO_COMPANIA_POLIZA,
-
-    p.CODIGO_RAMO_EMISION AS CODIGO_RAMO_EMISION_POLIZA,
-    p.NOMBRE_RAMO_EMISION AS NOMBRE_RAMO_EMISION_POLIZA,
-
-    p.CODIGO_PRODUCTO AS CODIGO_PRODUCTO_POLIZA,
-    p.NOMBRE_PRODUCTO AS NOMBRE_PRODUCTO_POLIZA,
-
-    p.MARCA_ANULACION,
-
-    p.FECHA_PROCESO AS FECHA_PROCESO_POLIZA
+    a.Justificacion_Anomalia
 
 FROM alertas_filtradas a
 
@@ -376,9 +105,9 @@ INNER JOIN polizas_recientes p
     =
     SAFE_CAST(p.NUMERO_POLIZA AS STRING)
 
-WHERE MARCA_ANULACION != "S"
+WHERE p.MARCA_ANULACION != 'S'
 
-AND VALOR_TRANSACCION >= 3056841
+AND t.VALOR_TRANSACCION >= 3056841
 
 QUALIFY ROW_NUMBER() OVER (
 
@@ -389,12 +118,11 @@ QUALIFY ROW_NUMBER() OVER (
 
     ORDER BY
         t.VALOR_TRANSACCION DESC,
-        t.FECHA_PROCESO DESC
+        t.FECHA_APLICACION DESC
 
 ) = 1
 
 ORDER BY
     a.KEY_ID_TOMADOR,
     a.TIPO_DOCUMENTO_TOMADOR,
-    a.ANO_MES
-
+    a.ANO_MES;
