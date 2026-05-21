@@ -1,66 +1,67 @@
 WITH alertas_filtradas AS (
 
     SELECT
-        NUMERO_POLIZA,
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(NUMERO_POLIZA AS STRING)),
+            r'\\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
+
         KEY_ID_TOMADOR,
         TIPO_DOCUMENTO_TOMADOR,
         ANO_MES,
-        Justificacion_Anomalia,
         anomaly_score,
-
-        CAST(
-            FLOOR(SAFE_CAST(NUMERO_POLIZA AS INT64) / 100)
-            AS INT64
-        ) AS NUMERO_CUENTA_FONDO_ALERTA
+        Justificacion_Anomalia
 
     FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pj`
 
-    WHERE ANO_MES = (
-        SELECT MAX(ANO_MES)
-        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pj`
-    )
-
-    AND causa_principal != 'Comportamiento normal'
+    WHERE causa_principal != 'Comportamiento normal'
 
     AND TIPO_DOCUMENTO_TOMADOR IN ('NIT', 'NT', 'NE')
+
+    AND NUMERO_POLIZA IS NOT NULL
 ),
 
-aportes_extraordinarios AS (
+compensaciones_uiaf AS (
 
     SELECT
-        NUMERO_CUENTA_FONDO,
-        VALOR_TRANSACCION,
-        FECHA_APLICACION,
-        CODIGO_COMPANIA
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(NUMERO_POLIZA AS STRING)),
+            r'\\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
 
-    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
+        VALOR_PESOS_COLOMBIANOS AS VALOR_TRANSACCION,
 
-    WHERE FECHA_PROCESO >= '2026-03-01'
-),
+        FECHA_OPERACION AS FECHA_APLICACION,
 
-polizas_objetivo AS (
+        CODIGO_COMPANIA,
 
-    SELECT DISTINCT NUMERO_POLIZA
+        CODIGO_ANULACION
 
-    FROM alertas_filtradas
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf`
+
+    WHERE NUMERO_POLIZA IS NOT NULL
 ),
 
 polizas_recientes AS (
 
     SELECT
         p.CODIGO_COMPANIA,
-        p.NUMERO_POLIZA,
+
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(p.NUMERO_POLIZA AS STRING)),
+            r'\\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
+
         p.NOMBRE_PRODUCTO AS NOMBRE_PRODUCTO_POLIZA,
+
         p.MARCA_ANULACION,
+
         p.FECHA_PROCESO
 
     FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
-
-    INNER JOIN polizas_objetivo o
-
-        ON SAFE_CAST(p.NUMERO_POLIZA AS STRING)
-        =
-        SAFE_CAST(o.NUMERO_POLIZA AS STRING)
 
     QUALIFY ROW_NUMBER() OVER (
 
@@ -95,21 +96,19 @@ SELECT
 
 FROM alertas_filtradas a
 
-INNER JOIN aportes_extraordinarios t
+INNER JOIN compensaciones_uiaf t
 
-    ON a.NUMERO_CUENTA_FONDO_ALERTA
-    =
-    SAFE_CAST(t.NUMERO_CUENTA_FONDO AS INT64)
+    ON a.NUMERO_POLIZA = t.NUMERO_POLIZA
 
 INNER JOIN polizas_recientes p
 
-    ON SAFE_CAST(a.NUMERO_POLIZA AS STRING)
-    =
-    SAFE_CAST(p.NUMERO_POLIZA AS STRING)
+    ON a.NUMERO_POLIZA = p.NUMERO_POLIZA
 
-WHERE p.MARCA_ANULACION != 'S'
+WHERE IFNULL(p.MARCA_ANULACION,'N') != 'S'
 
-AND t.VALOR_TRANSACCION >= 3056841
+AND IFNULL(SAFE_CAST(t.CODIGO_ANULACION AS STRING), 'N') != 'S'
+
+AND t.VALOR_TRANSACCION >= 1000
 
 QUALIFY ROW_NUMBER() OVER (
 
