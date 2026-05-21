@@ -1,0 +1,118 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.CAP_ANOMALY_001`
+(
+    CODIGO_COMPANIA,
+    TIPO_DOCUMENTO,
+    NUMERO_TITULO,
+    KEY_ID_TOMADOR,
+    VALOR_TRANSACCION,
+    FECHA_APLICACION,
+    ANO_MES,
+    anomaly_score,
+    Justificacion_Anomalia
+)
+
+WITH alertas_filtradas AS (
+
+    SELECT
+        NUMERO_TITULO,
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO,
+        ANO_MES,
+        Justificacion_Anomalia,
+        anomaly_score
+
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_cap`
+
+    WHERE ANO_MES = (
+        SELECT MAX(ANO_MES)
+        FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_cap`
+    )
+    AND causa_principal != 'Comportamiento normal'
+),
+
+movimientos_cap AS (
+
+    SELECT
+        NUMERO_TITULO,
+        FECHA_TRANSACCION AS FECHA_APLICACION,
+        VALOR_TRANSACCION,
+        CODIGO_COMPANIA
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora`
+
+    WHERE FECHA_TRANSACCION BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+                                AND CURRENT_DATE()
+),
+
+titulos_recientes AS (
+
+    SELECT
+        t.TITULO,
+        t.FECHA_CORTE,
+        t.FECHA_EMISION,
+        t.FECHA_REHABILITACION,
+        t.FECHA_ULT_CUOTA
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` t
+
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY t.TITULO
+        ORDER BY t.FECHA_CORTE DESC
+    ) = 1
+),
+
+base_insert AS (
+
+    SELECT
+        m.CODIGO_COMPANIA,
+        a.TIPO_DOCUMENTO,
+        a.NUMERO_TITULO,
+        a.KEY_ID_TOMADOR,
+        m.VALOR_TRANSACCION,
+        m.FECHA_APLICACION,
+        a.ANO_MES,
+        a.anomaly_score,
+        a.Justificacion_Anomalia
+
+    FROM alertas_filtradas a
+
+    INNER JOIN movimientos_cap m
+        ON SAFE_CAST(a.NUMERO_TITULO AS STRING) = SAFE_CAST(m.NUMERO_TITULO AS STRING)
+
+    INNER JOIN titulos_recientes t
+        ON SAFE_CAST(a.NUMERO_TITULO AS STRING) = SAFE_CAST(t.TITULO AS STRING)
+
+    WHERE m.VALOR_TRANSACCION >= 500000.0
+      AND m.FECHA_APLICACION >= DATE '2026-03-01'
+
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY
+            a.KEY_ID_TOMADOR,
+            a.ANO_MES
+        ORDER BY
+            m.VALOR_TRANSACCION DESC,
+            m.FECHA_APLICACION DESC
+    ) = 1
+)
+
+SELECT
+    b.CODIGO_COMPANIA,
+    b.TIPO_DOCUMENTO,
+    b.NUMERO_TITULO,
+    b.KEY_ID_TOMADOR,
+    b.VALOR_TRANSACCION,
+    b.FECHA_APLICACION,
+    b.ANO_MES,
+    b.anomaly_score,
+    b.Justificacion_Anomalia
+
+FROM base_insert b
+
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.CAP_ANOMALY_001` tgt
+    WHERE SAFE_CAST(tgt.KEY_ID_TOMADOR AS STRING) = SAFE_CAST(b.KEY_ID_TOMADOR AS STRING)
+      AND SAFE_CAST(tgt.TIPO_DOCUMENTO AS STRING) = SAFE_CAST(b.TIPO_DOCUMENTO AS STRING)
+      AND DATE(tgt.FECHA_APLICACION) = DATE(b.FECHA_APLICACION)
+      AND SAFE_CAST(tgt.VALOR_TRANSACCION AS NUMERIC) = SAFE_CAST(b.VALOR_TRANSACCION AS NUMERIC)
+);
