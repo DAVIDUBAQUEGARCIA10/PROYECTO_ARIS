@@ -5,13 +5,8 @@ WITH alertas_filtradas AS (
         KEY_ID_TOMADOR,
         TIPO_DOCUMENTO_TOMADOR,
         ANO_MES,
-        Justificacion_Anomalia,
         anomaly_score,
-
-        CAST(
-            FLOOR(SAFE_CAST(NUMERO_POLIZA AS INT64) / 100)
-            AS INT64
-        ) AS NUMERO_CUENTA_FONDO_ALERTA
+        Justificacion_Anomalia
 
     FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pn`
 
@@ -23,22 +18,24 @@ WITH alertas_filtradas AS (
     AND causa_principal != 'Comportamiento normal'
 ),
 
-aportes_extraordinarios AS (
+compensaciones_uiaf AS (
 
     SELECT
-        NUMERO_CUENTA_FONDO,
-        VALOR_TRANSACCION,
-        FECHA_APLICACION,
-        CODIGO_COMPANIA
+        NUMERO_POLIZA,
+        VALOR_PESOS_COLOMBIANOS AS VALOR_TRANSACCION,
+        FECHA_OPERACION AS FECHA_APLICACION,
+        CODIGO_COMPANIA,
+        CODIGO_ANULACION
 
-    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf`
 
-    WHERE FECHA_PROCESO >= '2026-03-01'
+    WHERE FECHA_OPERACION >= '2026-03-01'
 ),
 
 polizas_objetivo AS (
 
-    SELECT DISTINCT NUMERO_POLIZA
+    SELECT DISTINCT
+        NUMERO_POLIZA
 
     FROM alertas_filtradas
 ),
@@ -93,11 +90,11 @@ SELECT
 
 FROM alertas_filtradas a
 
-INNER JOIN aportes_extraordinarios t
+INNER JOIN compensaciones_uiaf t
 
-    ON a.NUMERO_CUENTA_FONDO_ALERTA
+    ON SAFE_CAST(a.NUMERO_POLIZA AS STRING)
     =
-    SAFE_CAST(t.NUMERO_CUENTA_FONDO AS INT64)
+    SAFE_CAST(t.NUMERO_POLIZA AS STRING)
 
 INNER JOIN polizas_recientes p
 
@@ -106,6 +103,8 @@ INNER JOIN polizas_recientes p
     SAFE_CAST(p.NUMERO_POLIZA AS STRING)
 
 WHERE p.MARCA_ANULACION != 'S'
+
+AND IFNULL(SAFE_CAST(t.CODIGO_ANULACION AS STRING), 'N') != 'S'
 
 AND t.VALOR_TRANSACCION >= 3056841
 
