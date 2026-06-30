@@ -1,0 +1,236 @@
+# GCP  - Tabla productiva para API
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: Servicio_consulta_Listas
+
+## Contenido
+
+```
+CREATE OR REPLACE TABLE
+  `sb-sandbox-usuarios.sandbox_cumplimiento.consulta_integral_restringidos` AS
+
+/* ------------------------------------------------------
+   0) Catálogo de homologación de tipos de documento (PN)
+   COD_TIPO_IDENTIFICACION (numérico) -> TIPO_IDENTIFICACION (letras)
+   ------------------------------------------------------ */
+WITH CAT_TIPO_DOC AS (
+  SELECT '1'  AS COD, 'TI'   AS TIPO_IDENTIFICACION UNION ALL
+  SELECT '2',  'CFT' UNION ALL
+  SELECT '3',  'null' UNION ALL
+  SELECT '4',  'NT'  UNION ALL   -- antes NIT, ahora NT
+  SELECT '5',  'SE'  UNION ALL
+  SELECT '6',  'NITE' UNION ALL
+  SELECT '7',  'FD'  UNION ALL
+  SELECT '8',  'NITM' UNION ALL
+  SELECT '9',  'NITN' UNION ALL
+  SELECT '10', 'PA'  UNION ALL
+  SELECT '11', 'PE'  UNION ALL
+  SELECT '12', 'CC'  UNION ALL
+  SELECT '13', 'RC'  UNION ALL
+  SELECT '14', 'CE'
+)
+
+/* ------------------------------------------------------
+   1) PN_DATOS_BASICOS: última fila por KEY_ID (fecha más reciente)
+   ------------------------------------------------------ */
+, PN_BASE AS (
+  SELECT
+    'PN_DATOS_BASICOS' AS BASE_DATOS,                    -- Origen
+    CAST(pn.KEY_ID AS STRING) AS KEY_ID,                 -- Llave del cliente
+
+    /* Código original numérico (ID) */
+    CAST(pn.COD_TIPO_IDENTIFICACION AS STRING) AS COD_TIPO_IDENTIFICACION_ORIGINAL,
+
+    /* Tipo de identificación homologado a letras (TI, CC, NT, etc.) */
+    cat.TIPO_IDENTIFICACION AS TIPO_IDENTIFICACION,
+
+    CAST(pn.COD_AREA_RESTRICCION AS STRING) AS COD_AREA_RESTRICCION,
+    CAST(pn.DESCRIPCION_AREA_RESTRICCION AS STRING) AS DESCRIPCION_AREA_RESTRICCION,
+    CAST(pn.FLG_CLIENTE_LISTAS_RESTRICTIVAS AS STRING) AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    CAST(pn.FLG_CLIENTE_PEPS AS STRING) AS FLG_CLIENTE_PEPS,
+    PARSE_DATE('%Y-%m-%d', CAST(pn.MES_ULTIMA_ACTULIZACION AS STRING)) AS FECHA_MES
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_pn_datos_basicos` pn
+  LEFT JOIN CAT_TIPO_DOC cat
+    ON cat.COD = CAST(pn.COD_TIPO_IDENTIFICACION AS STRING)
+  WHERE pn.COD_AREA_RESTRICCION IS NOT NULL
+    AND pn.FLG_CLIENTE_LISTAS_RESTRICTIVAS IS NOT NULL
+    AND pn.FLG_CLIENTE_PEPS IS NOT NULL
+    AND pn.FLG_PERSONA_POLITICA_EXPUESTA IS NOT NULL
+    AND pn.MES_ULTIMA_ACTULIZACION IS NOT NULL
+),
+
+PN_ORDENADO AS (
+  SELECT
+    PN_BASE.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY KEY_ID               -- Un registro por cliente
+      ORDER BY FECHA_MES DESC           -- El más reciente
+    ) AS RN
+  FROM PN_BASE
+),
+
+PN_FILTRADO AS (
+  SELECT
+    BASE_DATOS,
+    KEY_ID,
+    TIPO_IDENTIFICACION,                -- ya viene homologado (incluye NT)
+    COD_TIPO_IDENTIFICACION_ORIGINAL,
+    COD_AREA_RESTRICCION,
+    DESCRIPCION_AREA_RESTRICCION,
+    FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    FLG_CLIENTE_PEPS,
+    FECHA_MES
+  FROM PN_ORDENADO
+  WHERE RN = 1
+)
+
+/* ------------------------------------------------------
+   2) UNION ALL de las 3 fuentes (detalle por fila)
+   ------------------------------------------------------ */
+, UNION_TRES AS (
+  /* ----------------------------
+     A) RESTRINGIDOS (solo activos: FECHA_BAJA no es nula)
+     ---------------------------- */
+  SELECT
+    'RESTRINGIDOS' AS SOURCE,
+    CAST(KEY_ID AS STRING) AS KEY_ID,
+    /* Normalizamos NIT -> NT */
+    CASE 
+      WHEN TIPO_DOCUMENTO_TERCERO = 'NIT' THEN 'NT'
+      ELSE CAST(TIPO_DOCUMENTO_TERCERO AS STRING)
+    END AS TIPO_IDENTIFICACION,
+    '' AS COD_AREA_RESTRICCION,
+    '' AS DESCRIPCION_AREA_RESTRICCION,
+    '' AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    '' AS FLG_CLIENTE_PEPS,
+    CAST(CODIGO_RESTRICCION AS STRING) AS CODIGO_RESTRICCION,
+    CAST(DESCRIPCION AS STRING) AS DESCRIPCION_RESTRICCION,
+    CAST(FECHA_MODIFICACION AS STRING) AS FECHA_REFERENCIA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE FECHA_BAJA IS NOT NULL
+
+  UNION ALL
+
+  /* ----------------------------
+     B) PN_DATOS_BASICOS (última fecha por KEY_ID)
+     ---------------------------- */
+  SELECT
+    BASE_DATOS,                           -- valor: 'PN_DATOS_BASICOS' (se verá como SOURCE)
+    KEY_ID,
+    TIPO_IDENTIFICACION,                 -- YA EN LETRAS (incluye NT)
+    COD_AREA_RESTRICCION,
+    DESCRIPCION_AREA_RESTRICCION,
+    FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    FLG_CLIENTE_PEPS,
+    '' AS CODIGO_RESTRICCION,
+    '' AS DESCRIPCION_RESTRICCION,
+    CAST(FECHA_MES AS STRING) AS FECHA_REFERENCIA
+  FROM PN_FILTRADO
+
+  UNION ALL
+
+  /* ----------------------------
+     C) PJ_DATOS_BASICOS
+     ---------------------------- */
+  SELECT
+    'PJ_DATOS_BASICOS' AS SOURCE,
+    CAST(KEY_ID AS STRING) AS KEY_ID,
+    /* Dejamos el CAST, pero normalizando NIT -> NT */
+    CASE 
+      WHEN TIPO_IDENTIFICACION = 'NIT' THEN 'NT'
+      ELSE CAST(TIPO_IDENTIFICACION AS STRING)
+    END AS TIPO_IDENTIFICACION,
+    CAST(COD_AREA_REPORTE_RESTRICCION AS STRING) AS COD_AREA_RESTRICCION,
+    CAST(AREA_REPORTE_RESTRICCION AS STRING) AS DESCRIPCION_AREA_RESTRICCION,
+    CAST(FLG_CLIENTE_LISTAS_RESTRICTIVAS AS STRING) AS FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    '' AS FLG_CLIENTE_PEPS,
+    '' AS CODIGO_RESTRICCION,
+    '' AS DESCRIPCION_RESTRICCION,
+    CAST(FECHA_VINCULACION AS STRING) AS FECHA_REFERENCIA
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_pj_datos_basicos`
+  WHERE COD_AREA_REPORTE_RESTRICCION IS NOT NULL
+    AND FLG_CLIENTE_LISTAS_RESTRICTIVAS IS NOT NULL
+)
+
+/* ------------------------------------------------------
+   3) Agregación por KEY_ID: una sola fila por cliente
+   ------------------------------------------------------ */
+SELECT
+  /* SOURCE: concatenamos los orígenes donde aparece el cliente */
+  STRING_AGG(DISTINCT SOURCE, ' + ') AS BASE_DATOS,
+
+    /* TIPO_IDENTIFICACION: tomamos cualquiera no vacía */
+  MAX(
+    CASE
+      WHEN TIPO_IDENTIFICACION IS NOT NULL AND TIPO_IDENTIFICACION != '' THEN TIPO_IDENTIFICACION
+    END
+  ) AS TIPO_IDENTIFICACION,
+
+  KEY_ID,
+  /* Restricciones: concatenamos por si hay más de una */
+  STRING_AGG(
+    DISTINCT CASE 
+      WHEN CODIGO_RESTRICCION IS NOT NULL AND CODIGO_RESTRICCION != '' 
+      THEN CODIGO_RESTRICCION 
+    END,
+    ', '
+  ) AS CODIGO_RESTRICCION,
+
+  STRING_AGG(
+    DISTINCT CASE 
+      WHEN DESCRIPCION_RESTRICCION IS NOT NULL AND DESCRIPCION_RESTRICCION != '' 
+      THEN DESCRIPCION_RESTRICCION 
+    END,
+    ' | '
+  ) AS DESCRIPCION_RESTRICCION,
+
+
+
+  MAX(
+    CASE
+      WHEN FLG_CLIENTE_LISTAS_RESTRICTIVAS IS NOT NULL AND FLG_CLIENTE_LISTAS_RESTRICTIVAS != '' THEN FLG_CLIENTE_LISTAS_RESTRICTIVAS
+    END
+  ) AS FLG_CLIENTE_LISTAS_RESTRICTIVAS_CENTRALIZADOR,
+
+  /* Datos de área / listas / peps: tomamos el valor no vacío */
+  MAX(
+    CASE
+      WHEN COD_AREA_RESTRICCION IS NOT NULL AND COD_AREA_RESTRICCION != '' THEN COD_AREA_RESTRICCION
+    END
+  ) AS COD_AREA_RESTRICCION_CENTRALIZADOR,
+
+  MAX(
+    CASE
+      WHEN DESCRIPCION_AREA_RESTRICCION IS NOT NULL AND DESCRIPCION_AREA_RESTRICCION != '' THEN DESCRIPCION_AREA_RESTRICCION
+    END
+  ) AS DESCRIPCION_AREA_RESTRICCION_CENTRALIZADOR,
+
+
+
+  MAX(
+    CASE
+      WHEN FLG_CLIENTE_PEPS IS NOT NULL AND FLG_CLIENTE_PEPS != '' THEN FLG_CLIENTE_PEPS
+    END
+  ) AS FLG_CLIENTE_PEPS_CENTRALIZADOR,
+
+
+
+  /* Fecha de referencia: la más reciente (YYYY-MM-DD) */
+  MAX(FECHA_REFERENCIA) AS FECHA_REFERENCIA
+
+FROM UNION_TRES
+GROUP BY 
+  KEY_ID
+;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: GCP  - Tabla productiva para API

@@ -1,0 +1,97 @@
+# Siniestros
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Siniestros
+
+## Codigo SQL
+
+```sql
+
+SELECT
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_CONTABLE,
+    NOMBRE_RAMO_CONTABLE,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CODIGO_SUBPRODUCTO,
+    NOMBRE_SUBPRODUCTO,
+    NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    NUMERO_POLIZA_MADRE,
+    NUMERO_CREDITO,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    TIPO_DOCUMENTO_ASEGURADO,
+    KEY_ID_ASEGURADO,
+    KEY_ID_BENEFICIARIO,
+    MARCA_REFERIDO,
+    CODIGO_RIESGO,
+    NUMERO_SINIESTRO,
+    CODIGO_MUNICIPIO_SINIESTRO,
+    MUNICIPIO_SINIESTRO,
+    DEPARTAMENTO_SINIESTRO,
+    CODIGO_CAUSA,
+    DESCRIPCION_CAUSA,
+    FECHA_SUSCRIPCION,
+    FECHA_SINIESTRO,
+    FECHA_AVISO,
+    FECHA_EQUIPO,
+    FECHA_MOVIMIENTO,
+    NUMERO_MOVIMIENTO_SINIESTRO,
+    CODIGO_COBERTURA,
+    NOMBRE_COBERTURA,
+    EXPEDIENTE,
+    NOMBRE_EXPEDIENTE,
+    CODIGO_CONCEPTO_RESERVA,
+    NOMBRE_CONCEPTO_RESERVA,
+    CODIGO_CONCEPTO_LIQUIDACION,
+    NOMBRE_CONCEPTO_LIQUIDACION,
+    INCURRIDO_BOLIVAR,
+    INCURRIDO_COASEGURO,
+    LIQUIDADO_BOLIVAR,
+    LIQUIDADO_COASEGURO,
+    INCURRIDO_REA_PROP_CONTRATOS,
+    INCURRIDO_REA_PROP_FACULTATIVO,
+    LIQUIDADO_REA_PROP_CONTRATOS,
+    LIQUIDADO_REA_PROP_FACULTATIVO,
+    ESTADO_SINIESTRO_CALCULADO,
+    TIPO_RIESGO_UIFA,
+    ESTADO_SINIESTRO,
+    ESTADO_RESERVA,
+    DESCRIPCION_SINIESTRO,
+    CODIGO_CAUSA_OBJECION,
+    DESCRIPCION_CAUSA_OBJECION,
+    CODIGO_GESTOR,
+    CODIGO_CANAL,
+    FECHA_ORDEN_PAGO,
+    FECHA_PROCESO
+FROM
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`;
+
+
+
+---------------
+select * 
+from t_siniestros 
+
+--Contiene todos los movimientos realizados a los siniestros de Seguros Bolívar y 
+Comerciales Bolivar Por cada póliza, siniestro, riesgo, cobertura, 
+expediente y código de liquidación hay un registro
+
+
+select * 
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros
+where FECHA_SINIESTRO >= "2024-07-01" and FECHA_PROCESO >="2024-07-01"
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

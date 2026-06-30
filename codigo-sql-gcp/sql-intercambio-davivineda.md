@@ -1,0 +1,56 @@
+# Intercambio Davivineda
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+SELECT DISTINCT A.COD_CIA, 
+                A.TDOC_TERCERO,  
+                A.NRO_DOCUMTO,  
+                J.DIGITO_CHEQUEO,  
+                CONCAT(A.NRO_DOCUMTO, J.DIGITO_CHEQUEO) AS NRO_DOC_COMPLETO
+FROM A2000030 A
+LEFT JOIN JURIDICOS J 
+    ON A.NRO_DOCUMTO = J.NUMERO_DOCUMENTO
+WHERE A.FECHA_VENC_POL >= '01/03/25'
+  AND A.TDOC_TERCERO IN ('NT', 'NE');
+
+CAPITALIZADORA
+
+SELECT * 
+FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora
+WHERE fecha_corte = (
+    SELECT MAX(fecha_corte) 
+    FROM sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora
+) AND tipo_documento NOT IN ("CE","CC","CF","TI","PP");
+
+
+
+
+SELECT DISTINCT 
+    A.COD_CIA, 
+    A.TDOC_TERCERO,  
+    A.NRO_DOCUMTO,  
+    J.DIGITO_CHEQUEO,  
+    CONCAT(A.NRO_DOCUMTO, J.DIGITO_CHEQUEO) AS NRO_DOC_COMPLETO
+FROM A2000030 A
+LEFT JOIN JURIDICOS J 
+    ON A.NRO_DOCUMTO = J.NUMERO_DOCUMENTO
+WHERE A.NRO_DOCUMTO IN (
+    900041040, 900250120,....
+
+
+);
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

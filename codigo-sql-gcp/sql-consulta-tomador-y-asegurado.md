@@ -1,0 +1,39 @@
+# Consulta Tomador Y Asegurado
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Clientes
+
+## Codigo SQL
+
+```sql
+--consulta es como tomador de negocios de tronador  (polizas)
+select 'Tomador' marca,num_Pol1,cod_secc,cod_ramo,num_secu_pol,fecha_vig_pol,fecha_venc_pol,num_end,tipo_end,cod_end,sub_cod_end,desc_pol
+from   a2000030 p
+where  nro_documto = 1014282242
+and  tdoc_tercero = 'CC'
+and  p.num_end = (select max(p1.num_end)
+                  from   a2000030 p1
+                  where  p1.num_secu_pol = p.num_secu_pol)
+union
+--consulta es como asegurado de negocios de tronador  (polizas)
+select 'Asegurado' marca,num_Pol1,cod_secc,cod_ramo,num_secu_pol,fecha_vig_pol,fecha_venc_pol,num_end,tipo_end,cod_end,sub_cod_end,desc_pol
+from   a2000030 p
+where  p.num_end = (select max(p1.num_end)
+                    from   a2000030 p1
+                    where  p1.num_secu_pol = p.num_secu_pol)
+  and  exists (select 1
+               from   a2001300 a
+               where   a.num_secu_pol = p.num_secu_pol
+                 and   a.cod_aseg = 1014282242
+                 and   a.tdoc_tercero = 'CC')
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

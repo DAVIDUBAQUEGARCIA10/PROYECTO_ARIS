@@ -1,0 +1,96 @@
+# Beneficiario Final Davivienda
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Beneficiarios
+
+## Codigo SQL
+
+```sql
+select * 
+from `sb-ecosistemaanalitico-lago`.davivienda.t_individuos_relacionados_pn_pj
+
+
+
+
+SELECT 
+    a.TIPO_DOCUMENTO_CLIENTE,
+    LPAD(a.KEY_ID_CLIENTE, 9, '0') AS KEY_ID_CLIENTE,
+    a.TIPO_DOCUMENTO_RELACIONADO,
+    a.KEY_ID_RELACIONADO,
+    a.PORCENTAJE_PARTICIPACION_SOCIO,
+    a.FECHA_INICIO_VIGENCIA,
+    b.NUMERO_DOCUMENTO,
+    b.NOMBRE
+FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj` AS a
+LEFT JOIN (
+    SELECT DISTINCT
+        TIPO_DOCUMENTO,
+        LPAD(KEY_ID, 9, '0') AS KEY_ID,
+        NUMERO_DOCUMENTO,
+        NOMBRE
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+) AS b
+    ON a.TIPO_DOCUMENTO_RELACIONADO = b.TIPO_DOCUMENTO
+   AND LPAD(a.KEY_ID_RELACIONADO, 9, '0') = b.KEY_ID
+WHERE a.PORCENTAJE_PARTICIPACION_SOCIO > 0
+  AND LPAD(a.KEY_ID_CLIENTE, 9, '0') IN (
+    '800003764',
+    '800047882',
+    '800062607',
+    '901912858',
+    '901913804',
+    '901929057',
+    '901932271',
+    '901943915',
+    '995062400'
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+create or replace table sb-sandbox-usuarios.sandbox_cumplimiento.t_beneficiariodavivienda_prueba as 
+SELECT 
+    a.TIPO_DOCUMENTO_CLIENTE,
+    LPAD(a.KEY_ID_CLIENTE, 9, '0') AS KEY_ID_CLIENTE,
+    a.TIPO_DOCUMENTO_RELACIONADO,
+    a.KEY_ID_RELACIONADO,
+    a.PORCENTAJE_PARTICIPACION_SOCIO,
+    a.FECHA_INICIO_VIGENCIA,
+    b.NUMERO_DOCUMENTO,
+    b.NOMBRE,
+    a.ESTADO_DATO,
+FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj` AS a
+LEFT JOIN (
+    SELECT DISTINCT
+        TIPO_DOCUMENTO,
+        LPAD(KEY_ID, 9, '0') AS KEY_ID,
+        NUMERO_DOCUMENTO,
+        NOMBRE
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+) AS b
+    ON a.TIPO_DOCUMENTO_RELACIONADO = b.TIPO_DOCUMENTO
+   AND LPAD(a.KEY_ID_RELACIONADO, 9, '0') = b.KEY_ID
+WHERE a.PORCENTAJE_PARTICIPACION_SOCIO > 0 and NUMERO_DOCUMENTO is not null
+  AND LPAD(a.KEY_ID_CLIENTE, 9, '0') IN (
+'171608099',
+'297833278',
+'681202923',
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

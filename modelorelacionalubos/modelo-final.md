@@ -1,0 +1,202 @@
+# Modelo final
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: Modelo_relacional_UBOS
+
+## Contenido
+
+```
+WITH RECURSIVE
+
+params AS (
+  SELECT DISTINCT
+    TIPO_DOCUMENTO   AS raiz_tipo_documento,
+    NUMERO_DOCUMENTO AS raiz_numero_documento
+  FROM base
+  WHERE NUMERO_DOCUMENTO = '900420438'
+    AND TIPO_DOCUMENTO = 'NT'
+),
+
+
+cfg AS (
+  SELECT 10 AS p_max_niveles
+),
+
+base AS (
+  SELECT
+    TIPO_DOCUMENTO,
+    NUMERO_DOCUMENTO,
+
+    CODIGO_RESTRICCION_TITULAR,
+    DESCRIPCION_RESTRICCION_TITULAR,
+
+    TIPO_DOCUMENTO_RELACIONADO_DAV,
+    CAST(KEY_ID_RELACIONADO_DAV AS STRING) AS KEY_ID_RELACIONADO_DAV_STR,
+    SAFE_CAST(PORCENTAJE_RELACIONADO_DAV AS NUMERIC) AS PORCENTAJE_RELACIONADO_DAV,
+
+    LINAJE_BENEFICIARIO,
+    NIVEL,
+
+    CODIGO_RESTRICCION_RELACIONADO,
+    DESCRIPCION_RESTRICCION_RELACIONADO,
+
+    ALERTAS_TITULAR,
+    ALERTAS_RELACIONADO,
+    PERIODO_CONSULTADO_TITULAR,
+    PRODUCTO_TITULAR,
+    PERIODO_CONSULTADO_RELACIONADO,
+    PRODUCTO_RELACIONADO,
+    NIVEL_PROXIMIDAD,
+
+    CONCAT(TIPO_DOCUMENTO_RELACIONADO_DAV, ':', CAST(KEY_ID_RELACIONADO_DAV AS STRING)) AS nodo_relacionado
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional`
+  WHERE TIPO_DOCUMENTO IS NOT NULL
+    AND NUMERO_DOCUMENTO IS NOT NULL
+),
+
+
+frontier AS (
+  SELECT
+    p.raiz_tipo_documento,
+    p.raiz_numero_documento,
+    p.raiz_tipo_documento   AS padre_tipo_documento,
+    p.raiz_numero_documento AS padre_numero_documento,
+    0 AS nivel_recursivo,
+    [ CONCAT(p.raiz_tipo_documento, ':', p.raiz_numero_documento) ] AS path
+  FROM params p
+
+  UNION ALL
+
+  SELECT
+    f.raiz_tipo_documento,
+    f.raiz_numero_documento,
+    b.TIPO_DOCUMENTO_RELACIONADO_DAV AS padre_tipo_documento,
+    b.KEY_ID_RELACIONADO_DAV_STR      AS padre_numero_documento,
+    f.nivel_recursivo + 1             AS nivel_recursivo,
+    ARRAY_CONCAT(f.path, [ b.nodo_relacionado ]) AS path
+  FROM frontier f
+  JOIN cfg c ON TRUE
+  JOIN base b
+    ON b.TIPO_DOCUMENTO   = f.padre_tipo_documento
+   AND b.NUMERO_DOCUMENTO = f.padre_numero_documento
+  WHERE
+    f.nivel_recursivo < c.p_max_niveles
+    AND b.TIPO_DOCUMENTO_RELACIONADO_DAV IN ('NT','NE')
+    AND b.KEY_ID_RELACIONADO_DAV_STR IS NOT NULL
+    AND b.KEY_ID_RELACIONADO_DAV_STR <> ''
+    AND NOT b.nodo_relacionado IN UNNEST(f.path)
+),
+
+final AS (
+  SELECT
+    f.raiz_tipo_documento,
+    f.raiz_numero_documento,
+    f.padre_tipo_documento,
+    f.padre_numero_documento,
+    f.nivel_recursivo,
+
+    b.TIPO_DOCUMENTO,
+    b.NUMERO_DOCUMENTO,
+    b.CODIGO_RESTRICCION_TITULAR,
+    b.DESCRIPCION_RESTRICCION_TITULAR,
+    b.TIPO_DOCUMENTO_RELACIONADO_DAV,
+    b.KEY_ID_RELACIONADO_DAV_STR AS KEY_ID_RELACIONADO_DAV,
+    b.PORCENTAJE_RELACIONADO_DAV,
+    b.LINAJE_BENEFICIARIO,
+    b.NIVEL,
+    b.CODIGO_RESTRICCION_RELACIONADO,
+    b.DESCRIPCION_RESTRICCION_RELACIONADO,
+
+    b.ALERTAS_TITULAR,
+    b.ALERTAS_RELACIONADO,
+    b.PERIODO_CONSULTADO_TITULAR,
+    b.PRODUCTO_TITULAR,
+    b.PERIODO_CONSULTADO_RELACIONADO,
+    b.PRODUCTO_RELACIONADO,
+    b.NIVEL_PROXIMIDAD
+  FROM frontier f
+  LEFT JOIN base b
+    ON b.TIPO_DOCUMENTO   = f.padre_tipo_documento
+   AND b.NUMERO_DOCUMENTO = f.padre_numero_documento
+  WHERE b.TIPO_DOCUMENTO_RELACIONADO_DAV IS NOT NULL
+    AND b.KEY_ID_RELACIONADO_DAV_STR IS NOT NULL
+)
+
+SELECT
+  -- ✅ CONTEXTO DE CONSULTA (RAÍZ)
+  f.raiz_tipo_documento,
+  f.raiz_numero_documento,
+
+  -- ✅ PADRE CONSULTADO
+  f.padre_tipo_documento,
+  f.padre_numero_documento,
+
+  -- ✅ RELACIONADO DETONADO DESDE ESE PADRE
+  f.TIPO_DOCUMENTO_RELACIONADO_DAV,
+  f.KEY_ID_RELACIONADO_DAV,
+
+  -- ✅ CONTEO / NIVEL DEL DESGLOSE
+  f.nivel_recursivo AS NIVEL_DESGLOSE,
+  MAX(f.nivel_recursivo) OVER (
+    PARTITION BY f.raiz_tipo_documento, f.raiz_numero_documento
+  ) AS MAX_NIVEL_DESGLOSE,
+
+  -- (lo demás)
+  f.CODIGO_RESTRICCION_TITULAR,
+  f.DESCRIPCION_RESTRICCION_TITULAR,
+  f.PORCENTAJE_RELACIONADO_DAV,
+  f.LINAJE_BENEFICIARIO,
+  f.NIVEL,
+  f.CODIGO_RESTRICCION_RELACIONADO,
+  f.DESCRIPCION_RESTRICCION_RELACIONADO,
+  f.ALERTAS_TITULAR,
+  f.ALERTAS_RELACIONADO,
+  f.PERIODO_CONSULTADO_TITULAR,
+  f.PRODUCTO_TITULAR,
+  f.PERIODO_CONSULTADO_RELACIONADO,
+  f.PRODUCTO_RELACIONADO,
+  f.NIVEL_PROXIMIDAD
+
+FROM final f
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY
+    raiz_tipo_documento,
+    raiz_numero_documento,
+    padre_tipo_documento,
+    padre_numero_documento,
+    TIPO_DOCUMENTO_RELACIONADO_DAV,
+    KEY_ID_RELACIONADO_DAV
+  ORDER BY
+    nivel_recursivo ASC,
+    PORCENTAJE_RELACIONADO_DAV DESC,
+    TIPO_DOCUMENTO,
+    NUMERO_DOCUMENTO
+) = 1
+
+ORDER BY
+  raiz_tipo_documento,
+  raiz_numero_documento,
+  NIVEL_DESGLOSE,
+  padre_tipo_documento,
+  padre_numero_documento,
+  CASE
+    WHEN f.NIVEL_PROXIMIDAD = 'ALTO'  THEN 1
+    WHEN f.NIVEL_PROXIMIDAD = 'MEDIO' THEN 2
+    WHEN f.NIVEL_PROXIMIDAD = 'BAJO'  THEN 3
+    ELSE 4
+  END,
+  TIPO_DOCUMENTO_RELACIONADO_DAV,
+  KEY_ID_RELACIONADO_DAV;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: Modelo final

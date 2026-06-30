@@ -1,0 +1,41 @@
+# Intercambio Seguros
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+SELECT 
+  DISTINCT 
+  -- Tipo de identificación
+  CASE 
+    WHEN UPPER(m.exrf_cod_tip_doc) = 'CC' THEN '01'
+    WHEN UPPER(m.exrf_cod_tip_doc) = 'CE' THEN '02'
+    WHEN UPPER(m.exrf_cod_tip_doc) IN ('NIT', 'NI', 'NT') THEN '03'
+    ELSE '01'
+  END AS Tipo_identificacion,
+
+  -- Concatenación segura: ambos campos convertidos a texto
+  CASE 
+    WHEN j.DIGITO_CHEQUEO IS NOT NULL 
+      THEN TO_CHAR(m.exrf_num_id_cliente) || TO_CHAR(j.DIGITO_CHEQUEO)
+    ELSE TO_CHAR(m.exrf_num_id_cliente)
+  END AS Numero_de_identificacion
+
+FROM 
+  dc_ext_revisoria_fiscal m
+LEFT JOIN 
+  JURIDICOS j 
+  ON m.exrf_num_id_cliente = j.NUMERO_DOCUMENTO;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

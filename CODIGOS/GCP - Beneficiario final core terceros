@@ -1,2 +1,0 @@
-select * 
-from sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiario_final

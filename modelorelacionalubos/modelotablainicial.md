@@ -1,0 +1,306 @@
+# Modelo_tabla_inicial
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: Modelo_relacional_UBOS
+
+## Contenido
+
+```
+-- =====================================================================
+-- TABLA: t_ubos_relacional (OPTIMIZADA)
+-- PRODUCTO_TITULAR / PRODUCTO_RELACIONADO = SOLO RAMOS ÚNICOS
+-- =====================================================================
+
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ubos_relacional` AS
+WITH
+-- =====================================================================
+-- 0) PERIODO MAXIMO
+-- =====================================================================
+param AS (
+  SELECT MAX(DATE(FECHA_PROCESO)) AS periodo_max
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+),
+
+-- =====================================================================
+-- 0.1) PÓLIZAS VIGENTES (último periodo) - SOLO CAMPOS NECESARIOS
+-- =====================================================================
+polizas_vigentes AS (
+  SELECT
+    p.TIPO_DOCUMENTO_TOMADOR,
+    p.KEY_ID_TOMADOR,
+    p.CODIGO_RAMO_EMISION,
+    par.periodo_max AS PERIODO_CONSULTADO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+  CROSS JOIN param par
+  WHERE
+    DATE(p.FECHA_PROCESO) = par.periodo_max
+    AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+),
+
+-- =====================================================================
+-- 1) UNIVERSO DE CLIENTES (PN + PJ)
+-- =====================================================================
+u AS (
+  SELECT DISTINCT
+    tcn.TIPO_DOCUMENTO AS TIPO_DOCUMENTO,
+    tcn.KEY_ID         AS NUMERO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+
+  UNION ALL
+
+  SELECT DISTINCT
+    tcj.TIPO_DOCUMENTO AS TIPO_DOCUMENTO,
+    tcj.KEY_ID         AS NUMERO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` tcj
+),
+
+-- =====================================================================
+-- 2) RELACIONADOS (UNIÓN DE FUENTES)
+-- =====================================================================
+tir AS (
+  -- 2.1 Davivienda - Cliente -> Relacionado
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_CLIENTE AS TIPO_DOCUMENTO_TITULAR,
+    CASE
+      WHEN TIPO_DOCUMENTO_CLIENTE = 'NT'
+        THEN LPAD(CAST(KEY_ID_CLIENTE AS STRING), 9, '0')
+      ELSE CAST(KEY_ID_CLIENTE AS STRING)
+    END AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_RELACIONADO     AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_RELACIONADO             AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION_SOCIO AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "DAVIVIENDA"                   AS LINAJE_BENEFICIARIO,
+    DESCRIPCION_RELACION           AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj`
+
+  UNION ALL
+
+  -- 2.2 Seguros - PJ -> Contacto (accionistas)
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_PJ              AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID                         AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_CONTACTO        AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_NUMERO_DOCUMENTO_CONTACTO  AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION       AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                     AS LINAJE_BENEFICIARIO,
+    'ACCIONISTAS'                  AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_contacto_beneficiario_final`
+
+  UNION ALL
+
+  -- 2.3 Seguros - PJ -> Representante Legal
+  SELECT DISTINCT
+    TIPO_DOCUMENTO               AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID                       AS KEY_ID_TITULAR,
+    TIP_DOC_REPRESENTANTE_LEGAL  AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_REPRESENTANTE_LEGAL   AS KEY_ID_RELACIONADO,
+    0                            AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                   AS LINAJE_BENEFICIARIO,
+    'REPRESENTANTE LEGAL'        AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+
+  UNION ALL
+
+  -- 2.4 Seguros - RL -> Empresa del RL
+  SELECT DISTINCT
+    TIP_DOC_REPRESENTANTE_LEGAL AS TIPO_DOCUMENTO_TITULAR,
+    KEY_ID_REPRESENTANTE_LEGAL  AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO              AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID                      AS KEY_ID_RELACIONADO,
+    0                           AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                  AS LINAJE_BENEFICIARIO,
+    'EMPRESA DEL RL'            AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+
+  UNION ALL
+
+  -- 2.5 Seguros - Contacto -> PJ (inverso accionistas)
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_CONTACTO       AS TIPO_DOCUMENTO_TITULAR,
+    KEY_NUMERO_DOCUMENTO_CONTACTO AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_PJ             AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID                        AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION      AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "TERCEROS"                    AS LINAJE_BENEFICIARIO,
+    'ACCIONISTAS'                 AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_contacto_beneficiario_final`
+
+  UNION ALL
+
+  -- 2.6 Davivienda - Relacionado -> Cliente (inverso)
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_RELACIONADO AS TIPO_DOCUMENTO_TITULAR,
+    CASE
+      WHEN TIPO_DOCUMENTO_RELACIONADO = 'NT'
+        THEN LPAD(CAST(KEY_ID_RELACIONADO AS STRING), 9, '0')
+      ELSE CAST(KEY_ID_RELACIONADO AS STRING)
+    END AS KEY_ID_TITULAR,
+    TIPO_DOCUMENTO_CLIENTE           AS TIPO_DOCUMENTO_RELACIONADO,
+    KEY_ID_CLIENTE                   AS KEY_ID_RELACIONADO,
+    PORCENTAJE_PARTICIPACION_SOCIO   AS PORCENTAJE_PARTICIPACION_SOCIO,
+    "DAVIVIENDA"                     AS LINAJE_BENEFICIARIO,
+    DESCRIPCION_RELACION             AS NIVEL
+  FROM `sb-ecosistemaanalitico-lago.davivienda.t_individuos_relacionados_pn_pj`
+),
+
+-- =====================================================================
+-- 3) FINAL BASE
+-- =====================================================================
+final AS (
+  SELECT DISTINCT
+    u.TIPO_DOCUMENTO,
+    u.NUMERO_DOCUMENTO,
+
+    ttr.CODIGO_RESTRICCION   AS CODIGO_RESTRICCION_TITULAR,
+    ttr.DESCRIPCION          AS DESCRIPCION_RESTRICCION_TITULAR,
+
+    tir.TIPO_DOCUMENTO_RELACIONADO     AS TIPO_DOCUMENTO_RELACIONADO_DAV,
+    tir.KEY_ID_RELACIONADO             AS KEY_ID_RELACIONADO_DAV,
+    tir.PORCENTAJE_PARTICIPACION_SOCIO AS PORCENTAJE_RELACIONADO_DAV,
+    tir.LINAJE_BENEFICIARIO,
+    tir.NIVEL,
+
+    ttr_rel.CODIGO_RESTRICCION  AS CODIGO_RESTRICCION_RELACIONADO,
+    ttr_rel.DESCRIPCION         AS DESCRIPCION_RESTRICCION_RELACIONADO
+  FROM u
+  LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` ttr
+    ON u.TIPO_DOCUMENTO   = ttr.TIPO_DOCUMENTO_TERCERO
+   AND u.NUMERO_DOCUMENTO = ttr.KEY_ID
+  LEFT JOIN tir
+    ON u.TIPO_DOCUMENTO   = tir.TIPO_DOCUMENTO_TITULAR
+   AND u.NUMERO_DOCUMENTO = tir.KEY_ID_TITULAR
+  LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` ttr_rel
+    ON tir.TIPO_DOCUMENTO_RELACIONADO = ttr_rel.TIPO_DOCUMENTO_TERCERO
+   AND tir.KEY_ID_RELACIONADO         = ttr_rel.KEY_ID
+),
+
+-- =====================================================================
+-- 4) ALERTAS POR RELACIONADO
+-- =====================================================================
+alertas_relacionado AS (
+  SELECT
+    f.TIPO_DOCUMENTO_RELACIONADO_DAV AS TIPO_DOC_REL,
+    f.KEY_ID_RELACIONADO_DAV         AS KEY_ID_REL,
+    STRING_AGG(DISTINCT a.ALERTA, ', ' ORDER BY a.ALERTA) AS ALERTAS_RELACIONADO
+  FROM final f
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS` a
+    ON f.TIPO_DOCUMENTO_RELACIONADO_DAV = a.TIPO_DOCUMENTO
+   AND f.KEY_ID_RELACIONADO_DAV         = a.KEY_ID_BENEFICIARIO
+  GROUP BY TIPO_DOC_REL, KEY_ID_REL
+),
+
+-- =====================================================================
+-- 5) ALERTAS POR TITULAR
+-- =====================================================================
+alertas_titular AS (
+  SELECT
+    f.TIPO_DOCUMENTO   AS TIPO_DOC_TIT,
+    f.NUMERO_DOCUMENTO AS KEY_ID_TIT,
+    STRING_AGG(DISTINCT a.ALERTA, ', ' ORDER BY a.ALERTA) AS ALERTAS_TITULAR
+  FROM final f
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS` a
+    ON f.TIPO_DOCUMENTO   = a.TIPO_DOCUMENTO
+   AND f.NUMERO_DOCUMENTO = a.KEY_ID_BENEFICIARIO
+  GROUP BY TIPO_DOC_TIT, KEY_ID_TIT
+),
+
+-- =====================================================================
+-- 6) RAMOS ÚNICOS POR TITULAR (rápido)
+-- =====================================================================
+ramo_titular AS (
+  SELECT
+    p.TIPO_DOCUMENTO_TOMADOR AS TIPO_DOC_TIT,
+    p.KEY_ID_TOMADOR         AS KEY_ID_TIT,
+    ANY_VALUE(p.PERIODO_CONSULTADO) AS PERIODO_CONSULTADO_TITULAR,
+    STRING_AGG(DISTINCT CAST(p.CODIGO_RAMO_EMISION AS STRING), ', ' ORDER BY CAST(p.CODIGO_RAMO_EMISION AS STRING))
+      AS PRODUCTO_TITULAR
+  FROM polizas_vigentes p
+  GROUP BY TIPO_DOC_TIT, KEY_ID_TIT
+),
+
+-- =====================================================================
+-- 7) RAMOS ÚNICOS POR RELACIONADO (rápido)
+-- =====================================================================
+ramo_relacionado AS (
+  SELECT
+    p.TIPO_DOCUMENTO_TOMADOR AS TIPO_DOC_REL,
+    p.KEY_ID_TOMADOR         AS KEY_ID_REL,
+    ANY_VALUE(p.PERIODO_CONSULTADO) AS PERIODO_CONSULTADO_RELACIONADO,
+    STRING_AGG(DISTINCT CAST(p.CODIGO_RAMO_EMISION AS STRING), ', ' ORDER BY CAST(p.CODIGO_RAMO_EMISION AS STRING))
+      AS PRODUCTO_RELACIONADO
+  FROM polizas_vigentes p
+  GROUP BY TIPO_DOC_REL, KEY_ID_REL
+)
+
+-- =====================================================================
+-- 8) SELECT FINAL
+-- =====================================================================
+SELECT
+  f.*,
+
+  atit.ALERTAS_TITULAR,
+  arel.ALERTAS_RELACIONADO,
+
+  rt.PERIODO_CONSULTADO_TITULAR,
+  rt.PRODUCTO_TITULAR,
+  rr.PERIODO_CONSULTADO_RELACIONADO,
+  rr.PRODUCTO_RELACIONADO,
+
+  CASE
+    WHEN UPPER(TRIM(f.NIVEL)) IN (
+      'CONYUGUE','ESPOSA','ESPOSO','COMPANIERO','COMPANIERA PERMANENTE','COMPANIERO PERMANENTE',
+      'HIJOS','HIJA','HIJO','PADRE','PADRES','MADRE','HERMANOS','HERMANO','HERMANA',
+      'REPRESENTANTE LEGAL','REPRESENTANTE LEGAL LOCAL','REPRESENTANTE LEGAL REGIONAL','REPRESENTANTE LEGAL SUPLENTE',
+      'SOCIO','SOCIO Y ACCIONISTA','ACCIONISTA CONTROLANTE','EJERCE CTRL FINAL BENEFICIOS',
+      'GERENTE','SUBGERENTE','PRESIDENTE','VICEPRESIDENTE',
+      'EMPRESA DEL RL',
+      'ACCIONISTA','ACCIONISTAS',
+      'JUNTA DIRECTIVA','JUNTA DIRECTIVA SUPLENTE','CONSEJO DE ADMINISTRACION','BOARD MEMBER',
+      'REVISOR FISCAL','TESORERO',
+      'SOCIO GRUPO FAMILIAR','SOCIO PARTICIPACION INDIRECTA','SOCIO PI','SOCIO GFTIA'
+    ) THEN 'ALTO'
+    WHEN UPPER(TRIM(f.NIVEL)) IN (
+      'ABUELA','ABUELO','ABUELOS DE CADA UNO','NIETO','NIETA','SUEGRA','SUEGRO',
+      'CUNIAD','CUNIADA','CUNADO','CUNIADAS','YERNO','NUERA','SOBRINO','SOBRINA','TIO',
+      'ORDENADOR DEL GASTO','JEFE','EMPLEADOR','COTITULAR','JOINT',
+      'FIDUCIANTE','FIDEICOMITENTE','COMITE FIDUCIARIO FINANCIERO','RELATED SUBSIDIARY',
+      'ABUELOA DEL CONYUGE'
+    ) THEN 'MEDIO'
+    WHEN UPPER(TRIM(f.NIVEL)) IN (
+      'PRIMO','PRIMA','PADRINO','MADRINA','AHIJADO','AHIJADA','AMIGO','AMIGA',
+      'PERSONA NATURAL CON NEGOCIO','PROVEEDOR','DISTRIBUIDOR','CLIENTE','COMERCIAL','INFLUENCER','PARTNERSHIP',
+      'CONFIRMADOR','ORDENANTE SIN FIRMA','ORDENANTE','AVALISTA','BENEFICIARIO',
+      'APODERADO','AUTORIZADO','OTHER ATTORNEY','TUTOR',
+      'EMPLEADO','SECRETARIA','SECRETARIO','ASISTENTE','ADMIN ASSISTANT','SUBALTERNO','CONTADOR',
+      'USUARIO PORTAL','REFERENCIA PERSONAL','PARIENTE','NO INFORMADO'
+    ) THEN 'BAJO'
+    ELSE 'ALTO'
+  END AS NIVEL_PROXIMIDAD
+
+FROM final f
+LEFT JOIN alertas_titular atit
+  ON f.TIPO_DOCUMENTO   = atit.TIPO_DOC_TIT
+ AND f.NUMERO_DOCUMENTO = atit.KEY_ID_TIT
+LEFT JOIN alertas_relacionado arel
+  ON f.TIPO_DOCUMENTO_RELACIONADO_DAV = arel.TIPO_DOC_REL
+ AND f.KEY_ID_RELACIONADO_DAV         = arel.KEY_ID_REL
+LEFT JOIN ramo_titular rt
+  ON f.TIPO_DOCUMENTO   = rt.TIPO_DOC_TIT
+ AND f.NUMERO_DOCUMENTO = rt.KEY_ID_TIT
+LEFT JOIN ramo_relacionado rr
+  ON f.TIPO_DOCUMENTO_RELACIONADO_DAV = rr.TIPO_DOC_REL
+ AND f.KEY_ID_RELACIONADO_DAV         = rr.KEY_ID_REL
+;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: Modelo_tabla_inicial

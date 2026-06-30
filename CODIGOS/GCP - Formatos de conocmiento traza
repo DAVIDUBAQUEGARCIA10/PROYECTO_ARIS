@@ -1,3 +1,0 @@
-select * 
-from sb-ecosistemaanalitico-lago.seguros_bolivar.t_registros_transacciones_formatos_sarlaft
-where KEY_ID_CLIENTE = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q=='

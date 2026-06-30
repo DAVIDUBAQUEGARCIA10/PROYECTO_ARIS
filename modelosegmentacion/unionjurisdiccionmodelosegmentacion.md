@@ -1,0 +1,82 @@
+# union_jurisdiccion_modelo_segmentacion
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: MODELO_SEGMENTACION
+
+## Contenido
+
+```
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.union_jurisdiccion_modelo_segmentacion` (
+  COMPANIA,
+  CODIGO_CIUDAD_DIRECCION,
+  SEGMENTO,
+  FECHA,
+  MODELO,
+  DESCRIPCION
+)
+SELECT
+  t.COMPANIA,
+  t.CODIGO_CIUDAD_DIRECCION,
+  t.SEGMENTO,
+  t.FECHA,
+  t.MODELO,
+  t.DESCRIPCION
+FROM (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY COMPANIA, CODIGO_CIUDAD_DIRECCION, SEGMENTO
+           ORDER BY PARSE_DATE('%Y-%m-%d', FECHA) DESC
+         ) AS rn
+  FROM (
+    SELECT 
+      COMPANIA,
+      CODIGO_CIUDAD_DIRECCION,
+      SEGMENTO,
+      FECHA,
+      MODELO,
+      DESCRIPCIONA AS DESCRIPCION
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_jurisdiccion_seg_union`
+    
+    UNION ALL
+
+    SELECT 
+      COMPANIA,
+      CODIGO_CIUDAD_DIRECCION,
+      SEGMENTO,
+      FECHA,
+      MODELO,
+      DESCRIPCIONA AS DESCRIPCION
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_jurisdiccion_seg_union`
+    
+    UNION ALL
+
+    SELECT 
+      COMPANIA,
+      CODIGO_CIUDAD_DIRECCION,
+      SEGMENTO,
+      FECHA,
+      MODELO,
+      DESCRIPCION AS DESCRIPCION
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.segmentacion_capitalizadora_jurisdiccion_seg_union`
+  )
+) t
+WHERE t.rn = 1
+AND NOT EXISTS (
+  SELECT 1
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.union_jurisdiccion_modelo_segmentacion` u
+  WHERE u.COMPANIA = t.COMPANIA
+    AND u.CODIGO_CIUDAD_DIRECCION = t.CODIGO_CIUDAD_DIRECCION
+    AND u.SEGMENTO = t.SEGMENTO
+);
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: union_jurisdiccion_modelo_segmentacion

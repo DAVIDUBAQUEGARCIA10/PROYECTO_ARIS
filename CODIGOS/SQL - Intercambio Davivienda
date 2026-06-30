@@ -1,6 +1,0 @@
-SELECT 
-  '3' AS Tipo_de_Identificacion,
-  CONCAT(numero_documento, digito_chequeo) AS Numero_de_identificacion,
-  'Persona Juridica' AS Tipo_de_cliente
-FROM juridicos
-ORDER BY CONCAT(numero_documento, digito_chequeo) DESC;

@@ -1,0 +1,80 @@
+# union_producto_modelo_segmentacion
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: MODELO_SEGMENTACION
+
+## Contenido
+
+```
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.union_producto_modelo_segmentacion` (
+  COMPANIA,
+  CODIGO_RAMO_EMISION,
+  CODIGO_PRODUCTO,
+  SEGMENTO,
+  FECHA,
+  MODELO,
+  DESCRIPCIONA,
+  FUENTE
+)
+SELECT
+  t.COMPANIA,
+  t.CODIGO_RAMO_EMISION,
+  t.CODIGO_PRODUCTO,
+  t.SEGMENTO,
+  t.FECHA,
+  t.MODELO,
+  t.DESCRIPCIONA,
+  t.FUENTE
+FROM (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY COMPANIA, CODIGO_RAMO_EMISION, CODIGO_PRODUCTO, SEGMENTO
+           ORDER BY PARSE_DATE('%Y-%m-%d', FECHA) DESC
+         ) AS rn
+  FROM (
+    SELECT 
+      COMPANIA,
+      CAST(CODIGO_RAMO_EMISION AS STRING) AS CODIGO_RAMO_EMISION,
+      CAST(CODIGO_PRODUCTO AS STRING) AS CODIGO_PRODUCTO,
+      SEGMENTO,
+      FECHA,
+      MODELO,
+      DESCRIPCIONA,
+      'COMERCIALES' AS FUENTE
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_producto_seg_union`
+    
+    UNION ALL
+
+    SELECT 
+      COMPANIA,
+      CAST(CODIGO_RAMO_EMISION AS STRING) AS CODIGO_RAMO_EMISION,
+      CAST(CODIGO_PRODUCTO AS STRING) AS CODIGO_PRODUCTO,
+      SEGMENTO,
+      FECHA,
+      MODELO,
+      DESCRIPCIONA,
+      'SEGUROS_BOLIVAR' AS FUENTE
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_producto_seg_union`
+  )
+) t
+WHERE t.rn = 1
+AND NOT EXISTS (
+  SELECT 1
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.union_producto_modelo_segmentacion` u
+  WHERE u.COMPANIA = t.COMPANIA
+    AND u.CODIGO_RAMO_EMISION = t.CODIGO_RAMO_EMISION
+    AND u.CODIGO_PRODUCTO = t.CODIGO_PRODUCTO
+    AND u.SEGMENTO = t.SEGMENTO
+);
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: union_producto_modelo_segmentacion

@@ -1,0 +1,39 @@
+# Producto 923 Y 922
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Polizas
+
+## Codigo SQL
+
+```sql
+--casos de 923/922
+select num_pol1,num_secu_pol,cod_cia,cod_secc,cod_ramo,fecha_vig_pol,fecha_venc_pol,
+       sim_entidad_colocadora,sim_estrategias,num_tarjeta
+from   a2000030
+where  num_pol1 + 0 > 0
+  and  cod_cia = 3
+  and  cod_secc = 923
+  and  cod_ramo = 923
+  and  fecha_venc_pol >=  trunc(sysdate-60)
+
+
+select num_pol1,num_secu_pol,cod_cia,cod_secc,cod_ramo,fecha_vig_pol,fecha_venc_pol,
+       sim_entidad_colocadora,sim_estrategias,num_tarjeta
+from   a2000030
+where  num_pol1 + 0 > 0
+  and  cod_cia in (3,2)
+  and  cod_secc in (923,922) 
+  and  cod_ramo in(923,922)
+  and  fecha_venc_pol >=  trunc(sysdate-60)
+  and sim_estrategias in  (63,62,65)
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

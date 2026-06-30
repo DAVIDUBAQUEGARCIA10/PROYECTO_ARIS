@@ -1,2 +1,0 @@
-select * 
-from sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_100_cuadras_comercializacion_terceros

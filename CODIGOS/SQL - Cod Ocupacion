@@ -1,3 +1,0 @@
-select * 
-from codigos_ocupacion
-where clasificacion_producto = 'V'

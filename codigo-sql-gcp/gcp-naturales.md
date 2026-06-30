@@ -1,0 +1,56 @@
+# Naturales
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+SELECT 
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FECHA_EXPEDICION,
+    SEXO,
+    FEC_NACIMIENTO,
+    NACIONALIDAD,
+    ESTADO_CIVIL,
+    NUMERO_HIJOS,
+    PERSONAS_A_CARGO,
+    VINCULACION_LABORAL,
+    ESTRATO_SOCIAL,
+    EMPRESA_TRABAJA,
+    CARGO,
+    AUTORIZA_RECIBIR_INF,
+    AUTORIZA_COMPARTIR_INF,
+    CONTACTAR_EN,
+    FECHA_ACTUALIZACION,
+    VALOR_EGRESOS,
+    VALOR_INGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    VALOR_PATRIMONIO,
+    CODIGO_CIIU,
+    ACTIVIDAD_ECONOMICA,
+    FUENTE_EMPRESA_TRABAJA,
+    FUENTE_INGRESO,
+    FECHA_ULTIMO_SALARIO,
+    FECHA_INGRESO_EMPRESA,
+    FECHA_INICIO,
+    FECHA_PROCESO, 
+    PUBLICAMENTE_EXPUESTA
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales;
+
+
+Sheett -> https://docs.google.com/spreadsheets/d/1p3EtDZW3RgPPh4DY_-4gvRBUbSAYzQPRsw5mQU-3kJY/edit
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

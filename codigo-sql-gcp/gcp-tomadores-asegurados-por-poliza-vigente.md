@@ -1,0 +1,26 @@
+# Tomadores Asegurados Por Poliza Vigente
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Polizas
+
+## Codigo SQL
+
+```sql
+select *
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes
+where FECHA_CORTE >='2024-09-01' and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q=='
+
+sheet -> https://docs.google.com/spreadsheets/d/1fkiegLtbceKkIAepA3kU_rmn0VHqg8NDMx4IIvNxkpo/edit?gid=1780893608#gid=1780893608
+
+
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

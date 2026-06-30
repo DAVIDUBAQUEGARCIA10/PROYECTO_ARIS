@@ -1,0 +1,81 @@
+# Código Revisión Fraude
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.base_vigentes_experian1_laft AS
+SELECT
+  b.*,
+  CASE
+    WHEN a.KEY_ID_BENEFICIARIO IS NOT NULL THEN 'COINCIDE'
+    ELSE 'NO COINCIDE'
+  END AS COINCIDE_ARIS
+FROM `sb-ecosistemaanalitico-lago.analitica_riesgo_prod.base_vigentes_experian1` b
+LEFT JOIN (
+  SELECT DISTINCT
+    CAST(KEY_ID_BENEFICIARIO AS STRING) AS KEY_ID_BENEFICIARIO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS`
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+) a
+ON CAST(b.KEY_ID_ASEGURADO AS STRING) = a.KEY_ID_BENEFICIARIO;
+
+
+
+
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.base_siniestros_experian1_laft AS
+SELECT
+  b.*,
+  CASE
+    WHEN a.KEY_ID_BENEFICIARIO IS NOT NULL THEN 'COINCIDE'
+    ELSE 'NO COINCIDE'
+  END AS COINCIDE_ARIS
+FROM `sb-ecosistemaanalitico-lago.analitica_riesgo_prod.base_siniestros_experian1` b
+LEFT JOIN (
+  SELECT DISTINCT
+    CAST(KEY_ID_BENEFICIARIO AS STRING) AS KEY_ID_BENEFICIARIO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS` 
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+) a
+ON CAST(b.KEY_ID_ASEGURADO AS STRING) = a.KEY_ID_BENEFICIARIO;
+
+
+
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.base_emisiones_experian1_laft AS
+
+SELECT
+  b.*,
+  CASE
+    WHEN a.KEY_ID_BENEFICIARIO IS NOT NULL THEN 'COINCIDE'
+    ELSE 'NO COINCIDE'
+  END AS COINCIDE_ARIS
+FROM `sb-ecosistemaanalitico-lago.analitica_riesgo_prod.base_emisiones_experian1` b
+LEFT JOIN (
+  SELECT DISTINCT
+    CAST(KEY_ID_BENEFICIARIO AS STRING) AS KEY_ID_BENEFICIARIO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS`
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+) a
+ON CAST(b.KEY_ID_ASEGURADO AS STRING) = a.KEY_ID_BENEFICIARIO;
+
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+) a
+ON CAST(b.KEY_ID_ASEGURADO AS STRING) = a.KEY_ID_BENEFICIARIO;
+  WHERE KEY_ID_BENEFICIARIO IS NOT NULL
+) a
+ON CAST(b.KEY_ID_ASEGURADO AS STRING) = a.KEY_ID_BENEFICIARIO;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

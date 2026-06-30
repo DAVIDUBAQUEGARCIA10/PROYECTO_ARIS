@@ -1,0 +1,39 @@
+# LAFT_Score_de_terceros_Incremento_Riesgo_prod_indicador
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: Score de Terceros
+
+## Contenido
+
+```
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Incremento_Riesgo_prod_indicador AS
+SELECT  
+    c.*,
+    k.FECHA_MODIFICACION AS FECHA_MODIFICACION_RECIENTE,
+    CASE 
+        WHEN k.FECHA_MODIFICACION > c.FECHA_MODIFICACION THEN 'ACTUALIZADO'
+        WHEN k.FECHA_MODIFICACION = c.FECHA_MODIFICACION THEN 'NO ACTUALIZADO'
+        ELSE 'SIN INFORMACION'
+    END AS INDICADOR_ACTUALIZACION
+FROM  `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Incremento_Riesgo_prod` c
+LEFT JOIN (
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    UNION ALL
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+) k
+    ON  k.KEY_ID         = c.KEY_ID
+    AND k.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: LAFT_Score_de_terceros_Incremento_Riesgo_prod_indicador

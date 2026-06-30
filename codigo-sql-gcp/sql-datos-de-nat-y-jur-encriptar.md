@@ -1,0 +1,48 @@
+# Datos De Nat Y Jur Encriptar
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+https://colab.research.google.com/drive/1GTXbmskvP3wEAJyFdlwYU1C7HoeCLjxn#scrollTo=2A2XF_U0ayDk
+
+SELECT DISTINCT 
+  tipdoc_codigo,
+  numero_documento, 
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(Razon_social, '.', ''), ',', ''), ';', ''), '/', ''),
+    '\s+', ' '
+  ) AS Nombre
+FROM juridicos
+where FECHA_CREACION >= '01/06/25' 
+UNION ALL
+
+SELECT 
+  tipdoc_codigo,
+  numero_documento, 
+  REGEXP_REPLACE(
+    REPLACE(REPLACE(REPLACE(REPLACE(
+      TRIM(
+        NVL(PRIMER_NOMBRE, '') || ' ' ||
+        NVL(SEGUNDO_NOMBRE, '') || ' ' ||
+        NVL(PRIMER_APELLIDO, '') || ' ' ||
+        NVL(SEGUNDO_APELLIDO, '')
+      ), '.', ''), ',', ''), ';', ''), '/', ''
+    ),
+    '\s+', ' '
+  ) AS Nombre
+FROM naturales
+where FECHA_CREACION >= '01/06/25' ;
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

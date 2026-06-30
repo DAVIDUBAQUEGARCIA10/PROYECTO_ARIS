@@ -1,0 +1,35 @@
+# Revisoria Fiscal Clientes Vigentes
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Clientes
+
+## Codigo SQL
+
+```sql
+SELECT
+    a.*,
+    b.TIPO_DOCUMENTO,
+    b.NUMERO_DOCUMENTO,
+    b.NOMBRE,
+    a.FECHA_VINCULACION_CLIENTE,
+    a.ULTIMO_FORMATO_CONOCIMIENTO
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_trazabilidad_formatos_servicios_marcas` a
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b
+    ON a.KEY_ID = b.KEY_ID
+WHERE a.FECHA_VINCULACION_CLIENTE >= '2026-01-01'
+  AND a.ULTIMO_FORMATO_CONOCIMIENTO != 'SIMPLIFICADO'
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY a.KEY_ID, b.TIPO_DOCUMENTO,a.CODIGO_COMPANIA
+    ORDER BY a.FECHA_VINCULACION_CLIENTE DESC
+) = 1
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

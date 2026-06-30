@@ -1,0 +1,69 @@
+# Actividad Economica
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Datos Maestros
+
+## Codigo SQL
+
+```sql
+select *
+from   acteco_tercero
+
+select *
+from actividades_economicas
+
+-- Cruzar con Naturales y Juridicos
+
+SELECT 
+    ae.CODIGO,
+    ae.DESCRIPCION,
+    j.*, 
+    a.ACTECO_SECUENCIA
+FROM juridicos j
+LEFT JOIN acteco_tercero a ON j.SECUENCIA = a.JUR_SECUENCIA
+LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA
+WHERE j.EXCEPTUADO_SARLAFT = 'S' 
+--AND NUMERO_DOCUMENTO = 800250048
+
+
+
+
+
+
+
+
+
+----
+
+
+SELECT 
+    ae.CODIGO,
+    ae.DESCRIPCION,
+    n.NUMERO_DOCUMENTO, n.TIPDOC_CODIGO, 
+    a.ACTECO_SECUENCIA
+FROM naturales n
+LEFT JOIN acteco_tercero a ON n.SECUENCIA = a.NAT_SECUENCIA
+LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA
+WHERE NUMERO_DOCUMENTO = 1014282242
+
+UNION ALL
+
+SELECT 
+    ae.CODIGO,
+    ae.DESCRIPCION,
+    j.NUMERO_DOCUMENTO, j.TIPDOC_CODIGO,  
+    a.ACTECO_SECUENCIA
+FROM juridicos j
+LEFT JOIN acteco_tercero a ON j.SECUENCIA = a.JUR_SECUENCIA
+LEFT JOIN actividades_economicas ae ON a.ACTECO_SECUENCIA = ae.SECUENCIA
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

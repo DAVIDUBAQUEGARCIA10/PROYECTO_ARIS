@@ -1,0 +1,40 @@
+# Polizas Anuladas Tronador
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Polizas
+
+## Codigo SQL
+
+```sql
+SELECT DISTINCT 
+ a.COD_CIA,
+ a.tdoc_tercero,
+ a.nro_documto,
+ a.NUM_POL1, 
+ a.cod_ramo,
+ a.fecha_Emi,
+ a.fecha_emi_end, 
+ a.FECHA_VENC_POL,
+ a.COD_PROD, 
+ a.MCA_ANU_POL, 
+ a.num_secu_pol,
+ b.txt_red
+FROM 
+    A2000030 a
+LEFT JOIN 
+    A1001800 b ON a.cod_end = b.cod_texto AND a.sub_cod_end = b.sub_cod_texto
+WHERE 
+    a.FECHA_VENC_POL >= '18/12/24' 
+    AND a.TIPO_END = 'AT' 
+    AND (b.TXT_RED LIKE '%ANULACION%' OR b.TXT_RED LIKE '%CANCELACION%')
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

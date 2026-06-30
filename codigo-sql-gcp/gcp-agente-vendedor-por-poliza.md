@@ -1,0 +1,42 @@
+# Agente Vendedor Por Poliza
+
+## Descripcion
+Script de gcp para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: BigQuery
+Categoria: Polizas
+
+## Codigo SQL
+
+```sql
+SELECT DISTINCT
+    b.CODIGO_RAMO_EMISION,
+    b.CODIGO_SUBPRODUCTO,
+    b.NUMERO_POLIZA,
+    b.FECHA_PROCESO,
+    b.CLAVE_AGENTE,
+    c.CLAVE_JEFE,
+    LOWER(CONCAT(c.PRIMER_NOMBRE," " ,c.SEGUNDO_NOMBRE, " " ,c.PRIMER_APELLIDO, " " ,c.SEGUNDO_APELLIDO)) AS full_name_lower
+FROM
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas AS b
+LEFT JOIN
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_param_agentes_empleados AS c
+ON
+    b.CLAVE_AGENTE = c.CLAVE_AGENTE
+WHERE
+    b.NUMERO_POLIZA IN (20403260333,
+20603367186,
+10105000782,
+15302629396,
+15055143776,
+10105000150,
+10705620905,
+10104999448)
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar

@@ -1,3 +1,0 @@
-select * 
-from sb-ecosistemaanalitico-lago.seguros_bolivar.t_idm_accesos
-where ROLES_HEREDADOS like'%ARIS%'

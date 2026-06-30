@@ -1,0 +1,123 @@
+# Canal - Comerciales Bolivar
+
+## Descripcion
+Script o consulta del proyecto ARIS.
+
+## Tipo
+Archivo: 
+Carpeta: MODELO_SEGMENTACION
+
+## Contenido
+
+```
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_comerciales_canal` AS 
+-- Agrupación final por compañía, canal, localidad y agente con niveles de riesgo
+ WITH datos_agregados AS (
+SELECT
+    --p.CODIGO_COMPANIA,
+    p.NOMBRE_CANAL,
+    p.codigo_localidad,
+    p.clave_agente,
+
+    -- Nivel de riesgo del canal desde tabla externa
+    IFNULL(cnr.Nivel_de_riesgo, 'Sin Nivel') AS Nivel_riesgo_canal,
+
+    -- Sumatorias y conteos agregados
+    SUM(IFNULL(r.CANTIDAD_REGISTROS, 0)) AS TOTAL_RECAUDOS,
+    SUM(IFNULL(r.SUMATORIA_RECAUDO, 0)) AS VALOR_TOTAL_RECAUDO,
+
+    SUM(IFNULL(s.CANTIDAD_REGISTROS, 0)) AS TOTAL_SINIESTROS,
+    SUM(IFNULL(s.SUMATORIA_LIQUIDADO, 0)) AS VALOR_TOTAL_SINIESTROS
+
+FROM 
+    `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+-- LEFT JOIN con recaudos
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        NUMERO_POLIZA,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(VALOR_RECAUDO_MES) AS SUMATORIA_RECAUDO
+    FROM
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE
+        DATE(FECHA_RECAUDO) BETWEEN 
+            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY
+        CODIGO_COMPANIA,
+        NUMERO_POLIZA
+) r
+ON p.CODIGO_COMPANIA = r.CODIGO_COMPANIA
+AND p.NUMERO_POLIZA = r.NUMERO_POLIZA
+
+-- LEFT JOIN con siniestros
+LEFT JOIN (
+    SELECT
+        CODIGO_COMPANIA,
+        NUMERO_POLIZA,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(LIQUIDADO_BOLIVAR) AS SUMATORIA_LIQUIDADO
+    FROM
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE
+        DATE(FECHA_ORDEN_PAGO) BETWEEN 
+            DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+            AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+    GROUP BY
+        CODIGO_COMPANIA,
+        NUMERO_POLIZA
+) s
+ON p.CODIGO_COMPANIA = s.CODIGO_COMPANIA
+AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
+
+-- LEFT JOIN con nivel de riesgo del canal
+LEFT JOIN (
+    SELECT
+        Codigo_Canal_de_vinculaci__n AS COD_CANAL,
+        Nivel_de_riesgo
+    FROM
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_canal_nivel_riesgo`
+) cnr
+ON p.CODIGO_CANAL = cnr.COD_CANAL
+
+-- Filtro de pólizas activas y no anuladas
+WHERE 
+    DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.CODIGO_COMPANIA = 3
+    AND p.MARCA_ANULACION != 'S'
+
+-- Agrupar por variables relevantes
+GROUP BY
+    p.CODIGO_COMPANIA,
+    p.CODIGO_CANAL,
+    p.NOMBRE_CANAL,
+    p.codigo_localidad,
+    p.clave_agente,
+    cnr.Nivel_de_riesgo
+
+
+    )
+
+
+
+SELECT  TOTAL_RECAUDOS, VALOR_TOTAL_RECAUDO, TOTAL_SINIESTROS, VALOR_TOTAL_SINIESTROS, Nivel_riesgo_canal,NOMBRE_CANAL,clave_agente, codigo_localidad
+FROM (
+  SELECT *,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_RECAUDO) AS percentil_rank_r,
+         NTILE(100) OVER (ORDER BY VALOR_TOTAL_SINIESTROS) AS percentil_rank_s
+  FROM datos_agregados
+)
+WHERE VALOR_TOTAL_RECAUDO <= 400000000 
+  AND VALOR_TOTAL_RECAUDO >= 0
+  AND VALOR_TOTAL_SINIESTROS <= 1500000 
+  AND VALOR_TOTAL_SINIESTROS >= 0
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
+Archivo Original: Canal - Comerciales Bolivar

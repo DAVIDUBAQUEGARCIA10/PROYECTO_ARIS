@@ -1,2 +1,0 @@
-select distinct codigo, nombre, nacionalidad, CODIGO_CODAZZI
-from division_politicas 

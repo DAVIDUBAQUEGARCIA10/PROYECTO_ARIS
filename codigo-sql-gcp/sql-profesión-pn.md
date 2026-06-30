@@ -1,0 +1,46 @@
+# Profesión Pn
+
+## Descripcion
+Script de sql para extraccion y analisis de datos en el proyecto ARIS.
+
+## Tipo
+Base de datos: Oracle
+Categoria: Varios
+
+## Codigo SQL
+
+```sql
+SELECT 
+    n.TIPDOC_CODIGO,                -- Tipo de documento del tercero
+    n.NUMERO_DOCUMENTO,            -- Número de documento del tercero
+    pt.PRF_CODIGO,                 -- Código de la profesión (FK hacia tabla profesiones)
+    p.DESCRIPCION                  -- Descripción de la profesión
+FROM NATURALES n
+LEFT JOIN profesiones_tercero pt 
+    ON n.SECUENCIA = pt.nat_secuencia         -- Relación entre persona natural y profesión
+LEFT JOIN profesiones p 
+    ON pt.PRF_CODIGO = p.secuencia            -- Relación entre código de profesión y su descripción
+WHERE n.SECUENCIA = 10008062;                 -- Filtro de ejemplo
+
+
+explicacion:
+
+SELECT TIPDOC_CODIGO, NUMERO_DOCUMENTO,SECUENCIA
+FROM NATURALES
+WHERE SECUENCIA = 10008062
+
+select PRF_CODIGO,NAT_SECUENCIA
+from profesiones_tercero
+where  nat_secuencia = 10008062 AND PRF_CODIGO = 306
+
+
+select SECUENCIA,DESCRIPCION
+from profesiones
+where  secuencia = 306 
+
+```
+
+---
+
+Fecha: 2026-06-29
+Proyecto: ARIS - Seguros Bolivar
