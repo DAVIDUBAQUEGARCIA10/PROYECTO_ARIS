@@ -1,0 +1,57 @@
+WITH revisoria_fiscal AS (
+    SELECT DISTINCT
+        NUMERO_DOCUMENTO,
+        TIPDOC_CODIGO,
+        PUBLICAMENTE_EXPUESTA,
+        VINCULO_PERSONA_RECONOCIDA
+    FROM NATURALES
+
+    UNION ALL
+
+    SELECT DISTINCT
+        NUMERO_DOCUMENTO,
+        TIPDOC_CODIGO,
+        PUBLICAMENTE_EXPUESTA,
+        VINCULO_PERSONA_RECONOCIDA
+    FROM JURIDICOS
+),
+
+restringidos AS (
+    SELECT DISTINCT
+        cr.NUMERO_DOCUMENTO,
+        cr.TIPDOC_CODIGO,
+        cr.NOMBRES,
+        fr.CODIGO,
+        fr.DESCRIPCION
+    FROM clientes_restringidos cr
+    JOIN fuentes_restriccion fr
+        ON cr.FUERES_CODIGO = fr.CODIGO
+    WHERE cr.FECHA_BAJA IS NULL
+      AND fr.CODIGO IN (20, 23)
+),
+
+base_revisoria_ext AS (
+    SELECT DISTINCT
+        EXRF_COD_TIP_DOC,
+        EXRF_NUM_ID_CLIENTE,
+        EXRF_NOMBRE_CLI_RAZON_SOCIAL
+    FROM dc_ext_revisoria_fiscal
+)
+
+SELECT DISTINCT
+    rf.TIPDOC_CODIGO,
+    rf.NUMERO_DOCUMENTO,
+    rf.PUBLICAMENTE_EXPUESTA,
+    rf.VINCULO_PERSONA_RECONOCIDA,
+    r.NOMBRES,
+    r.CODIGO,
+    r.DESCRIPCION,
+    ext.EXRF_NOMBRE_CLI_RAZON_SOCIAL
+FROM revisoria_fiscal rf
+JOIN restringidos r
+    ON TRIM(rf.NUMERO_DOCUMENTO) = TRIM(r.NUMERO_DOCUMENTO)
+   AND TRIM(rf.TIPDOC_CODIGO) = TRIM(r.TIPDOC_CODIGO)
+JOIN base_revisoria_ext ext
+    ON TRIM(rf.NUMERO_DOCUMENTO) = TRIM(ext.EXRF_NUM_ID_CLIENTE)
+   AND TRIM(rf.TIPDOC_CODIGO) = TRIM(ext.EXRF_COD_TIP_DOC)
+WHERE rf.PUBLICAMENTE_EXPUESTA != 'S';
