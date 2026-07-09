@@ -8,84 +8,135 @@ Archivo: BigQuery SQL
 Carpeta: VISOR_ALERTAS_ARIS
 Tabla destino: cumplimiento_normativo_prod.cb_001_prod
 
-## Contenido
+## CREATE TABLE
 
 ```
-INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod
+CREATE TABLE IF NOT EXISTS `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod` (
+  FECHA_TRANSACCION            DATE,      -- Fecha del movimiento
+  NUMERO_TITULO               STRING,    -- Título del movimiento
+  VALOR_TRANSACCION           NUMERIC,   -- Valor de la transacción
+  DESCRIPCION_TIPO_MOVIMIENTO STRING,    -- Tipo de movimiento
+  CODIGO_AGENCIA              STRING,    -- Agencia que realizó el movimiento
+  KEY_ID                      STRING,    -- Número de identificación del cliente
+  TIPO_DOCUMENTO              STRING,    -- Tipo de documento del cliente
+  FECHA_ALERTA_MES            STRING,    -- Año-Mes del procesamiento (YYYY-MM)
+  FECHA_ALERTA                DATE       -- Fecha exacta de la alerta
+);
+```
 
+## INSERT
+
+```
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod`
+
+WITH clientes_capitalizadora AS (
+  /* ===================== 1️⃣ Clientes de Capitalizadora Bolívar con movimientos ===================== */
+  SELECT DISTINCT
+    m.FECHA_TRANSACCION,
+    m.NUMERO_TITULO,
+    m.VALOR_TRANSACCION,
+    m.DESCRIPCION_TIPO_MOVIMIENTO,
+    m.CODIGO_AGENCIA,
+    c.KEY_ID_BENEFICIARIO AS KEY_ID,
+    c.TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` m
+  JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+    ON m.NUMERO_TITULO = c.TITULO
+  WHERE m.FECHA_TRANSACCION >= '2026-03-01'
+),
+
+restringidos AS (
+  /* ===================== 2️⃣ Terceros en listas restrictivas (1,2,5,20,24,25,26) ===================== */
+  SELECT DISTINCT
+    TIPO_DOCUMENTO_TERCERO,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE CODIGO_RESTRICCION IN (1, 2, 5, 20, 24, 25, 26)
+    AND FECHA_BAJA IS NULL
+),
+
+simasol AS (
+  /* ===================== 3️⃣ Base de atención SIMASOL ===================== */
+  SELECT DISTINCT
+    TIPO_DOCUMENTO,
+    KEY_ID
+  FROM `sb-ecosistemaanalitico-lago.operaciones_log_fac.t_solicitudes_prevencion_lavado`
+)
+
+/* ===================== 4️⃣ Cruce final: Capitalizadora en listas restrictivas SIN registro en SIMASOL ===================== */
 SELECT DISTINCT
-    c.KEY_ID_BENEFICIARIO as KEY_ID,          -- ID del cliente
-    c.TIPO_DOCUMENTO,                          -- Tipo de documento del cliente
-    c.TITULO as NUMERO_TITULO,                 -- Título del cliente en Capitalizadora
-    r.CODIGO_RESTRICCION,                      -- Código de restricción (1,2,5,20,24,25,26)
-    r.DESCRIPCION as DESCRIPCION_RESTRICCION,  -- Descripción de la restricción
-
-    -- Marca del mes de alerta (formato Año-Mes)
-    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
-
-    -- Fecha en la que se genera la alerta
-    CURRENT_DATE() AS FECHA_ALERTA
-FROM
-    sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
-
--- Cruce con listas restrictivas por tipo y número de identificación
-JOIN
-    sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos r
-    ON c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
-    AND c.KEY_ID_BENEFICIARIO = r.KEY_ID
-
--- Filtro por restricciones consultables y activas
-WHERE r.CODIGO_RESTRICCION IN (1, 2, 5, 20, 24, 25, 26)
-    AND r.FECHA_BAJA IS NULL
-
-    -- No existe registro en la base de atención de SIMASOL (por tipo y número de identificación)
-    AND NOT EXISTS (
-        SELECT 1
-        FROM sb-ecosistemaanalitico-lago.operaciones_log_fac.t_solicitudes_prevencion_lavado s
-        WHERE s.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-          AND s.KEY_ID = c.KEY_ID_BENEFICIARIO
-    )
-
-    -- Anti-duplicados por mes
-    AND NOT EXISTS (
-        SELECT 1
-        FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod t
-        WHERE t.KEY_ID = c.KEY_ID_BENEFICIARIO
-          AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
-          AND t.NUMERO_TITULO = c.TITULO
-          AND t.CODIGO_RESTRICCION = r.CODIGO_RESTRICCION
-          AND t.FECHA_ALERTA_MES = FORMAT_DATE('%Y-%m', CURRENT_DATE())
-    )
-ORDER BY c.KEY_ID_BENEFICIARIO;
-
+  c.FECHA_TRANSACCION,
+  c.NUMERO_TITULO,
+  c.VALOR_TRANSACCION,
+  c.DESCRIPCION_TIPO_MOVIMIENTO,
+  c.CODIGO_AGENCIA,
+  c.KEY_ID,
+  c.TIPO_DOCUMENTO,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE() AS FECHA_ALERTA
+FROM clientes_capitalizadora c
+JOIN restringidos r
+  ON c.KEY_ID = r.KEY_ID
+ AND c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM simasol s
+  WHERE s.KEY_ID = c.KEY_ID
+    AND s.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+);
 ```
+
+## Explicacion de Secciones
+
+### 1️⃣ clientes_capitalizadora
+- Obtiene movimientos de clientes de Capitalizadora Bolívar
+- JOIN entre movimientos y clientes por título
+- Filtra transacciones desde 2026-03-01
+
+### 2️⃣ restringidos
+- Consulta terceros en listas restrictivas
+- Filtra por códigos: 1, 2, 5, 20, 24, 25, 26
+- Solo restricciones activas (FECHA_BAJA IS NULL)
+
+### 3️⃣ simasol
+- Base de atención de SIMASOL (prevención de lavado)
+- Extrae tipo y número de identificación
+
+### 4️⃣ SELECT final
+- Cruza clientes Capitalizadora con listas restrictivas (por tipo + número identificación)
+- Excluye clientes que YA tienen registro en SIMASOL (NOT EXISTS)
+- Genera marca de mes y fecha de alerta
 
 ## Campos del Output
 
 | Campo | Descripción |
 |-------|-------------|
+| FECHA_TRANSACCION | Fecha del movimiento |
+| NUMERO_TITULO | Título del movimiento |
+| VALOR_TRANSACCION | Valor de la transacción |
+| DESCRIPCION_TIPO_MOVIMIENTO | Tipo de movimiento |
+| CODIGO_AGENCIA | Agencia que realizó el movimiento |
 | KEY_ID | Número de identificación del cliente |
-| TIPO_DOCUMENTO | Tipo de documento (CC, CE, NIT, etc.) |
-| NUMERO_TITULO | Título del cliente en Capitalizadora |
-| CODIGO_RESTRICCION | Código de restricción (1,2,5,20,24,25,26) |
-| DESCRIPCION_RESTRICCION | Descripción de la restricción |
+| TIPO_DOCUMENTO | Tipo de documento del cliente |
 | FECHA_ALERTA_MES | Año-Mes del procesamiento (YYYY-MM) |
 | FECHA_ALERTA | Fecha exacta de la alerta |
 
 ## Tablas Utilizadas
 
+- sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora
 - sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
 - sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos
 - sb-ecosistemaanalitico-lago.operaciones_log_fac.t_solicitudes_prevencion_lavado (base de atención SIMASOL)
 
 ## Validaciones
 
-- Cliente de Capitalizadora Bolívar
+- Cliente de Capitalizadora Bolívar con movimientos desde 2026-03-01
 - Coincidencia por TIPO_DOCUMENTO + KEY_ID (tipo y número de identificación)
 - Restricciones consultables: 1, 2, 5, 20, 24, 25, 26
 - Solo restricciones activas (FECHA_BAJA IS NULL)
 - No existe registro en la base de atención de SIMASOL (t_solicitudes_prevencion_lavado) por tipo y número de identificación
-- Anti-duplicados por mes (NOT EXISTS)
 
 ---
 
