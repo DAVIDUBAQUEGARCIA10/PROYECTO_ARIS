@@ -32,6 +32,21 @@ CREATE TABLE IF NOT EXISTS `sb-ecosistemaanalitico-lago.cumplimiento_normativo_p
 
 ```
 INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod`
+(
+  FECHA_TRANSACCION,
+  NUMERO_TITULO,
+  VALOR_TRANSACCION,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  CODIGO_AGENCIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION,
+  VALIDACION_LISTAS,
+  DESCRIPCION_VALIDACION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
 
 WITH clientes_capitalizadora AS (
   /* ===================== 1️⃣ Clientes de Capitalizadora Bolívar con movimientos ===================== */
@@ -57,7 +72,7 @@ restringidos AS (
     CODIGO_RESTRICCION,
     DESCRIPCION
   FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
-  WHERE CODIGO_RESTRICCION IN (1, 2, 5, 20, 24, 25, 26)
+  WHERE CODIGO_RESTRICCION IN (1,2,5,20,24,25,26)
     AND FECHA_BAJA IS NULL
 ),
 
@@ -78,21 +93,16 @@ SELECT DISTINCT
   c.CODIGO_AGENCIA,
   c.KEY_ID,
   c.TIPO_DOCUMENTO,
-
   r.CODIGO_RESTRICCION,
   r.DESCRIPCION AS DESCRIPCION_RESTRICCION,
-
   TRUE AS VALIDACION_LISTAS,
-
   CONCAT(
-    'Cliente de Capitalizadora Bolívar',
-    ' presenta coincidencia vigente en listas/restricciones consultables con código ',
+    'Cliente de Capitalizadora Bolívar presenta coincidencia vigente en listas/restricciones consultables con código ',
     CAST(r.CODIGO_RESTRICCION AS STRING),
     ' - ',
     COALESCE(r.DESCRIPCION, 'Sin descripción'),
     '. No registra atención previa en SIMASOL.'
   ) AS DESCRIPCION_VALIDACION,
-
   FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
   CURRENT_DATE() AS FECHA_ALERTA
 
@@ -101,11 +111,22 @@ JOIN restringidos r
   ON c.KEY_ID = r.KEY_ID
  AND c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
 
+-- No existe registro en la base de atención de SIMASOL
 WHERE NOT EXISTS (
   SELECT 1
   FROM simasol s
   WHERE s.KEY_ID = c.KEY_ID
     AND s.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+)
+
+-- Anti-duplicados contra la propia tabla de alertas
+AND NOT EXISTS (
+  SELECT 1
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod` t
+  WHERE t.KEY_ID = c.KEY_ID
+    AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    AND t.NUMERO_TITULO = c.NUMERO_TITULO
+    AND t.CODIGO_RESTRICCION = r.CODIGO_RESTRICCION
 );
 ```
 
@@ -163,6 +184,7 @@ WHERE NOT EXISTS (
 - Restricciones consultables: 1, 2, 5, 20, 24, 25, 26
 - Solo restricciones activas (FECHA_BAJA IS NULL)
 - No existe registro en la base de atención de SIMASOL (t_solicitudes_prevencion_lavado) por tipo y número de identificación
+- Anti-duplicados contra la propia tabla cb_001_prod por KEY_ID + TIPO_DOCUMENTO + NUMERO_TITULO + CODIGO_RESTRICCION
 
 ---
 
