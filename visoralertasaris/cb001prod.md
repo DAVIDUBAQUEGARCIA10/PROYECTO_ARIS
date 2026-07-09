@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS `sb-ecosistemaanalitico-lago.cumplimiento_normativo_p
   CODIGO_AGENCIA              STRING,    -- Agencia que realizó el movimiento
   KEY_ID                      STRING,    -- Número de identificación del cliente
   TIPO_DOCUMENTO              STRING,    -- Tipo de documento del cliente
+  CODIGO_RESTRICCION          INT64,     -- Código de restricción (1,2,5,20,24,25,26)
+  DESCRIPCION_RESTRICCION     STRING,    -- Descripción de la restricción
+  VALIDACION_LISTAS           BOOL,      -- Bandera de validación en listas restrictivas
+  DESCRIPCION_VALIDACION      STRING,    -- Texto explicativo de la alerta
   FECHA_ALERTA_MES            STRING,    -- Año-Mes del procesamiento (YYYY-MM)
   FECHA_ALERTA                DATE       -- Fecha exacta de la alerta
 );
@@ -74,12 +78,29 @@ SELECT DISTINCT
   c.CODIGO_AGENCIA,
   c.KEY_ID,
   c.TIPO_DOCUMENTO,
+
+  r.CODIGO_RESTRICCION,
+  r.DESCRIPCION AS DESCRIPCION_RESTRICCION,
+
+  TRUE AS VALIDACION_LISTAS,
+
+  CONCAT(
+    'Cliente de Capitalizadora Bolívar',
+    ' presenta coincidencia vigente en listas/restricciones consultables con código ',
+    CAST(r.CODIGO_RESTRICCION AS STRING),
+    ' - ',
+    COALESCE(r.DESCRIPCION, 'Sin descripción'),
+    '. No registra atención previa en SIMASOL.'
+  ) AS DESCRIPCION_VALIDACION,
+
   FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
   CURRENT_DATE() AS FECHA_ALERTA
+
 FROM clientes_capitalizadora c
 JOIN restringidos r
   ON c.KEY_ID = r.KEY_ID
  AND c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
+
 WHERE NOT EXISTS (
   SELECT 1
   FROM simasol s
@@ -107,7 +128,8 @@ WHERE NOT EXISTS (
 ### 4️⃣ SELECT final
 - Cruza clientes Capitalizadora con listas restrictivas (por tipo + número identificación)
 - Excluye clientes que YA tienen registro en SIMASOL (NOT EXISTS)
-- Genera marca de mes y fecha de alerta
+- Genera bandera VALIDACION_LISTAS y descripción explicativa de la alerta
+- Agrega marca de mes y fecha de alerta
 
 ## Campos del Output
 
@@ -120,6 +142,10 @@ WHERE NOT EXISTS (
 | CODIGO_AGENCIA | Agencia que realizó el movimiento |
 | KEY_ID | Número de identificación del cliente |
 | TIPO_DOCUMENTO | Tipo de documento del cliente |
+| CODIGO_RESTRICCION | Código de restricción (1,2,5,20,24,25,26) |
+| DESCRIPCION_RESTRICCION | Descripción de la restricción |
+| VALIDACION_LISTAS | Bandera de validación en listas restrictivas |
+| DESCRIPCION_VALIDACION | Texto explicativo de la alerta |
 | FECHA_ALERTA_MES | Año-Mes del procesamiento (YYYY-MM) |
 | FECHA_ALERTA | Fecha exacta de la alerta |
 
