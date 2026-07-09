@@ -1,7 +1,7 @@
 # cb_001_prod
 
 ## Descripcion
-Se genera alerta cuando un cliente de Capitalizadora Bolívar presenta coincidencia en listas consultables por tipo y número de identificación bajo las restricciones 1, 2, 5, 20, 24, 25, 26.
+Se genera alerta cuando un cliente de Capitalizadora Bolívar presenta coincidencia en listas consultables por tipo y número de identificación bajo las restricciones 1, 2, 5, 20, 24, 25, 26, y no existe registro en la base de atención de SIMASOL por tipo y número de identificación.
 
 ## Tipo
 Archivo: BigQuery SQL
@@ -37,6 +37,16 @@ JOIN
 -- Filtro por restricciones consultables y activas
 WHERE r.CODIGO_RESTRICCION IN (1, 2, 5, 20, 24, 25, 26)
     AND r.FECHA_BAJA IS NULL
+
+    -- No existe registro en la base de atención de SIMASOL (por tipo y número de identificación)
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sb-ecosistemaanalitico-lago.operaciones_log_fac.t_solicitudes_prevencion_lavado s
+        WHERE s.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+          AND s.KEY_ID = c.KEY_ID_BENEFICIARIO
+    )
+
+    -- Anti-duplicados por mes
     AND NOT EXISTS (
         SELECT 1
         FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cb_001_prod t
@@ -66,6 +76,7 @@ ORDER BY c.KEY_ID_BENEFICIARIO;
 
 - sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora
 - sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos
+- sb-ecosistemaanalitico-lago.operaciones_log_fac.t_solicitudes_prevencion_lavado (base de atención SIMASOL)
 
 ## Validaciones
 
@@ -73,6 +84,7 @@ ORDER BY c.KEY_ID_BENEFICIARIO;
 - Coincidencia por TIPO_DOCUMENTO + KEY_ID (tipo y número de identificación)
 - Restricciones consultables: 1, 2, 5, 20, 24, 25, 26
 - Solo restricciones activas (FECHA_BAJA IS NULL)
+- No existe registro en la base de atención de SIMASOL (t_solicitudes_prevencion_lavado) por tipo y número de identificación
 - Anti-duplicados por mes (NOT EXISTS)
 
 ---
