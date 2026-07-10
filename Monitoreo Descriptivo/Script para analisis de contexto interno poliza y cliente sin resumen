@@ -1,0 +1,252 @@
+
+WITH
+
+-- ============================================================
+-- 2) CTE: PRODUCTOS_VIGENTES
+-- ============================================================
+-- Se consolidan en una misma estructura:
+--   - pólizas vigentes de seguros
+--   - títulos de capitalización vigentes
+-- ============================================================
+productos_vigentes AS (
+
+  -- ----------------------------------------------------------
+  -- 2.1) Pólizas vigentes de seguros
+  -- ----------------------------------------------------------
+  SELECT DISTINCT
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA AS NUMERO_PRODUCTO,
+    CAST(CODIGO_LOCALIDAD AS STRING) AS CODIGO_LOCALIDAD,
+    NOMBRE_LOCALIDAD,
+    FECHA_INICIO_POLIZA AS FECHA_EMISION,
+    CAST(CLAVE_AGENTE AS STRING) AS CLAVE_AGENTE,
+    CAST(NOMBRE_AGENTE AS STRING) AS NOMBRE_AGENTE,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_tom_ase_vigentes`
+  WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+
+  UNION ALL
+
+  -- ----------------------------------------------------------
+  -- 2.2) Títulos de capitalización vigentes
+  -- ----------------------------------------------------------
+  SELECT DISTINCT
+    1 AS CODIGO_COMPANIA,
+    801 AS CODIGO_RAMO_EMISION,
+    'TITULOS DE CAPITALIZACION' AS NOMBRE_RAMO_EMISION,
+    51 AS CODIGO_PRODUCTO,
+    'MAGNATE 2005 GRUPO 100000' AS NOMBRE_PRODUCTO,
+    c.TITULO AS NUMERO_PRODUCTO,
+    CAST('' AS STRING) AS CODIGO_LOCALIDAD,
+    '' AS NOMBRE_LOCALIDAD,
+    h.FECHA_EMISION,
+    CAST('' AS STRING) AS CLAVE_AGENTE,
+    CAST('' AS STRING) AS NOMBRE_AGENTE,
+    c.TIPO_DOCUMENTO AS TIPO_DOCUMENTO_TOMADOR,
+    c.KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+  INNER JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_historico_titulos_capitalizacion` h
+    ON c.TITULO = h.NUMERO_TITULO
+  WHERE h.ESTADO_TITULO = 1
+),
+
+-- ============================================================
+-- 3) CTE: DATOS_CLIENTES
+-- ============================================================
+-- Se unifican en una misma estructura los clientes:
+--   - naturales
+--   - jurídicos
+-- ============================================================
+datos_clientes AS (
+
+  -- ----------------------------------------------------------
+  -- 3.1) Clientes naturales
+  -- ----------------------------------------------------------
+  SELECT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    CAST(FEC_NACIMIENTO AS DATE) AS FECHA_NACIMIENTO,
+    NACIONALIDAD,
+    FECHA_ACTUALIZACION,
+    VALOR_INGRESOS,
+    VALOR_EGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    CODIGO_CIIU,
+    ACTIVIDAD_ECONOMICA,
+    PUBLICAMENTE_EXPUESTA,
+    VINCULO_PERSONA_RECONOCIDA,
+    CODIGO_LUGAR_REGISTRO,
+    NOMBRE_LUGAR_REGISTRO,
+    CODIGO_LUGAR_NACIMIENTO,
+    NOMBRE_LUGAR_NACIMIENTO,
+    MANEJA_MONEDA_EXTRANJERA,
+    CAST(OPERACIONES_INTERNACIONALES AS STRING) AS OPERACIONES_INTERNACIONALES,
+    CAST(CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS CODIGO_CODAZZI_DIRECCION_1,
+    MUNICIPIO_DIRECCION_1,
+    CAST(COD_PROFESION AS STRING) AS COD_PROFESION,
+    CAST(COD_OCUPACION AS STRING) AS COD_OCUPACION,
+    FECHA_CREACION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+
+  UNION ALL
+
+  -- ----------------------------------------------------------
+  -- 3.2) Clientes jurídicos
+  -- ----------------------------------------------------------
+  SELECT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    CAST(FECHA_NACIMIENTO AS DATE) AS FECHA_NACIMIENTO,
+    NACIONALIDAD,
+    FECHA_ACTUALIZACION,
+    VALOR_INGRESOS,
+    VALOR_EGRESOS,
+    VALOR_ACTIVO,
+    VALOR_PASIVO,
+    CODIGO_CIIU,
+    ACTIVIDAD_ECONOMICA,
+    PUBLICAMENTE_EXPUESTA,
+    VINCULO_PERSONA_RECONOCIDA,
+    CODIGO_LUGAR_REGISTRO,
+    NOMBRE_LUGAR_REGISTRO,
+    CODIGO_LUGAR_NACIMIENTO,
+    NOMBRE_LUGAR_NACIMIENTO,
+    MANEJA_MONEDA_EXTRANJERA,
+    CAST(OPERACIONES_INTERNACIONALES AS STRING) AS OPERACIONES_INTERNACIONALES,
+    CAST(CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS CODIGO_CODAZZI_DIRECCION_1,
+    CAST(0 AS STRING) AS MUNICIPIO_DIRECCION_1,
+    CAST(0 AS STRING) AS COD_PROFESION,
+    CAST(0 AS STRING) AS COD_OCUPACION,
+    FECHA_CREACION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+)
+
+-- ============================================================
+-- 4) SELECT FINAL
+-- ============================================================
+SELECT DISTINCT
+
+  -- ----------------------------------------------------------
+  -- 4.1) Datos del producto vigente
+  -- ----------------------------------------------------------
+  pv.CODIGO_COMPANIA,
+  pv.CODIGO_RAMO_EMISION,
+  pv.NOMBRE_RAMO_EMISION,
+  pv.CODIGO_PRODUCTO,
+  pv.NOMBRE_PRODUCTO,
+  pv.NUMERO_PRODUCTO,
+  pv.CODIGO_LOCALIDAD,
+  pv.NOMBRE_LOCALIDAD,
+  pv.FECHA_EMISION,
+  pv.CLAVE_AGENTE,
+  pv.NOMBRE_AGENTE,
+  pv.TIPO_DOCUMENTO_TOMADOR,
+  pv.KEY_ID_TOMADOR,
+
+  -- ----------------------------------------------------------
+  -- 4.2) Datos del cliente unificado PN / PJ
+  -- ----------------------------------------------------------
+  dc.FECHA_NACIMIENTO,
+  dc.NACIONALIDAD,
+  dc.FECHA_ACTUALIZACION,
+  dc.VALOR_INGRESOS,
+  dc.VALOR_EGRESOS,
+  dc.VALOR_ACTIVO,
+  dc.VALOR_PASIVO,
+  dc.CODIGO_CIIU,
+  dc.ACTIVIDAD_ECONOMICA,
+  dc.PUBLICAMENTE_EXPUESTA,
+  dc.VINCULO_PERSONA_RECONOCIDA,
+  dc.CODIGO_LUGAR_REGISTRO,
+  dc.NOMBRE_LUGAR_REGISTRO,
+  dc.CODIGO_LUGAR_NACIMIENTO,
+  dc.NOMBRE_LUGAR_NACIMIENTO,
+  dc.MANEJA_MONEDA_EXTRANJERA,
+  dc.OPERACIONES_INTERNACIONALES,
+  dc.CODIGO_CODAZZI_DIRECCION_1,
+  dc.MUNICIPIO_DIRECCION_1,
+  dc.COD_PROFESION,
+  dc.COD_OCUPACION,
+  dc.FECHA_CREACION,
+
+  -- ----------------------------------------------------------
+  -- 4.3) Niveles de riesgo
+  -- ----------------------------------------------------------
+  INITCAP(t7.NIVEL_DE_RIESGO) AS NIVEL_RIESGO_PRODUCTO,
+  INITCAP(t10.Nivel_de_riesgo) AS NIVEL_RIESGO_CIIU,
+  INITCAP(t9.Nivel_de_riesgo_asignado) AS NIVEL_RIESGO_NACIONALIDAD,
+  INITCAP(t8.NIVEL_DE_RIESGO_ASIGNADO) AS NIVEL_RIESGO_DIRECCION,
+  INITCAP(t5.NIVEL_DE_RIESGO) AS NIVEL_RIESGO_PROFESION,
+  INITCAP(t6.Nivel_de_riesgo) AS NIVEL_RIESGO_OCUPACION,
+
+  -- ----------------------------------------------------------
+  -- 4.4) Terceros restringidos
+  -- ----------------------------------------------------------
+  list.CODIGO_RESTRICCION,
+  list.DESCRIPCION
+
+FROM productos_vigentes AS pv
+
+-- ============================================================
+-- 5) JOIN CON DATOS DE CLIENTES
+-- ============================================================
+LEFT JOIN datos_clientes AS dc
+  ON pv.KEY_ID_TOMADOR = dc.KEY_ID
+ AND pv.TIPO_DOCUMENTO_TOMADOR = dc.TIPO_DOCUMENTO
+
+-- ============================================================
+-- 6) JOIN CON TABLAS DE NIVEL DE RIESGO
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 6.1) Riesgo por profesión
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_profesion` AS t5
+  ON CAST(dc.COD_PROFESION AS STRING) = CAST(t5.ID AS STRING)
+
+-- ------------------------------------------------------------
+-- 6.2) Riesgo por ocupación
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_ocupacion_nivel_riesgo_real` AS t6
+  ON CAST(dc.COD_OCUPACION AS STRING) = CAST(t6.ID AS STRING)
+
+-- ------------------------------------------------------------
+-- 6.3) Riesgo por producto
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_productos_nivel_riesgo` AS t7
+  ON pv.CODIGO_RAMO_EMISION = t7.C__digo_del_Ramo
+ AND pv.CODIGO_PRODUCTO = t7.C__digo_de_Producto
+ AND t7.C__digo_de_Producto IS NOT NULL
+
+-- ------------------------------------------------------------
+-- 6.4) Riesgo por jurisdicción / dirección
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_jurisdicciones_nivel_riesgo` AS t8
+  ON CAST(dc.CODIGO_CODAZZI_DIRECCION_1 AS INT64) = CAST(t8.C__DIGO_DANE_DEL_MUNICIPIO AS INT64)
+ AND t8.MUNICIPIO IS NOT NULL
+
+-- ------------------------------------------------------------
+-- 6.5) Riesgo por nacionalidad / lugar de nacimiento
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` AS t9
+  ON dc.CODIGO_LUGAR_NACIMIENTO = t9.ID
+
+-- ------------------------------------------------------------
+-- 6.6) Riesgo por actividad económica
+-- ------------------------------------------------------------
+LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo` AS t10
+  ON dc.CODIGO_CIIU = t10.C__digo
+ AND t10.C__digo IS NOT NULL
+
+-- ============================================================
+-- 7) JOIN CON TERCEROS RESTRINGIDOS
+-- ============================================================
+LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` AS list
+  ON pv.KEY_ID_TOMADOR = list.KEY_ID
+;

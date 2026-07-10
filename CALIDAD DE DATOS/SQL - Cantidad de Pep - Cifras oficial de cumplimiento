@@ -1,0 +1,7 @@
+select COUNT(*)
+from dc_ext_revisoria_fiscal
+ where   exrf_cod_cia = 3
+  and exrf_cod_tip_doc is not null
+  and exrf_desc_pers_ppubrec   = 'SI'
+  and exrf_cod_ramo_emi  != 310
+  

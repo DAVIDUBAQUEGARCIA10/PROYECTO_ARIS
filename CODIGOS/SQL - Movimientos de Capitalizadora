@@ -1,0 +1,34 @@
+SELECT 
+    t2020105.COMP_COD_CIA AS Codigo_Compania,
+    t2020100.COD_BENEF AS Numero_id_tomador, 
+    t2020100.TIPO_DOCUMENTO AS Tipo_Documento, 
+    t2020105.NRO_TITULO AS Numero_Titulo,  
+    TO_CHAR(TO_DATE(t3110000.FECHA, 'DD/MM/RR'), 'YYYY-MM-DD') AS Fecha_Transaccion,  -- Convertir DD/MM/RR a YYYY-MM-DD
+    t3110000.TIPMOV_CODIGO AS Tipo_Movimiento_Codigo, 
+    t3110000.NUMERO_TRANSACCION AS Numero_Transaccion,
+    t3110000.VALOR AS Valor_Transaccion, 
+    t3110000.OFIC_COD_AGENCIA AS Codigo_Agencia, 
+    t1012010.AGRUPAMIENTO AS Agrupamiento_Codigo,  
+    t1012010.SIGNO AS Signo_Movimiento, 
+    t1012010.NOMBRE AS Nombre_Tipo_Movimiento, 
+    t1012010.ABREVIATURA AS Abreviatura_Tipo_Movimiento,
+    t2020105.VR_CUOTA_ACTUAL AS Valor_Cuota_Actual, 
+    t2020105.VR_CUOTA_INICIAL AS Valor_Cuota_Inicial, 
+    t2020105.PLAN_CODIGO AS Codigo_Plan, 
+    TO_CHAR(TO_DATE(t3110000.FECHA_MODIF, 'DD/MM/RR'), 'YYYY-MM-DD') AS Fecha_Modificacion,  -- Convertir DD/MM/RR a YYYY-MM-DD    
+    TO_CHAR(TO_DATE(t2020105.FECHA_CREACION, 'DD/MM/RR'), 'YYYY-MM-DD') AS Fecha_Creacion,  -- Convertir DD/MM/RR a YYYY-MM-DD
+    TO_CHAR(TO_DATE(t2020105.FECHA_BLOQUEO, 'DD/MM/RR'), 'YYYY-MM-DD') AS Fecha_Bloqueo,  -- Convertir DD/MM/RR a YYYY-MM-DD
+    TO_CHAR(TO_DATE(t2020105.FECHA_CANCELACION, 'DD/MM/RR'), 'YYYY-MM-DD') AS Fecha_Cancelacion -- Convertir DD/MM/RR a YYYY-MM-DD
+FROM 
+   t3110000 
+JOIN 
+    t1012010 
+    ON t3110000.TIPMOV_CODIGO = t1012010.CODIGO
+JOIN
+    t2020105 
+    ON t3110000.TITU_NRO_TITULO = t2020105.NRO_TITULO
+JOIN 
+    t2020100 
+    ON t3110000.TITU_NRO_TITULO = t2020100.TITU_NRO_TITULO
+WHERE 
+    TO_DATE(t3110000.FECHA, 'DD/MM/RR') > TO_DATE('01/01/23', 'DD/MM/RR');  -- Filtro para fecha mayor a enero de 2023

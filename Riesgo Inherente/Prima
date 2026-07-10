@@ -1,0 +1,44 @@
+
+
+DECLARE periodo_max DATE;
+
+-- 1) Último periodo disponible por FECHA_PROCESO
+SET periodo_max = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+-- 2) Agregación por RAMO DE EMISIÓN en el periodo más reciente
+SELECT
+  -- Llave de agregación
+  CODIGO_RAMO_EMISION,
+  NOMBRE_RAMO_EMISION,
+      NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+
+  -- Métrica principal
+  SUM(PRIMA_ANUAL) AS PRIMA_ANUAL_TOTAL,
+
+  -- Conteo de pólizas en el ramo
+  COUNT(DISTINCT NUMERO_POLIZA) AS CANTIDAD_POLIZAS,
+
+  -- Periodo consultado
+  periodo_max AS PERIODO_CONSULTADO
+
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+WHERE
+  DATE(FECHA_PROCESO) = periodo_max
+  AND DATE(FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+  AND DATE(FECHA_FIN_POLIZA)  >= CURRENT_DATE() and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q=='
+GROUP BY
+  CODIGO_RAMO_EMISION,
+  NOMBRE_RAMO_EMISION,
+      NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+  periodo_max
+ORDER BY
+  PRIMA_ANUAL_TOTAL DESC;

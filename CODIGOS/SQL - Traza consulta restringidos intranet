@@ -1,0 +1,4 @@
+select * from
+clientes_restringidos_traza
+where cod_secc is not null and fecha >= TO_DATE('01-01-2024', 'DD-MM-YYYY')
+order by fecha desc

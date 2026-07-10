@@ -1,0 +1,131 @@
+-- Insertar solo registros nuevos en SEG_0071_VISOR_REPO
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod` (
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    NUMERO_POLIZA,
+    FECHA_VIGENCIA_ENDOSO,
+    FECHA_VENCIMIENTO_ENDOSO,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NOMBRE_TOMADOR,
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+    NUMERO_POLIZAS_PAGADAS,
+    POLIZAS_RELACIONADAS,
+    CODIGOS_RAMO_RELACIONADOS,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
+
+-- Primera CTE: Identifica tomadores con más de 2 pólizas distintas con recaudos
+WITH polizas_con_pagos AS (
+    SELECT 
+        a.TIPO_DOCUMENTO_TOMADOR,  -- Tipo de documento del tomador (ej: CC, NIT)
+        a.KEY_ID_TOMADOR,  -- Número del documento del tomador
+        COUNT(DISTINCT a.NUMERO_POLIZA) AS NUMERO_POLIZAS_PAGADAS,  -- Conteo de pólizas distintas que han sido pagadas
+
+        STRING_AGG(
+            DISTINCT CAST(a.NUMERO_POLIZA AS STRING),
+            ', '
+        ) AS POLIZAS_RELACIONADAS,  -- Pólizas del tomador separadas por comas
+
+        STRING_AGG(
+            DISTINCT CAST(a.CODIGO_RAMO_EMISION AS STRING),
+            ', '
+        ) AS CODIGOS_RAMO_RELACIONADOS  -- Códigos de ramo separados por comas
+
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  -- Tabla principal con datos de recaudos
+    LEFT JOIN 
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  -- Tabla de terceros (clientes registrados)
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO
+        AND a.KEY_ID_TOMADOR = b.KEY_ID
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  -- Información adicional de clientes naturales
+    ON 
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+        AND b.KEY_ID = c.KEY_ID
+    WHERE 
+        DATE(a.FECHA_VIGENCIA_POLIZA) >= DATE '2026-03-01'  -- Se consideran solo pólizas vigentes desde 2025
+        AND DATE(a.FECHA_RECAUDO) >= DATE '2026-03-01'  -- Se consideran recaudos hechos desde 2025
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  -- Solo se analizan ciertos ramos específicos
+        AND a.TIPO_REGISTRO = 'RECAUDO'  -- Se filtran solo registros tipo RECAUDO
+        AND c.PUBLICAMENTE_EXPUESTA = 'S'  -- Se filtran únicamente personas expuestas públicamente (PEP)
+    GROUP BY 
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.KEY_ID_TOMADOR
+    HAVING 
+        COUNT(DISTINCT a.NUMERO_POLIZA) > 2  -- Solo se consideran tomadores con más de 2 pólizas pagadas
+),
+
+-- Segunda CTE: Ordena las pólizas de cada tomador para tomar la más reciente
+polizas_ordenadas AS (
+    SELECT 
+        a.CODIGO_COMPANIA,  -- Código de la compañía aseguradora
+        a.CODIGO_RAMO_EMISION,  -- Código del ramo de la póliza
+        a.NOMBRE_RAMO_EMISION,  -- Nombre del ramo
+        a.CODIGO_PRODUCTO,  -- Código del producto
+        a.NOMBRE_PRODUCTO,  -- Nombre del producto
+        a.NUMERO_POLIZA,  -- Número único de la póliza
+        a.FECHA_VIGENCIA_ENDOSO,  -- Fecha de inicio del endoso
+        a.FECHA_VENCIMIENTO_ENDOSO,  -- Fecha de vencimiento del endoso
+        a.TIPO_DOCUMENTO_TOMADOR,  -- Tipo de documento del tomador
+        a.KEY_ID_TOMADOR,  -- Número de documento del tomador
+        a.NOMBRE_TOMADOR,  -- Nombre completo del tomador
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  -- Código de la actividad económica del tomador
+        b.NUMERO_POLIZAS_PAGADAS,  -- Número total de pólizas pagadas del tomador
+        b.POLIZAS_RELACIONADAS,  -- Pólizas asociadas al tomador separadas por comas
+        b.CODIGOS_RAMO_RELACIONADOS,  -- Ramos asociados al tomador separados por comas
+        ROW_NUMBER() OVER (
+            PARTITION BY a.TIPO_DOCUMENTO_TOMADOR, a.KEY_ID_TOMADOR
+            ORDER BY a.FECHA_VIGENCIA_ENDOSO DESC
+        ) AS rn  -- Asigna un número de fila ordenado por fecha más reciente del endoso
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  -- Fuente de información de recaudos
+    LEFT JOIN 
+        polizas_con_pagos b  -- Se une con la CTE anterior
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO_TOMADOR 
+        AND a.KEY_ID_TOMADOR = b.KEY_ID_TOMADOR
+    WHERE 
+        b.NUMERO_POLIZAS_PAGADAS IS NOT NULL  -- Se asegura que el tomador tenga pólizas pagadas
+        AND b.NUMERO_POLIZAS_PAGADAS > 0
+        AND DATE(a.FECHA_VIGENCIA_POLIZA) >= DATE '2026-03-01'  -- Solo pólizas con vigencia desde 2025
+        AND DATE(a.FECHA_RECAUDO) >= DATE '2026-03-01'  -- Solo recaudos desde 2025
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  -- Ramos específicos definidos
+        AND a.TIPO_REGISTRO = 'RECAUDO'  -- Solo se incluyen registros de recaudo
+)
+
+-- Selección final: póliza más reciente por tomador
+SELECT 
+    CODIGO_COMPANIA,  -- Código de la compañía aseguradora
+    CODIGO_RAMO_EMISION,  -- Código del ramo de emisión
+    NOMBRE_RAMO_EMISION,  -- Nombre del ramo
+    CODIGO_PRODUCTO,  -- Código del producto asegurado
+    NOMBRE_PRODUCTO,  -- Nombre del producto asegurado
+    NUMERO_POLIZA,  -- Número de la póliza
+    FECHA_VIGENCIA_ENDOSO,  -- Fecha de inicio del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  -- Fecha de vencimiento del endoso
+    TIPO_DOCUMENTO_TOMADOR,  -- Tipo de documento del tomador
+    KEY_ID_TOMADOR,  -- Número del documento del tomador
+    NOMBRE_TOMADOR,  -- Nombre completo del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  -- Actividad económica asociada al tomador
+    NUMERO_POLIZAS_PAGADAS,  -- Cantidad de pólizas pagadas que tiene el tomador
+    POLIZAS_RELACIONADAS,  -- Nueva columna con pólizas separadas por comas
+    CODIGOS_RAMO_RELACIONADOS,  -- Nueva columna con ramos separados por comas
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  -- Mes actual en formato AAAA-MM para referencia de alerta
+    CURRENT_DATE() AS FECHA_ALERTA  -- Fecha actual como fecha de alerta
+FROM 
+    polizas_ordenadas  -- Se toma como base la CTE con datos ordenados
+WHERE 
+    rn = 1  -- Solo se toma la póliza más reciente por tomador
+    AND NOT EXISTS (  -- Se evita insertar registros ya existentes en la tabla final
+        -- Verificar que el registro no existe ya en la tabla
+        SELECT 1
+        FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0071_prod` existing  -- Tabla destino
+        WHERE existing.KEY_ID_TOMADOR = polizas_ordenadas.KEY_ID_TOMADOR
+          AND existing.NUMERO_POLIZA = polizas_ordenadas.NUMERO_POLIZA
+    );

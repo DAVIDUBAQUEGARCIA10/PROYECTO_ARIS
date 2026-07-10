@@ -1,0 +1,122 @@
+/* ============================================================
+   INSERT INTO LIST_0001_VISOR_REPO
+   Basado 1:1 en tu CREATE OR REPLACE TABLE original,
+   con exclusión de registros ya alertados en SEG_0105_VISOR_REPO.
+   ============================================================ */
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod` (
+  CODIGO_COMPANIA,
+  NUMERO_POLIZA,
+  CODIGO_PRODUCTO1,
+  FECHA_EMISION,
+  tipo_doc,
+  key_id,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  MOTIVO_ALERTA,
+  TIPO_BENEFICIARIO,
+  PORCENTAJE,
+  MARCA_ESTADO,
+  CODIGO_PRODUCTO,
+  CODIGO_RAMO_EMISION,
+  FECHA_FIN_POLIZA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  FECHA_MODIFICACION
+)
+
+WITH actores AS (
+  /* ===================== 1️⃣ Tomador / Beneficiario ===================== */
+  SELECT DISTINCT
+    b.CODIGO_COMPANIA,
+    b.NUMERO_POLIZA,
+    b.CODIGO_PRODUCTO,
+    b.FECHA_EMISION,
+    b.TIPO_DOCUMENTO_TERCERO  AS tipo_doc,
+    b.KEY_ID_TOMADOR          AS key_id,
+    b.TIPO_BENEFICIARIO,
+    b.PORCENTAJE,
+    b.MARCA_ESTADO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_beneficiarios_porcentaje` b
+),
+
+restricciones AS (
+  /* ===================== 2️⃣ Terceros restringidos ===================== */
+  SELECT 
+    TIPO_DOCUMENTO_TERCERO,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE CODIGO_RESTRICCION IN (23,29,33,35,50,28)
+  and FECHA_BAJA is null
+),
+
+polizas AS (
+  /* ===================== 3️⃣ Solo FECHA_FIN_POLIZA más reciente ===================== */
+  SELECT
+    p.NUMERO_POLIZA,
+    p.FECHA_FIN_POLIZA,
+    p.CODIGO_RAMO_EMISION, 
+    p.CODIGO_PRODUCTO
+  FROM (
+    SELECT
+      NUMERO_POLIZA,
+      FECHA_FIN_POLIZA,
+      CODIGO_RAMO_EMISION, 
+      CODIGO_PRODUCTO,
+      ROW_NUMBER() OVER (
+        PARTITION BY NUMERO_POLIZA
+        ORDER BY FECHA_PROCESO DESC
+      ) AS rn
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  ) p
+  WHERE p.rn = 1
+),
+
+con_riesgos AS (
+  /* ===================== 4️⃣ Unión final ===================== */
+  SELECT DISTINCT
+    a.CODIGO_COMPANIA,
+    a.NUMERO_POLIZA,
+    a.CODIGO_PRODUCTO AS CODIGO_PRODUCTO1,
+    a.FECHA_EMISION,
+    a.tipo_doc,
+    a.key_id,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION,
+    CASE r.CODIGO_RESTRICCION
+      WHEN 23 THEN 'Beneficiario de seguro catalogado como PEP'
+      WHEN 29 THEN 'Beneficiario de seguro sin información actualizada'
+      WHEN 33 THEN 'Beneficiario de seguro con actividad de alto riesgo'
+      WHEN 35 THEN 'Beneficiario de seguro asociado anticorrupción y soborno'
+      WHEN 50 THEN 'Beneficiario de seguro impactado FATCA/CRS'
+      WHEN 28 THEN 'Beneficiario de seguro con investigación procesal'
+    END AS MOTIVO_ALERTA,
+    a.TIPO_BENEFICIARIO,
+    a.PORCENTAJE,
+    a.MARCA_ESTADO,
+    p.CODIGO_PRODUCTO,
+    p.CODIGO_RAMO_EMISION,
+    p.FECHA_FIN_POLIZA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  -- marcador año-mes
+    CURRENT_DATE() AS FECHA_ALERTA,                             -- fecha exacta de alerta
+    CURRENT_TIMESTAMP() AS FECHA_MODIFICACION                   -- timestamp del proceso
+  FROM actores a
+  JOIN restricciones r
+    ON a.tipo_doc = r.TIPO_DOCUMENTO_TERCERO
+   AND a.key_id   = r.KEY_ID
+  LEFT JOIN polizas p
+    ON a.NUMERO_POLIZA = p.NUMERO_POLIZA
+  WHERE DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+)
+
+/* ===================== 5️⃣ Inserta evitando duplicados y alertas previas ===================== */
+SELECT *
+FROM con_riesgos
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.list_0001_prod` t
+    WHERE t.key_id = con_riesgos.key_id
+)
+ORDER BY con_riesgos.FECHA_MODIFICACION DESC;

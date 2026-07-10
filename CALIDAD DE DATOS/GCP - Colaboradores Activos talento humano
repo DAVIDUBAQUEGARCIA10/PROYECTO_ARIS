@@ -1,0 +1,82 @@
+/* ============================================================
+   OBJETIVO
+   ------------------------------------------------------------
+   Identificar colaboradores activos (último registro por persona)
+   que se encuentren en la tabla de terceros restringidos
+   con códigos de restricción 20 o 23 y sin fecha de baja.
+   ============================================================ */
+
+WITH colaboradores_ult_fecha AS (
+    /* ========================================================
+       1) Obtener la FECHA_CIERRE más reciente por persona
+          (TIPO_DOCUMENTO + KEY_ID)
+       ======================================================== */
+    SELECT
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        MAX(FECHA_CIERRE) AS FECHA_CIERRE_MAS_RECIENTE
+    FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+    GROUP BY
+        TIPO_DOCUMENTO,
+        KEY_ID
+),
+
+colaboradores_final AS (
+    /* ========================================================
+       2) Volver a la tabla base para quedarnos
+          SOLO con el registro de la fecha más reciente
+       ======================================================== */
+    SELECT
+        c.FECHA_CIERRE,
+        c.TIPO_DOCUMENTO,
+        c.KEY_ID
+    FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos` c
+    INNER JOIN colaboradores_ult_fecha u
+        ON c.TIPO_DOCUMENTO = u.TIPO_DOCUMENTO
+       AND c.KEY_ID         = u.KEY_ID
+       AND c.FECHA_CIERRE   = u.FECHA_CIERRE_MAS_RECIENTE
+),
+
+terceros_restringidos_filtrado AS (
+    /* ========================================================
+       3) Filtrar terceros restringidos
+          - Solo códigos 20 y 23
+          - FECHA_BAJA debe ser NULL
+       ======================================================== */
+    SELECT
+        TIPO_DOCUMENTO_TERCERO,
+        KEY_ID,
+        CODIGO_RESTRICCION,
+        DESCRIPCION,
+        FECHA_BAJA,
+        FECHA_CREACION,
+        FECHA_MODIFICACION,
+        VALOR_RIESGO,
+        NIVEL_ALERTA,
+        MARCA_ACTIVO
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+    WHERE CODIGO_RESTRICCION IN (20, 23)
+      AND FECHA_BAJA IS NULL
+)
+
+-- ============================================================
+-- 4) Cruce final: colaboradores activos vs terceros restringidos
+-- ============================================================
+SELECT
+    c.FECHA_CIERRE,
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION AS DESCRIPCION_RESTRICCION,
+    r.VALOR_RIESGO,
+    r.NIVEL_ALERTA,
+    r.MARCA_ACTIVO,
+    r.FECHA_CREACION,
+    r.FECHA_MODIFICACION
+FROM colaboradores_final c
+INNER JOIN terceros_restringidos_filtrado r
+    ON c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO_TERCERO
+   AND c.KEY_ID         = r.KEY_ID
+ORDER BY
+    c.FECHA_CIERRE DESC;

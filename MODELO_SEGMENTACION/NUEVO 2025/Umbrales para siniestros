@@ -1,0 +1,245 @@
+-- ============================================================
+-- OBJETIVO:
+-- Tomar los siniestros desde el 2025-01-01 en adelante,
+-- asociarlos al cluster del KEY_ID_TOMADOR y luego evaluar
+-- cuántos registros quedan por encima de unos umbrales
+-- específicos definidos manualmente por:
+--   - COMPANIA
+--   - SEGMENTO
+--   - TIPO_PERSONA_SEGMENTO
+--
+-- El resultado mostrará:
+--   - total de siniestros por grupo
+--   - cantidad de siniestros que superan el umbral
+--   - porcentaje que supera el umbral
+-- ============================================================
+
+WITH siniestros_base AS (
+
+    -- ========================================================
+    -- 1) BASE DE SINIESTROS
+    -- Se extraen siniestros desde 2025-01-01 en adelante,
+    -- únicamente con fecha de orden de pago y valor liquidado.
+    -- ========================================================
+    SELECT
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        NUMERO_SECUENCIA_POLIZA,
+        NUMERO_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        KEY_ID_ASEGURADO,
+        KEY_ID_BENEFICIARIO,
+        DATE(FECHA_SINIESTRO) AS FECHA_SINIESTRO,
+        DATE(FECHA_SUSCRIPCION) AS FECHA_SUSCRIPCION,
+        ESTADO_SINIESTRO,
+        DATE(FECHA_ORDEN_PAGO) AS FECHA_ORDEN_PAGO,
+        LIQUIDADO_BOLIVAR
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE DATE(FECHA_SINIESTRO) >= DATE '2025-01-01'
+      AND FECHA_ORDEN_PAGO IS NOT NULL
+      AND KEY_ID_TOMADOR IS NOT NULL
+      AND LIQUIDADO_BOLIVAR IS NOT NULL
+
+),
+
+segmentacion_clientes AS (
+
+    -- ========================================================
+    -- 2) SEGMENTACIÓN DE CLIENTES
+    -- Se identifica por cada KEY_ID_TOMADOR:
+    --   - compañía
+    --   - segmento
+    --   - tipo de persona segmentado (PN / PJ)
+    -- ========================================================
+    SELECT DISTINCT
+        KEY_ID_TOMADOR,
+        COMPANIA,
+        SEGMENTO,
+        MODELO,
+        CASE
+            WHEN LOWER(MODELO) LIKE '%_pn_%' THEN 'PN'
+            WHEN LOWER(MODELO) LIKE '%_pj_%' THEN 'PJ'
+            ELSE 'NO_IDENTIFICADO'
+        END AS TIPO_PERSONA_SEGMENTO
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.consolidado_clientes`
+    WHERE KEY_ID_TOMADOR IS NOT NULL
+
+),
+
+siniestros_con_cluster AS (
+
+    -- ========================================================
+    -- 3) UNIÓN DE SINIESTROS CON SEGMENTACIÓN
+    -- Se asocia el cluster del tomador a cada siniestro.
+    -- ========================================================
+    SELECT
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_EMISION,
+        s.NOMBRE_RAMO_EMISION,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+        s.NUMERO_SECUENCIA_POLIZA,
+        s.NUMERO_POLIZA,
+        s.TIPO_DOCUMENTO_TOMADOR,
+        s.KEY_ID_TOMADOR,
+        s.KEY_ID_ASEGURADO,
+        s.KEY_ID_BENEFICIARIO,
+        s.FECHA_SINIESTRO,
+        s.FECHA_SUSCRIPCION,
+        s.ESTADO_SINIESTRO,
+        s.FECHA_ORDEN_PAGO,
+        s.LIQUIDADO_BOLIVAR,
+        c.COMPANIA,
+        c.SEGMENTO,
+        c.TIPO_PERSONA_SEGMENTO
+    FROM siniestros_base s
+    INNER JOIN segmentacion_clientes c
+        ON s.KEY_ID_TOMADOR = c.KEY_ID_TOMADOR
+       AND s.CODIGO_COMPANIA = c.COMPANIA
+
+),
+
+umbrales AS (
+
+    -- ========================================================
+    -- 4) UMBRALES FIJOS DEFINIDOS MANUALMENTE
+    -- Se parametrizan los valores de corte por compañía,
+    -- segmento y tipo de persona.
+    -- ========================================================
+
+    -- =========================================
+    -- COMPAÑIA 2 - PERSONA NATURAL
+    -- =========================================
+    SELECT 2 AS COMPANIA, 'cluster_0'         AS SEGMENTO, 'PN' AS TIPO_PERSONA_SEGMENTO, 13472124 AS UMBRAL_TRANSACCIONAL UNION ALL
+    SELECT 2,               'cluster_1',                    'PN',                         21891540 UNION ALL
+    SELECT 2,               'cluster_2',                    'PN',                         30000000 UNION ALL
+    SELECT 2,               'cluster_4',                    'PN',                         10509280 UNION ALL
+    SELECT 2,               'cluster_6',                    'PN',                          6307572 UNION ALL
+    SELECT 2,               'cluster_11',                   'PN',                          1000000 UNION ALL
+    SELECT 2,               'cluster_14',                   'PN',                          1548400 UNION ALL
+    SELECT 2,               'cluster_16',                   'PN',                           199329 UNION ALL
+    SELECT 2,               'cluster_23',                   'PN',                          1405229 UNION ALL
+    SELECT 2,               'cluster_24',                   'PN',                           240100 UNION ALL
+    SELECT 2,               'Cluster_Outliers',             'PN',                          1000000 UNION ALL
+
+    -- =========================================
+    -- COMPAÑIA 2 - PERSONA JURIDICA
+    -- =========================================
+    SELECT 2,               'cluster_outliers',             'PJ',                          429347106 UNION ALL
+
+    -- =========================================
+    -- COMPAÑIA 3 - PERSONA NATURAL
+    -- =========================================
+    SELECT 3,               'cluster_3',                    'PN',                          1200000 UNION ALL
+    SELECT 3,               'cluster_11',                   'PN',                           843300 UNION ALL
+    SELECT 3,               'cluster_13',                   'PN',                          1100000 UNION ALL
+    SELECT 3,               'cluster_14',                   'PN',                          1500000 UNION ALL
+    SELECT 3,               'cluster_17',                   'PN',                          1500000 UNION ALL
+    SELECT 3,               'cluster_19',                   'PN',                          1000000 UNION ALL
+
+    -- =========================================
+    -- COMPAÑIA 3 - PERSONA JURIDICA
+    -- =========================================
+    SELECT 3,               'cluster_0',                    'PJ',                          39457208 UNION ALL
+    SELECT 3,               'cluster_17',                   'PJ',                          1920000 UNION ALL
+    SELECT 3,               'cluster_18',                   'PJ',                          1384410 UNION ALL
+    SELECT 3,               'cluster_19',                   'PJ',                          1155022 UNION ALL
+    SELECT 3,               'cluster_20',                   'PJ',                          1565555
+
+),
+
+base_filtrada AS (
+
+    -- ========================================================
+    -- 5) CRUCE CON UMBRALES
+    -- Se conservan únicamente los siniestros que pertenecen
+    -- a las combinaciones exactas parametrizadas en la tabla
+    -- de umbrales.
+    --
+    -- Se normaliza SEGMENTO con UPPER() para evitar problemas
+    -- de mayúsculas y minúsculas en los nombres del cluster.
+    -- ========================================================
+    SELECT
+        s.CODIGO_COMPANIA,
+        s.CODIGO_RAMO_EMISION,
+        s.NOMBRE_RAMO_EMISION,
+        s.CODIGO_PRODUCTO,
+        s.NOMBRE_PRODUCTO,
+        s.NUMERO_SECUENCIA_POLIZA,
+        s.NUMERO_POLIZA,
+        s.TIPO_DOCUMENTO_TOMADOR,
+        s.KEY_ID_TOMADOR,
+        s.KEY_ID_ASEGURADO,
+        s.KEY_ID_BENEFICIARIO,
+        s.FECHA_SINIESTRO,
+        s.FECHA_SUSCRIPCION,
+        s.ESTADO_SINIESTRO,
+        s.FECHA_ORDEN_PAGO,
+        s.LIQUIDADO_BOLIVAR,
+        s.COMPANIA,
+        s.SEGMENTO,
+        s.TIPO_PERSONA_SEGMENTO,
+        u.UMBRAL_TRANSACCIONAL
+    FROM siniestros_con_cluster s
+    INNER JOIN umbrales u
+        ON s.COMPANIA = u.COMPANIA
+       AND UPPER(s.SEGMENTO) = UPPER(u.SEGMENTO)
+       AND s.TIPO_PERSONA_SEGMENTO = u.TIPO_PERSONA_SEGMENTO
+
+),
+
+resumen AS (
+
+    -- ========================================================
+    -- 6) RESUMEN POR GRUPO
+    -- Se calcula:
+    --   - total de siniestros
+    --   - cantidad que supera el umbral parametrizado
+    --   - porcentaje que supera el umbral
+    --   - métricas descriptivas del valor liquidado
+    -- ========================================================
+    SELECT
+        COMPANIA,
+        TIPO_PERSONA_SEGMENTO,
+        SEGMENTO,
+        UMBRAL_TRANSACCIONAL,
+        COUNT(*) AS TOTAL_SINIESTROS,
+        COUNTIF(LIQUIDADO_BOLIVAR > UMBRAL_TRANSACCIONAL) AS REGISTROS_SUPERAN_UMBRAL,
+        SAFE_DIVIDE(
+            COUNTIF(LIQUIDADO_BOLIVAR > UMBRAL_TRANSACCIONAL),
+            COUNT(*)
+        ) AS PORCENTAJE_SUPERAN_UMBRAL,
+        MIN(LIQUIDADO_BOLIVAR) AS VALOR_MINIMO,
+        AVG(LIQUIDADO_BOLIVAR) AS VALOR_PROMEDIO,
+        MAX(LIQUIDADO_BOLIVAR) AS VALOR_MAXIMO
+    FROM base_filtrada
+    GROUP BY
+        COMPANIA,
+        TIPO_PERSONA_SEGMENTO,
+        SEGMENTO,
+        UMBRAL_TRANSACCIONAL
+)
+
+-- ============================================================
+-- 7) RESULTADO FINAL
+-- ============================================================
+SELECT
+    COMPANIA,
+    TIPO_PERSONA_SEGMENTO,
+    SEGMENTO,
+    UMBRAL_TRANSACCIONAL,
+    TOTAL_SINIESTROS,
+    REGISTROS_SUPERAN_UMBRAL,
+    PORCENTAJE_SUPERAN_UMBRAL,
+    VALOR_MINIMO,
+    VALOR_PROMEDIO,
+    VALOR_MAXIMO
+FROM resumen
+ORDER BY
+    COMPANIA,
+    TIPO_PERSONA_SEGMENTO,
+    SEGMENTO;

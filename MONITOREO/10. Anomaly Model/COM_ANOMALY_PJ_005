@@ -1,0 +1,157 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.COM_ANOMALY_PJ_005` (
+    CODIGO_COMPANIA,
+    TIPO_DOCUMENTO_TOMADOR,
+    NUMERO_POLIZA,
+    KEY_ID_TOMADOR,
+    VALOR_TRANSACCION,
+    FECHA_APLICACION,
+    NOMBRE_PRODUCTO_POLIZA,
+    ANO_MES,
+    anomaly_score,
+    Justificacion_Anomalia
+)
+
+WITH alertas_filtradas AS (
+
+    SELECT
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(NUMERO_POLIZA AS STRING)),
+            r'\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
+
+        KEY_ID_TOMADOR,
+        TIPO_DOCUMENTO_TOMADOR,
+        ANO_MES,
+        anomaly_score,
+        Justificacion_Anomalia
+
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.alertas_clave_com_pj`
+
+    WHERE causa_principal != 'Comportamiento normal'
+
+    AND TIPO_DOCUMENTO_TOMADOR IN ('NIT', 'NT', 'NE')
+
+    AND NUMERO_POLIZA IS NOT NULL
+),
+
+compensaciones_uiaf AS (
+
+    SELECT
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(NUMERO_POLIZA AS STRING)),
+            r'\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
+
+        VALOR_PESOS_COLOMBIANOS AS VALOR_TRANSACCION,
+
+        FECHA_OPERACION AS FECHA_APLICACION,
+
+        CODIGO_COMPANIA,
+
+        CODIGO_ANULACION
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf`
+
+    WHERE NUMERO_POLIZA IS NOT NULL
+),
+
+polizas_recientes AS (
+
+    SELECT
+        p.CODIGO_COMPANIA,
+
+        REGEXP_REPLACE(
+            TRIM(SAFE_CAST(p.NUMERO_POLIZA AS STRING)),
+            r'\.0$',
+            ''
+        ) AS NUMERO_POLIZA,
+
+        p.NOMBRE_PRODUCTO AS NOMBRE_PRODUCTO_POLIZA,
+
+        p.MARCA_ANULACION,
+
+        p.FECHA_PROCESO
+
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+    QUALIFY ROW_NUMBER() OVER (
+
+        PARTITION BY p.NUMERO_POLIZA
+
+        ORDER BY p.FECHA_PROCESO DESC
+
+    ) = 1
+)
+
+SELECT
+
+    p.CODIGO_COMPANIA,
+
+    a.TIPO_DOCUMENTO_TOMADOR,
+
+    a.NUMERO_POLIZA,
+
+    a.KEY_ID_TOMADOR,
+
+    t.VALOR_TRANSACCION,
+
+    t.FECHA_APLICACION,
+
+    p.NOMBRE_PRODUCTO_POLIZA,
+
+    a.ANO_MES,
+
+    a.anomaly_score,
+
+    a.Justificacion_Anomalia
+
+FROM alertas_filtradas a
+
+INNER JOIN compensaciones_uiaf t
+
+    ON a.NUMERO_POLIZA = t.NUMERO_POLIZA
+
+INNER JOIN polizas_recientes p
+
+    ON a.NUMERO_POLIZA = p.NUMERO_POLIZA
+
+WHERE IFNULL(p.MARCA_ANULACION, 'N') != 'S'
+
+AND IFNULL(SAFE_CAST(t.CODIGO_ANULACION AS STRING), 'N') != 'S'
+
+AND t.VALOR_TRANSACCION >= 435614
+
+AND NOT EXISTS (
+
+    SELECT
+        1
+
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.COM_ANOMALY_PJ_005` destino
+
+    WHERE SAFE_CAST(destino.KEY_ID_TOMADOR AS STRING)
+        =
+        SAFE_CAST(a.KEY_ID_TOMADOR AS STRING)
+
+    AND SAFE_CAST(destino.TIPO_DOCUMENTO_TOMADOR AS STRING)
+        =
+        SAFE_CAST(a.TIPO_DOCUMENTO_TOMADOR AS STRING)
+
+    AND SAFE_CAST(destino.ANO_MES AS STRING)
+        =
+        SAFE_CAST(a.ANO_MES AS STRING)
+)
+
+QUALIFY ROW_NUMBER() OVER (
+
+    PARTITION BY
+        a.KEY_ID_TOMADOR,
+        a.TIPO_DOCUMENTO_TOMADOR,
+        a.ANO_MES
+
+    ORDER BY
+        t.VALOR_TRANSACCION DESC,
+        t.FECHA_APLICACION DESC
+
+) = 1;

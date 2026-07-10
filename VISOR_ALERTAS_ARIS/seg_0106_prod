@@ -1,0 +1,96 @@
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod (
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  CODIGO_RAMO_EMISION,
+  CODIGO_PRODUCTO,
+  NUMERO_POLIZA,
+  FECHA_CREACION,
+  VALOR_INGRESOS,
+  ingreso_anterior,
+  diferencia_ingresos,
+  variacion_relativa,
+  diferencia_anios,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+
+WITH historico AS (
+  SELECT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FECHA_CREACION,
+    VALOR_INGRESOS,
+    LAG(VALOR_INGRESOS) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS ingreso_anterior,
+    LAG(FECHA_CREACION) OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+      ORDER BY FECHA_CREACION
+    ) AS fecha_anterior
+  FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_historico_estados_financieras
+),
+
+evaluado AS (
+  SELECT
+    *,
+    (VALOR_INGRESOS - ingreso_anterior) AS diferencia_ingresos,
+    SAFE_DIVIDE(
+      VALOR_INGRESOS - ingreso_anterior,
+      ingreso_anterior
+    ) AS variacion_relativa,
+    DATE_DIFF(
+      DATE(FECHA_CREACION),
+      DATE(fecha_anterior),
+      YEAR
+    ) AS diferencia_anios
+  FROM historico
+  WHERE ingreso_anterior IS NOT NULL
+),
+
+polizas_compania AS (
+  SELECT
+    CODIGO_COMPANIA,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NUMERO_POLIZA,
+    CAST(FECHA_INICIO_ENDOSO AS DATE) AS FECHA_INICIO_ENDOSO_D
+  FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos
+  WHERE FECHA_PROCESO > '2026-03-01'
+    AND FECHA_ORIGEN > '2026-03-01'
+    AND CAST(FECHA_FIN_POLIZA AS DATE) >= CURRENT_DATE()
+    AND MARCA_ANULACION != 'S'
+    AND CODIGO_COMPANIA = 2
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY CODIGO_COMPANIA, KEY_ID_TOMADOR
+    ORDER BY CAST(FECHA_INICIO_ENDOSO AS DATE) DESC, NUMERO_POLIZA DESC
+  ) = 1
+)
+
+SELECT
+  d.TIPO_DOCUMENTO,
+  d.KEY_ID,
+  p.CODIGO_RAMO_EMISION,
+  p.CODIGO_PRODUCTO,
+  p.NUMERO_POLIZA,
+  d.FECHA_CREACION,
+  d.VALOR_INGRESOS,
+  d.ingreso_anterior,
+  d.diferencia_ingresos,
+  d.variacion_relativa,
+  d.diferencia_anios,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE() AS FECHA_ALERTA
+FROM evaluado d
+JOIN polizas_compania p
+  ON CAST(p.KEY_ID_TOMADOR AS STRING) = CAST(d.KEY_ID AS STRING)
+WHERE d.diferencia_ingresos > 5000000
+  AND d.variacion_relativa > 0.5
+  AND d.diferencia_anios <= 1
+  AND DATE(d.FECHA_CREACION) > DATE('2026-03-01')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0106_prod t
+    WHERE t.KEY_ID = d.KEY_ID
+  );

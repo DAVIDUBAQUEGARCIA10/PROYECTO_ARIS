@@ -1,0 +1,18 @@
+SELECT 
+    TIPO_DOCUMENTO_TOMADOR,
+    NUMERO_DOCUMENTO_TOMADOR,
+    FORMAT_DATE('%Y%m', DATE(FECHA_RECAUDO)) AS anio_mes_recaudo,
+    COUNT(NUMERO_POLIZA) AS cantidad_transacciones,
+    COUNT(DISTINCT NUMERO_POLIZA) AS cantidad_polizas_diferentes
+FROM 
+    `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+WHERE 
+    DATE(FECHA_VENCIMIENTO_ENDOSO) > CURRENT_DATE()  -- Filtrar endosos vigentes
+    AND  TIPO_DOCUMENTO_TOMADOR NOT IN ('NT', 'NE')
+     AND FECHA_RECAUDO >= "2025-01-01"
+GROUP BY 
+    TIPO_DOCUMENTO_TOMADOR,
+    NUMERO_DOCUMENTO_TOMADOR,
+    anio_mes_recaudo
+HAVING 
+ COUNT(DISTINCT NUMERO_POLIZA) > 4  -- Tomadores que han pagado a más de 4 pólizas diferentes

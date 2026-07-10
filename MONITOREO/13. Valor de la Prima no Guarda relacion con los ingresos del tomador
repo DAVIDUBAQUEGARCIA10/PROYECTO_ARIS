@@ -1,0 +1,88 @@
+WITH base AS (
+  SELECT 
+      p.CODIGO_COMPANIA,
+      p.NUMERO_POLIZA,
+      p.TIPO_DOCUMENTO_TOMADOR,
+      p.KEY_ID_TOMADOR,
+      p.CODIGO_RAMO_EMISION,
+      p.NOMBRE_RAMO_EMISION,
+      p.CODIGO_PRODUCTO,
+      p.PRIMA_ANUAL,
+      c.VALOR_INGRESOS,
+      c.VALOR_EGRESOS,
+      SAFE_DIVIDE(p.PRIMA_ANUAL, 12) AS VALOR_MENSUAL_PRIMA,
+      (c.VALOR_INGRESOS - c.VALOR_EGRESOS) AS CAPACIDAD_FINANCIERA,
+      FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+      CURRENT_DATE() AS FECHA_ALERTA,
+      p.FECHA_INICIO_POLIZA
+  FROM 
+      `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+  LEFT JOIN (
+      SELECT DISTINCT 
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          CODIGO_LUGAR_REGISTRO,
+          NOMBRE_LUGAR_REGISTRO,
+          CODIGO_LUGAR_NACIMIENTO,
+          NOMBRE_LUGAR_NACIMIENTO,
+          NACIONALIDAD,
+          CODIGO_CODAZZI_DIRECCION_1,
+          CODIGO_CODAZZI_DIRECCION_2,
+          CODIGO_CIIU,
+          VALOR_INGRESOS,
+          VALOR_EGRESOS
+      FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+      WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+      UNION ALL
+
+      SELECT DISTINCT 
+          TIPO_DOCUMENTO,
+          KEY_ID,
+          CODIGO_LUGAR_REGISTRO,
+          NOMBRE_LUGAR_REGISTRO,
+          CODIGO_LUGAR_NACIMIENTO,
+          NOMBRE_LUGAR_NACIMIENTO,
+          NACIONALIDAD,
+          CODIGO_CODAZZI_DIRECCION_1,
+          CODIGO_CODAZZI_DIRECCION_2,
+          CODIGO_CIIU,
+          VALOR_INGRESOS,
+          VALOR_EGRESOS
+      FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+      WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+  ) c
+  ON p.KEY_ID_TOMADOR = c.KEY_ID
+     AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+
+  -- Filtra clientes con ingresos o egresos relevantes y desbalance financiero
+  WHERE 
+      p.CODIGO_COMPANIA = 2
+      AND (c.VALOR_INGRESOS > 100000 OR c.VALOR_EGRESOS > 100000)
+      AND SAFE_DIVIDE(p.PRIMA_ANUAL, 12) > (c.VALOR_INGRESOS - c.VALOR_EGRESOS)
+),
+
+con_riesgo AS (
+  SELECT 
+    b.*,
+    r.NIVEL_DE_RIESGO
+  FROM base b
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_nivel_riesgo` r
+    ON b.CODIGO_RAMO_EMISION = SAFE_CAST(r.C__digo_del_Ramo AS INT64)
+    AND b.CODIGO_PRODUCTO = SAFE_CAST(r.C__digo_de_Producto AS INT64)
+  WHERE r.NIVEL_DE_RIESGO = 'Alto'
+),
+
+numeradas AS (
+  SELECT *,
+      ROW_NUMBER() OVER (
+          PARTITION BY NUMERO_POLIZA, KEY_ID_TOMADOR
+          ORDER BY FECHA_INICIO_POLIZA DESC
+      ) AS rn
+  FROM con_riesgo
+)
+
+SELECT *
+FROM numeradas
+WHERE rn = 1;

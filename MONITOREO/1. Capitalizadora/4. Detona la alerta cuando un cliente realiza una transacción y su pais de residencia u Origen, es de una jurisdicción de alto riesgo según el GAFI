@@ -1,0 +1,319 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0010_VISOR_REPO` AS
+
+WITH resultado AS (
+  SELECT
+    p.CODIGO_COMPANIA,
+    p.NUMERO_TITULO,
+    p.FECHA_TRANSACCION,
+    p.CODIGO_TIPO_MOVIMIENTO,
+    p.NUMERO_TRANSACCION,
+    p.VALOR_TRANSACCION,
+    p.CODIGO_AGENCIA,
+    p.AGRUPAMIENTO_CODIGO,
+    p.SIGNO_MOVIMIENTO,
+    p.DESCRIPCION_TIPO_MOVIMIENTO,
+    p.ABREVIATURA_TIPO_MOVIMIENTO,
+    p.VALOR_CUOTA_ACTUAL,
+    p.VALOR_CUOTA_INICIAL,
+    p.CODIGO_PLAN,
+    p.FECHA_MODIFICACION,
+    p.FECHA_CREACION,
+    p.FECHA_BLOQUEO,
+    p.FECHA_CANCELACION,
+
+    ctit.KEY_ID_BENEFICIARIO             AS KEY_ID_TOMADOR,                  
+    ctit.TIPO_DOCUMENTO,                                            
+
+    cat.CODIGO_LUGAR_REGISTRO,
+    cat.NOMBRE_LUGAR_REGISTRO,
+    cat.CODIGO_CODAZZI_DIRECCION_1       AS Codazzi_cod_direccion,
+    cat.CODIGO_LUGAR_NACIMIENTO,
+
+    -- Riesgo por ORIGEN (nacionalidad)
+    nat.CIUDAD                           AS Ciudad_nacionalidad,
+    nat.NACIONALIDAD,
+    nat.Nivel_de_riesgo_asignado         AS nivel_riesgo_nacionalidad,
+
+    -- Riesgo por RESIDENCIA (municipio DANE)
+    j.C__DIGO_DANE_DEL_MUNICIPIO         AS Codigo_municipio,
+    j.MUNICIPIO                          AS municipio_direccion_1,
+    j.NIVEL_DE_RIESGO_ASIGNADO           AS nivel_riesgo_jurisdiccion,
+
+    -- Fechas de alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE()                       AS FECHA_ALERTA
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` p
+
+  -- Beneficiario por título
+  LEFT JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` ctit
+    ON p.NUMERO_TITULO = ctit.TITULO
+
+  -- Catálogo de clientes (tomador) PN + PJ
+  LEFT JOIN (
+    SELECT DISTINCT
+      TIPO_DOCUMENTO, KEY_ID,
+      CODIGO_LUGAR_REGISTRO, NOMBRE_LUGAR_REGISTRO,
+      CODIGO_LUGAR_NACIMIENTO, NOMBRE_LUGAR_NACIMIENTO,
+      NACIONALIDAD,
+      CODIGO_CODAZZI_DIRECCION_1, CODIGO_CODAZZI_DIRECCION_2
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+    UNION ALL
+
+    SELECT DISTINCT
+      TIPO_DOCUMENTO, KEY_ID,
+      CODIGO_LUGAR_REGISTRO, NOMBRE_LUGAR_REGISTRO,
+      CODIGO_LUGAR_NACIMIENTO, NOMBRE_LUGAR_NACIMIENTO,
+      NACIONALIDAD,
+      CODIGO_CODAZZI_DIRECCION_1, CODIGO_CODAZZI_DIRECCION_2
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+  ) cat
+    ON ctit.KEY_ID_BENEFICIARIO  = cat.KEY_ID
+   AND ctit.TIPO_DOCUMENTO  = cat.TIPO_DOCUMENTO
+
+  -- Riesgo por ORIGEN (nacionalidad) del tomador
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` nat
+    ON cat.CODIGO_LUGAR_NACIMIENTO = nat.ID
+
+  -- Riesgo por RESIDENCIA (municipio DANE) del tomador
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+    ON cat.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+
+  WHERE p.VALOR_TRANSACCION > 0
+    AND DATE(p.FECHA_TRANSACCION) >= DATE '2025-01-01'
+    AND (
+      nat.Nivel_de_riesgo_asignado = 'Alto'
+      OR j.NIVEL_DE_RIESGO_ASIGNADO = 'Alto'
+    )
+),
+
+ult_mov_cliente AS (
+  SELECT
+    r.*,
+    ROW_NUMBER() OVER (PARTITION BY r.KEY_ID_TOMADOR ORDER BY r.FECHA_TRANSACCION DESC) AS rn_cliente
+  FROM resultado r
+)
+
+SELECT
+  -- Movimiento
+  CODIGO_COMPANIA,
+  TIPO_DOCUMENTO,
+  KEY_ID_TOMADOR,
+  NUMERO_TITULO,
+  FECHA_TRANSACCION,
+  CODIGO_TIPO_MOVIMIENTO,
+  NUMERO_TRANSACCION,
+  VALOR_TRANSACCION,
+  CODIGO_AGENCIA,
+  AGRUPAMIENTO_CODIGO,
+  SIGNO_MOVIMIENTO,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  ABREVIATURA_TIPO_MOVIMIENTO,
+  VALOR_CUOTA_ACTUAL,
+  VALOR_CUOTA_INICIAL,
+  CODIGO_PLAN,
+  FECHA_MODIFICACION,
+  FECHA_CREACION,
+  FECHA_BLOQUEO,
+  FECHA_CANCELACION,
+
+
+  -- Cliente (tomador) y riesgo
+  CODIGO_LUGAR_REGISTRO,
+  NOMBRE_LUGAR_REGISTRO,
+  Codazzi_cod_direccion,
+  CODIGO_LUGAR_NACIMIENTO,
+  Ciudad_nacionalidad,
+  NACIONALIDAD,
+  nivel_riesgo_nacionalidad,
+  Codigo_municipio,
+  municipio_direccion_1,
+  nivel_riesgo_jurisdiccion,
+
+  -- Marcas de alerta
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM ult_mov_cliente
+WHERE rn_cliente = 1
+  AND (
+    UPPER(COALESCE(nivel_riesgo_jurisdiccion, '')) = 'ALTO'
+    OR UPPER(COALESCE(nivel_riesgo_nacionalidad, '')) = 'ALTO'
+  )
+;
+
+
+
+
+
+------INSERT 
+
+
+-- Inserta nuevos registros evitando duplicados (sin sobreescribir la tabla)
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0010_VISOR_REPO`
+(
+  CODIGO_COMPANIA,
+  TIPO_DOCUMENTO,
+  KEY_ID_TOMADOR,
+  NUMERO_TITULO,
+  FECHA_TRANSACCION,
+  CODIGO_TIPO_MOVIMIENTO,
+  NUMERO_TRANSACCION,
+  VALOR_TRANSACCION,
+  CODIGO_AGENCIA,
+  AGRUPAMIENTO_CODIGO,
+  SIGNO_MOVIMIENTO,
+  DESCRIPCION_TIPO_MOVIMIENTO,
+  ABREVIATURA_TIPO_MOVIMIENTO,
+  VALOR_CUOTA_ACTUAL,
+  VALOR_CUOTA_INICIAL,
+  CODIGO_PLAN,
+  FECHA_MODIFICACION,
+  FECHA_CREACION,
+  FECHA_BLOQUEO,
+  FECHA_CANCELACION,
+  CODIGO_LUGAR_REGISTRO,
+  NOMBRE_LUGAR_REGISTRO,
+  Codazzi_cod_direccion,
+  CODIGO_LUGAR_NACIMIENTO,
+  Ciudad_nacionalidad,
+  NACIONALIDAD,
+  nivel_riesgo_nacionalidad,
+  Codigo_municipio,
+  municipio_direccion_1,
+  nivel_riesgo_jurisdiccion,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+WITH resultado AS (
+  SELECT
+    p.CODIGO_COMPANIA,
+    p.NUMERO_TITULO,
+    p.FECHA_TRANSACCION,
+    p.CODIGO_TIPO_MOVIMIENTO,
+    p.NUMERO_TRANSACCION,
+    p.VALOR_TRANSACCION,
+    p.CODIGO_AGENCIA,
+    p.AGRUPAMIENTO_CODIGO,
+    p.SIGNO_MOVIMIENTO,
+    p.DESCRIPCION_TIPO_MOVIMIENTO,
+    p.ABREVIATURA_TIPO_MOVIMIENTO,
+    p.VALOR_CUOTA_ACTUAL,
+    p.VALOR_CUOTA_INICIAL,
+    p.CODIGO_PLAN,
+    p.FECHA_MODIFICACION,
+    p.FECHA_CREACION,
+    p.FECHA_BLOQUEO,
+    p.FECHA_CANCELACION,
+
+    ctit.KEY_ID_BENEFICIARIO             AS KEY_ID_TOMADOR,
+    ctit.TIPO_DOCUMENTO,
+
+    cat.CODIGO_LUGAR_REGISTRO,
+    cat.NOMBRE_LUGAR_REGISTRO,
+    cat.CODIGO_CODAZZI_DIRECCION_1       AS Codazzi_cod_direccion,
+    cat.CODIGO_LUGAR_NACIMIENTO,
+
+    -- Riesgo ORIGEN (nacionalidad)
+    nat.CIUDAD                           AS Ciudad_nacionalidad,
+    nat.NACIONALIDAD,
+    nat.Nivel_de_riesgo_asignado         AS nivel_riesgo_nacionalidad,
+
+    -- Riesgo RESIDENCIA (municipio DANE)
+    j.C__DIGO_DANE_DEL_MUNICIPIO         AS Codigo_municipio,
+    j.MUNICIPIO                          AS municipio_direccion_1,
+    j.NIVEL_DE_RIESGO_ASIGNADO           AS nivel_riesgo_jurisdiccion,
+
+    -- Fechas de alerta
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE()                       AS FECHA_ALERTA
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` p
+  LEFT JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` ctit
+    ON p.NUMERO_TITULO = ctit.TITULO
+  LEFT JOIN (
+    SELECT DISTINCT
+      TIPO_DOCUMENTO, KEY_ID,
+      CODIGO_LUGAR_REGISTRO, NOMBRE_LUGAR_REGISTRO,
+      CODIGO_LUGAR_NACIMIENTO, NOMBRE_LUGAR_NACIMIENTO,
+      NACIONALIDAD,
+      CODIGO_CODAZZI_DIRECCION_1, CODIGO_CODAZZI_DIRECCION_2
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+    UNION ALL
+    SELECT DISTINCT
+      TIPO_DOCUMENTO, KEY_ID,
+      CODIGO_LUGAR_REGISTRO, NOMBRE_LUGAR_REGISTRO,
+      CODIGO_LUGAR_NACIMIENTO, NOMBRE_LUGAR_NACIMIENTO,
+      NACIONALIDAD,
+      CODIGO_CODAZZI_DIRECCION_1, CODIGO_CODAZZI_DIRECCION_2
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    WHERE CODIGO_LUGAR_REGISTRO IS NOT NULL OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+  ) cat
+    ON ctit.KEY_ID_BENEFICIARIO = cat.KEY_ID
+   AND ctit.TIPO_DOCUMENTO = cat.TIPO_DOCUMENTO
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` nat
+    ON cat.CODIGO_LUGAR_NACIMIENTO = nat.ID
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+    ON cat.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+  WHERE p.VALOR_TRANSACCION > 0
+    AND DATE(p.FECHA_TRANSACCION) >= DATE '2025-01-01'
+    AND (nat.Nivel_de_riesgo_asignado = 'Alto'
+         OR j.NIVEL_DE_RIESGO_ASIGNADO = 'Alto')
+),
+ult_mov_cliente AS (
+  SELECT
+    r.*,
+    ROW_NUMBER() OVER (PARTITION BY r.KEY_ID_TOMADOR ORDER BY r.FECHA_TRANSACCION DESC) AS rn_cliente
+  FROM resultado r
+)
+SELECT
+  m.CODIGO_COMPANIA,
+  m.TIPO_DOCUMENTO,
+  m.KEY_ID_TOMADOR,
+  m.NUMERO_TITULO,
+  m.FECHA_TRANSACCION,
+  m.CODIGO_TIPO_MOVIMIENTO,
+  m.NUMERO_TRANSACCION,
+  m.VALOR_TRANSACCION,
+  m.CODIGO_AGENCIA,
+  m.AGRUPAMIENTO_CODIGO,
+  m.SIGNO_MOVIMIENTO,
+  m.DESCRIPCION_TIPO_MOVIMIENTO,
+  m.ABREVIATURA_TIPO_MOVIMIENTO,
+  m.VALOR_CUOTA_ACTUAL,
+  m.VALOR_CUOTA_INICIAL,
+  m.CODIGO_PLAN,
+  m.FECHA_MODIFICACION,
+  m.FECHA_CREACION,
+  m.FECHA_BLOQUEO,
+  m.FECHA_CANCELACION,
+  m.CODIGO_LUGAR_REGISTRO,
+  m.NOMBRE_LUGAR_REGISTRO,
+  m.Codazzi_cod_direccion,
+  m.CODIGO_LUGAR_NACIMIENTO,
+  m.Ciudad_nacionalidad,
+  m.NACIONALIDAD,
+  m.nivel_riesgo_nacionalidad,
+  m.Codigo_municipio,
+  m.municipio_direccion_1,
+  m.nivel_riesgo_jurisdiccion,
+  m.FECHA_ALERTA_MES,
+  m.FECHA_ALERTA
+FROM ult_mov_cliente m
+WHERE m.rn_cliente = 1
+  AND (
+    UPPER(COALESCE(m.nivel_riesgo_jurisdiccion, '')) = 'ALTO'
+    OR UPPER(COALESCE(m.nivel_riesgo_nacionalidad, '')) = 'ALTO'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0010_VISOR_REPO` t
+    WHERE t.NUMERO_TITULO     = m.NUMERO_TITULO
+      AND t.KEY_ID_TOMADOR    = m.KEY_ID_TOMADOR
+      AND t.TIPO_DOCUMENTO    = m.TIPO_DOCUMENTO
+      AND t.FECHA_TRANSACCION = m.FECHA_TRANSACCION
+      AND t.VALOR_TRANSACCION = m.VALOR_TRANSACCION
+  )
+ORDER BY m.FECHA_TRANSACCION DESC;  -- (opcional; no afecta el INSERT)
+

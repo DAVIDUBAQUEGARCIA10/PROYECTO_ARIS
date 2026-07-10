@@ -1,0 +1,115 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0001`
+(
+    nit_compania,
+    nro_factura,
+    fecha_emision,
+    tip_doc_proveedor,
+    key_id_proveedor,
+    valor_transaccion,
+    cantidad_pagos_previos,
+    promedio_historico_previo,
+    desviacion_estandar_previa,
+    umbral_transaccional,
+    fecha_estado_proceso,
+    FECHA_ALERTA_MES,
+    FECHA_ALERT
+)
+
+WITH base AS (
+
+  -- ============================================================
+  -- 1. BASE FILTRADA POR COMPAÑÍA (SIN DEDUPLICACIÓN)
+  -- ============================================================
+  SELECT
+    *
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.evento_factura_electronica`
+  WHERE nit_compania = 901267811
+
+),
+
+historia_proveedor AS (
+
+  -- ============================================================
+  -- 2. HISTÓRICO POR PROVEEDOR
+  -- ============================================================
+  SELECT
+    nit_compania,
+    nro_factura,
+    fec_emision_factura,
+    tip_doc_proveedor,
+    key_id_proveedor,
+    vlr_total_factura,
+    fecha_estado_proceso,
+
+    COUNT(*) OVER (
+      PARTITION BY key_id_proveedor
+      ORDER BY fec_emision_factura
+      ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+    ) AS cantidad_pagos_previos,
+
+    AVG(vlr_total_factura) OVER (
+      PARTITION BY key_id_proveedor
+      ORDER BY fec_emision_factura
+      ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+    ) AS promedio_historico_previo,
+
+    STDDEV_SAMP(vlr_total_factura) OVER (
+      PARTITION BY key_id_proveedor
+      ORDER BY fec_emision_factura
+      ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+    ) AS desviacion_estandar_previa
+
+  FROM base
+),
+
+resultado_final AS (
+
+  -- ============================================================
+  -- 3. CÁLCULO DEL UMBRAL
+  -- ============================================================
+  SELECT
+    nit_compania,
+    nro_factura,
+    DATE(fec_emision_factura) AS fecha_emision,
+    tip_doc_proveedor,
+    key_id_proveedor,
+    vlr_total_factura AS valor_transaccion,
+    cantidad_pagos_previos,
+    promedio_historico_previo,
+    desviacion_estandar_previa,
+    promedio_historico_previo + (3 * desviacion_estandar_previa) AS umbral_transaccional,
+    fecha_estado_proceso,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERT
+  FROM historia_proveedor
+),
+
+filtrado AS (
+  SELECT *
+  FROM resultado_final
+  WHERE fecha_emision >= DATE '2026-03-01'
+    AND cantidad_pagos_previos >= 2
+    AND valor_transaccion > umbral_transaccional
+)
+
+SELECT
+    nit_compania,
+    nro_factura,
+    fecha_emision,
+    tip_doc_proveedor,
+    key_id_proveedor,
+    valor_transaccion,
+    cantidad_pagos_previos,
+    promedio_historico_previo,
+    desviacion_estandar_previa,
+    umbral_transaccional,
+    fecha_estado_proceso,
+    FECHA_ALERTA_MES,
+    FECHA_ALERT
+FROM filtrado
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0001` t
+    WHERE t.key_id_proveedor = filtrado.key_id_proveedor
+      AND t.nro_factura = filtrado.nro_factura
+);

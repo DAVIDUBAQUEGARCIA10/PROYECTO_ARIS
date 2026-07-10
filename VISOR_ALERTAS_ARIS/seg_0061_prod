@@ -1,0 +1,193 @@
+-- ============================================================
+-- SEG_0061
+-- Aportes extraordinarios por monto significativo
+--
+-- Objetivo:
+-- Generar alerta cuando una póliza recibe más de 2 aportes
+-- extraordinarios al fondo de ahorro, cada uno superior a
+-- $500.000, dentro de un periodo inferior a 90 días desde
+-- la fecha de emisión de la póliza.
+-- ============================================================
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod`
+(
+    NUMERO_POLIZA,
+    CODIGO_COMPANIA,
+    CODIGO_RAMO_EMISION,
+    NOMBRE_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    FECHA_EMISION_POLIZA,
+    FECHA_VIGENCIA_POLIZA,
+    FECHA_VENCIMIENTO_POLIZA,
+    FECHA_CANCELACION_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NOMBRE_TOMADOR,
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+    CANTIDAD_REGISTROS,
+    SUM_VALOR_TRANSACCION,
+    NUMERO_CUENTA_FONDO,
+    FECHA_PROCESO_ULTIMA,
+    DETALLE_OPERACION_EMMASCARADO,
+    NOMBRE_SUB_TRANSACCION,
+    DETALLE_PAGOS,
+    DESCRIPCION_ALERTA,
+    FECHA_ALERTA_MES,
+    FECHA_ALERTA
+)
+
+WITH polizas_base AS (
+    SELECT DISTINCT
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        DATE(FECHA_EMISION_POLIZA) AS FECHA_EMISION_POLIZA,
+        FECHA_VIGENCIA_POLIZA,
+        FECHA_VENCIMIENTO_POLIZA,
+        FECHA_CANCELACION_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR
+    FROM `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario`
+    WHERE DATE(FECHA_EMISION_POLIZA) >= DATE '2025-06-01'
+     -- AND CODIGO_RAMO_EMISION IN (46, 47, 48, 49)
+),
+
+aportes_extraordinarios AS (
+    SELECT
+        NUMERO_CUENTA_FONDO,
+        DATE(FECHA_PROCESO) AS FECHA_PROCESO,
+        VALOR_TRANSACCION,
+        DETALLE_OPERACION_EMMASCARADO,
+        NOMBRE_SUB_TRANSACCION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_aportes_extraordinarios`
+    WHERE NOMBRE_SUB_TRANSACCION = 'APORTE EXTRAORDINARIO'
+      AND ABS(VALOR_TRANSACCION) > 500000
+    --  AND DATE(FECHA_PROCESO) >= DATE '2025-06-01'
+),
+
+base_cruce AS (
+    SELECT
+        p.NUMERO_POLIZA,
+        p.CODIGO_COMPANIA,
+        p.CODIGO_RAMO_EMISION,
+        p.NOMBRE_RAMO_EMISION,
+        p.CODIGO_PRODUCTO,
+        p.NOMBRE_PRODUCTO,
+        p.FECHA_EMISION_POLIZA,
+        p.FECHA_VIGENCIA_POLIZA,
+        p.FECHA_VENCIMIENTO_POLIZA,
+        p.FECHA_CANCELACION_POLIZA,
+        p.TIPO_DOCUMENTO_TOMADOR,
+        p.KEY_ID_TOMADOR,
+        p.NOMBRE_TOMADOR,
+        p.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        a.NUMERO_CUENTA_FONDO,
+        a.FECHA_PROCESO,
+        a.VALOR_TRANSACCION,
+        a.DETALLE_OPERACION_EMMASCARADO,
+        a.NOMBRE_SUB_TRANSACCION
+    FROM polizas_base p
+    INNER JOIN aportes_extraordinarios a
+        ON CAST(a.NUMERO_CUENTA_FONDO AS STRING) = SUBSTR(CAST(p.NUMERO_POLIZA AS STRING), 1, 11)
+    WHERE DATE_DIFF(a.FECHA_PROCESO, p.FECHA_EMISION_POLIZA, DAY) BETWEEN 0 AND 89
+),
+
+aportes_por_poliza AS (
+    SELECT
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        FECHA_EMISION_POLIZA,
+        FECHA_VIGENCIA_POLIZA,
+        FECHA_VENCIMIENTO_POLIZA,
+        FECHA_CANCELACION_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+        COUNT(*) AS CANTIDAD_REGISTROS,
+        SUM(ABS(VALOR_TRANSACCION)) AS SUM_VALOR_TRANSACCION,
+        MAX(NUMERO_CUENTA_FONDO) AS NUMERO_CUENTA_FONDO,
+        MAX(FECHA_PROCESO) AS FECHA_PROCESO_ULTIMA,
+        STRING_AGG(DISTINCT DETALLE_OPERACION_EMMASCARADO, ' | ') AS DETALLE_OPERACION_EMMASCARADO,
+        STRING_AGG(DISTINCT NOMBRE_SUB_TRANSACCION, ' | ') AS NOMBRE_SUB_TRANSACCION,
+        STRING_AGG(
+            CONCAT(
+                'fecha ',
+                CAST(FECHA_PROCESO AS STRING),
+                ' valor $',
+                CAST(CAST(ABS(VALOR_TRANSACCION) AS INT64) AS STRING)
+            ),
+            ', '
+            ORDER BY FECHA_PROCESO
+        ) AS DETALLE_PAGOS
+    FROM base_cruce
+    GROUP BY
+        NUMERO_POLIZA,
+        CODIGO_COMPANIA,
+        CODIGO_RAMO_EMISION,
+        NOMBRE_RAMO_EMISION,
+        CODIGO_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        FECHA_EMISION_POLIZA,
+        FECHA_VIGENCIA_POLIZA,
+        FECHA_VENCIMIENTO_POLIZA,
+        FECHA_CANCELACION_POLIZA,
+        TIPO_DOCUMENTO_TOMADOR,
+        KEY_ID_TOMADOR,
+        NOMBRE_TOMADOR,
+        CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR
+    HAVING COUNT(*) > 2
+)
+
+SELECT
+    ap.NUMERO_POLIZA,
+    ap.CODIGO_COMPANIA,
+    ap.CODIGO_RAMO_EMISION,
+    ap.NOMBRE_RAMO_EMISION,
+    ap.CODIGO_PRODUCTO,
+    ap.NOMBRE_PRODUCTO,
+    ap.FECHA_EMISION_POLIZA,
+    ap.FECHA_VIGENCIA_POLIZA,
+    ap.FECHA_VENCIMIENTO_POLIZA,
+    ap.FECHA_CANCELACION_POLIZA,
+    ap.TIPO_DOCUMENTO_TOMADOR,
+    ap.KEY_ID_TOMADOR,
+    ap.NOMBRE_TOMADOR,
+    ap.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,
+    ap.CANTIDAD_REGISTROS,
+    ap.SUM_VALOR_TRANSACCION,
+    ap.NUMERO_CUENTA_FONDO,
+    ap.FECHA_PROCESO_ULTIMA,
+    ap.DETALLE_OPERACION_EMMASCARADO,
+    ap.NOMBRE_SUB_TRANSACCION,
+    ap.DETALLE_PAGOS,
+    CONCAT(
+        'Cliente tiene póliza ',
+        CAST(ap.NUMERO_POLIZA AS STRING),
+        ' la cual se emitió el ',
+        CAST(ap.FECHA_EMISION_POLIZA AS STRING),
+        ' y registra aportes extraordinarios: ',
+        ap.DETALLE_PAGOS,
+        '.'
+    ) AS DESCRIPCION_ALERTA,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM aportes_por_poliza ap
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0061_prod` t
+    WHERE t.NUMERO_POLIZA = ap.NUMERO_POLIZA
+      AND t.KEY_ID_TOMADOR = ap.KEY_ID_TOMADOR
+            AND t.SUM_VALOR_TRANSACCION = ap.SUM_VALOR_TRANSACCION
+
+);

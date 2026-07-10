@@ -1,0 +1,91 @@
+-- ============================================================
+-- 1. BASE DE PENSIONADOS (PRINCIPAL + BENEFICIARIOS)
+-- ============================================================
+
+WITH pensionados AS (
+
+    SELECT 
+        *,
+        "PRINCIPAL" AS CATEGORIA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_pensionados_beneficiarios`
+    WHERE 
+        SENAL_ACTIVO = "S"
+        AND NOMBRE_PARENTESCO = "PRINCIPAL"
+        AND NOMINADO = "S"
+        AND VALOR_MESADA_ACTUAL > 0
+        AND ESTADO_BENEFICIARIO = "Valido"
+
+    UNION ALL
+
+    SELECT 
+        *,
+        "BENEFICIARIO" AS CATEGORIA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_pensionados_beneficiarios`
+    WHERE 
+        SENAL_ACTIVO = "N"
+        AND ESTADO_BENEFICIARIO != "Invalido"
+        AND VALOR_MESADA_ACTUAL > 0
+),
+
+-- ============================================================
+-- 2. CONSOLIDADO DE CLIENTES (JURÍDICOS + NATURALES)
+-- ============================================================
+
+clientes_consolidados AS (
+
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_LUGAR_REGISTRO,
+        NOMBRE_LUGAR_REGISTRO,
+        CODIGO_LUGAR_NACIMIENTO,
+        NOMBRE_LUGAR_NACIMIENTO,
+        NACIONALIDAD,
+        CODIGO_CODAZZI_DIRECCION_1,
+        CODIGO_CODAZZI_DIRECCION_2,
+        CODIGO_CIIU
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    WHERE 
+        CODIGO_LUGAR_REGISTRO IS NOT NULL 
+        OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+
+    UNION ALL
+
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_LUGAR_REGISTRO,
+        NOMBRE_LUGAR_REGISTRO,
+        CODIGO_LUGAR_NACIMIENTO,
+        NOMBRE_LUGAR_NACIMIENTO,
+        NACIONALIDAD,
+        CODIGO_CODAZZI_DIRECCION_1,
+        CODIGO_CODAZZI_DIRECCION_2,
+        CODIGO_CIIU
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    WHERE 
+        CODIGO_LUGAR_REGISTRO IS NOT NULL 
+        OR CODIGO_LUGAR_NACIMIENTO IS NOT NULL
+)
+
+-- ============================================================
+-- 3. CRUCE FINAL
+-- ============================================================
+
+SELECT
+    p.*,
+    c.CODIGO_LUGAR_REGISTRO,
+    c.NOMBRE_LUGAR_REGISTRO,
+    c.CODIGO_LUGAR_NACIMIENTO,
+    c.NOMBRE_LUGAR_NACIMIENTO,
+    c.NACIONALIDAD,
+    c.CODIGO_CODAZZI_DIRECCION_1,
+    c.CODIGO_CODAZZI_DIRECCION_2,
+    c.CODIGO_CIIU
+
+FROM pensionados p
+
+LEFT JOIN clientes_consolidados c
+    ON p.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+   AND p.KEY_ID_BENEFICIARIO = c.KEY_ID
+WHERE NACIONALIDAD NOT IN  ("COLOMBIANO", "colombiana", "COLOMBIA", "COLOMBIANA", "colombiano")

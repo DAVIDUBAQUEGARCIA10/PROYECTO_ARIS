@@ -1,0 +1,196 @@
+-- ============================================================================
+-- Regla: Cliente cancela un producto (título) y abre uno nuevo en ≤ 90 días
+-- Apertura medida por FECHA_CREACION (no por la primera transacción)
+-- ============================================================================
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0015_VISOR_TRANS ` AS
+
+-- 1) Base mínima con claves de cliente y título
+WITH base AS (
+  SELECT
+    m.CODIGO_COMPANIA,
+    m.NUMERO_TITULO,
+    DATE(m.FECHA_CREACION)     AS FECHA_CREACION,    -- ahora usamos FECHA_CREACION
+    DATE(m.FECHA_CANCELACION)  AS FECHA_CANCELACION,
+    c.KEY_ID_BENEFICIARIO      AS KEY_ID,
+    c.TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` m
+  JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+    ON m.NUMERO_TITULO = c.TITULO
+),
+
+-- 2) Consolidar fechas clave por título
+por_titulo AS (
+  SELECT
+    CODIGO_COMPANIA,
+    KEY_ID,
+    TIPO_DOCUMENTO,
+    NUMERO_TITULO,
+    MIN(FECHA_CREACION)     AS FECHA_APERTURA,   -- apertura real por creación
+    MIN(FECHA_CANCELACION) AS FECHA_CANCEL      -- primera cancelación (si existe)
+  FROM base
+  GROUP BY CODIGO_COMPANIA, KEY_ID, TIPO_DOCUMENTO, NUMERO_TITULO
+),
+
+-- 3) Separar títulos cancelados y títulos nuevos
+cancelados AS (
+  SELECT *
+  FROM por_titulo
+  WHERE FECHA_CANCEL IS NOT NULL
+),
+nuevos AS (
+  SELECT *
+  FROM por_titulo
+  WHERE FECHA_APERTURA IS NOT NULL
+),
+
+-- 4) Pareo de cancelación → nueva apertura en ≤ 90 días
+pares AS (
+  SELECT
+    c.CODIGO_COMPANIA,
+    c.KEY_ID,
+    c.TIPO_DOCUMENTO,
+    c.NUMERO_TITULO            AS NUMERO_TITULO_CANCELADO,
+    c.FECHA_CANCEL             AS FECHA_CANCELACION,
+    n.NUMERO_TITULO            AS NUMERO_TITULO_NUEVO,
+    n.FECHA_APERTURA           AS FECHA_APERTURA_NUEVO,
+    DATE_DIFF(n.FECHA_APERTURA, c.FECHA_CANCEL, DAY) AS DIAS_ENTRE_CANCEL_Y_APERTURA,
+    ROW_NUMBER() OVER (
+      PARTITION BY c.CODIGO_COMPANIA, c.KEY_ID, c.NUMERO_TITULO, c.FECHA_CANCEL
+      ORDER BY n.FECHA_APERTURA
+    ) AS rn
+  FROM cancelados c
+  JOIN nuevos n
+    ON  n.CODIGO_COMPANIA = c.CODIGO_COMPANIA
+    AND n.KEY_ID          = c.KEY_ID
+    AND n.NUMERO_TITULO  <> c.NUMERO_TITULO
+    AND n.FECHA_APERTURA  >  c.FECHA_CANCEL
+    AND DATE_DIFF(n.FECHA_APERTURA, c.FECHA_CANCEL, DAY) <= 90
+)
+
+-- 5) Salida final (1 solo nuevo por cancelación)
+SELECT
+  CODIGO_COMPANIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  NUMERO_TITULO_CANCELADO,
+  FECHA_CANCELACION,
+  NUMERO_TITULO_NUEVO,
+  FECHA_APERTURA_NUEVO,
+  DIAS_ENTRE_CANCEL_Y_APERTURA,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE()                        AS FECHA_ALERTA,
+  'RECOMPRA_90D: CANCELA_Y_ABRE_NUEVO_EN_≤90_DIAS' AS MOTIVO_ALERTA
+FROM pares
+WHERE rn = 1 and FECHA_APERTURA_NUEVO >= '2025-01-01';
+
+
+
+
+
+------------------------------------------
+----------------------------------
+
+
+
+-- ============================================================================
+-- INSERT a CAP_0015_VISOR_TRANS
+-- Regla: Cliente cancela un producto (título) y abre uno nuevo en ≤ 90 días
+-- Apertura medida por FECHA_CREACION (no primera transacción)
+-- Anti-duplicados: NOT EXISTS por (KEY_ID, NUMERO_TITULO_CANCELADO,
+--                                  NUMERO_TITULO_NUEVO, FECHA_ALERTA_MES)
+-- ============================================================================
+
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0015_VISOR_TRANS` (
+  CODIGO_COMPANIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  NUMERO_TITULO_CANCELADO,
+  FECHA_CANCELACION,
+  NUMERO_TITULO_NUEVO,
+  FECHA_APERTURA_NUEVO,
+  DIAS_ENTRE_CANCEL_Y_APERTURA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  MOTIVO_ALERTA
+)
+WITH base AS (
+  SELECT
+    m.CODIGO_COMPANIA,
+    m.NUMERO_TITULO,
+    DATE(m.FECHA_CREACION)     AS FECHA_CREACION,
+    DATE(m.FECHA_CANCELACION)  AS FECHA_CANCELACION,
+    c.KEY_ID_BENEFICIARIO      AS KEY_ID,
+    c.TIPO_DOCUMENTO
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` m
+  JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` c
+    ON m.NUMERO_TITULO = c.TITULO
+),
+por_titulo AS (
+  SELECT
+    CODIGO_COMPANIA,
+    KEY_ID,
+    TIPO_DOCUMENTO,
+    NUMERO_TITULO,
+    MIN(FECHA_CREACION)     AS FECHA_APERTURA,
+    MIN(FECHA_CANCELACION) AS FECHA_CANCEL
+  FROM base
+  GROUP BY CODIGO_COMPANIA, KEY_ID, TIPO_DOCUMENTO, NUMERO_TITULO
+),
+cancelados AS (
+  SELECT *
+  FROM por_titulo
+  WHERE FECHA_CANCEL IS NOT NULL
+),
+nuevos AS (
+  SELECT *
+  FROM por_titulo
+  WHERE FECHA_APERTURA IS NOT NULL
+),
+pares AS (
+  SELECT
+    c.CODIGO_COMPANIA,
+    c.KEY_ID,
+    c.TIPO_DOCUMENTO,
+    c.NUMERO_TITULO            AS NUMERO_TITULO_CANCELADO,
+    c.FECHA_CANCEL             AS FECHA_CANCELACION,
+    n.NUMERO_TITULO            AS NUMERO_TITULO_NUEVO,
+    n.FECHA_APERTURA           AS FECHA_APERTURA_NUEVO,
+    DATE_DIFF(n.FECHA_APERTURA, c.FECHA_CANCEL, DAY) AS DIAS_ENTRE_CANCEL_Y_APERTURA,
+    ROW_NUMBER() OVER (
+      PARTITION BY c.CODIGO_COMPANIA, c.KEY_ID, c.NUMERO_TITULO, c.FECHA_CANCEL
+      ORDER BY n.FECHA_APERTURA
+    ) AS rn
+  FROM cancelados c
+  JOIN nuevos n
+    ON  n.CODIGO_COMPANIA = c.CODIGO_COMPANIA
+    AND n.KEY_ID          = c.KEY_ID
+    AND n.NUMERO_TITULO  <> c.NUMERO_TITULO
+    AND n.FECHA_APERTURA  >  c.FECHA_CANCEL
+    AND DATE_DIFF(n.FECHA_APERTURA, c.FECHA_CANCEL, DAY) <= 90
+)
+SELECT
+  CODIGO_COMPANIA,
+  KEY_ID,
+  TIPO_DOCUMENTO,
+  NUMERO_TITULO_CANCELADO,
+  FECHA_CANCELACION,
+  NUMERO_TITULO_NUEVO,
+  FECHA_APERTURA_NUEVO,
+  DIAS_ENTRE_CANCEL_Y_APERTURA,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE()                        AS FECHA_ALERTA,
+  'RECOMPRA_90D: CANCELA_Y_ABRE_NUEVO_EN_≤90_DIAS' AS MOTIVO_ALERTA
+FROM pares u
+WHERE rn = 1
+  AND FECHA_APERTURA_NUEVO >= DATE '2025-01-01'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0015_VISOR_TRANS` t
+    WHERE t.KEY_ID                  = u.KEY_ID
+      AND t.NUMERO_TITULO_CANCELADO = u.NUMERO_TITULO_CANCELADO
+      AND t.NUMERO_TITULO_NUEVO     = u.NUMERO_TITULO_NUEVO
+      AND t.FECHA_ALERTA_MES        = FORMAT_DATE('%Y-%m', CURRENT_DATE())
+  );
+
+
+

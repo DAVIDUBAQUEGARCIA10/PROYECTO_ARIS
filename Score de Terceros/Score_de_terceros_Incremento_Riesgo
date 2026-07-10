@@ -1,0 +1,35 @@
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Incremento_Riesgo AS
+WITH niveles_ordenados AS (
+  SELECT 
+    *,
+    CASE Nivel_de_Riesgo
+      WHEN 'Bajo' THEN 1
+      WHEN 'Medio' THEN 2
+      WHEN 'Alto' THEN 3
+      WHEN 'Especial' THEN 4
+      ELSE 0
+    END AS nivel_numerico
+  FROM sb-sandbox-usuarios.sandbox_cumplimiento.Score_de_terceros_Tabla_D
+),
+
+comparacion AS (
+  SELECT 
+    actual.*,
+    previo.FECHA_EJECUCION AS FECHA_ANTERIOR,
+    previo.Nivel_de_Riesgo AS NIVEL_ANTERIOR,
+    previo.nivel_numerico AS NIVEL_ANTERIOR_NUM
+  FROM niveles_ordenados actual
+  LEFT JOIN niveles_ordenados previo
+    ON actual.CODIGO_COMPANIA = previo.CODIGO_COMPANIA
+    AND actual.KEY_ID = previo.KEY_ID
+    AND actual.TIPO_DOCUMENTO = previo.TIPO_DOCUMENTO
+    AND actual.FECHA_EJECUCION > previo.FECHA_EJECUCION
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY actual.CODIGO_COMPANIA, actual.KEY_ID, actual.TIPO_DOCUMENTO, actual.FECHA_EJECUCION
+    ORDER BY previo.FECHA_EJECUCION DESC
+  ) = 1
+)
+
+SELECT *
+FROM comparacion
+WHERE nivel_numerico > NIVEL_ANTERIOR_NUM;

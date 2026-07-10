@@ -1,0 +1,135 @@
+----CAPITALIZADORA BOLIVAR
+
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0304_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0069_VISOR_TRANS`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0009_VISOR_TRANS`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+
+----SEGUROS BOLIVAR
+
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0311_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0103_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0002_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0003_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0004_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0005_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0007_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0014_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0061_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0062_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0070_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0071_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0101B_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.SEG_0102B_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+----COMERCIALES BOLIVAR
+
+
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0312_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0106_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0115_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0116_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0050_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0063_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0064_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0065_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0066_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0067_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0068_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0072_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+
+UPDATE `sb-sandbox-usuarios.sandbox_cumplimiento.COM_0100_VISOR_REPO`
+SET FECHA_ALERTA = '2024-12-31'
+WHERE TRUE;
+

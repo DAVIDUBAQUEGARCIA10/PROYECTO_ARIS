@@ -1,0 +1,29 @@
+SELECT tipdoc_codigo,
+       numero_documento,
+       nombre_completo
+FROM (
+    SELECT 
+        n.tipdoc_codigo,
+        n.numero_documento,
+        TRIM(
+            REGEXP_REPLACE(
+                NVL(n.primer_nombre, '') || ' ' ||
+                NVL(n.segundo_nombre, '') || ' ' ||
+                NVL(n.primer_apellido, '') || ' ' ||
+                NVL(n.segundo_apellido, ''),
+                ' +', ' '
+            )
+        ) AS nombre_completo,
+        ROW_NUMBER() OVER (ORDER BY n.numero_documento) AS rn
+    FROM naturales n
+
+    UNION ALL
+
+    SELECT 
+        j.tipdoc_codigo,
+        j.numero_documento,
+        TRIM(j.razon_social) AS nombre_completo,
+        ROW_NUMBER() OVER (ORDER BY j.numero_documento) AS rn
+    FROM juridicos j
+)
+WHERE rn BETWEEN 2000000 AND 4000000;

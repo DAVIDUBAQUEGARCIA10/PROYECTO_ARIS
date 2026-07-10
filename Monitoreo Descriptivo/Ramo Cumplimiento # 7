@@ -1,0 +1,26 @@
+DECLARE max_fecha DATE;
+
+SET max_fecha = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE CODIGO_RAMO_EMISION = 4
+);
+
+CREATE OR REPLACE TABLE sb-sandbox-usuarios.sandbox_cumplimiento.t_productos_cumplimiento_032026 AS 
+
+SELECT distinct 
+  CODIGO_COMPANIA,
+  CODIGO_RAMO_EMISION,
+  NOMBRE_RAMO_EMISION,
+  CODIGO_PRODUCTO,
+  NOMBRE_PRODUCTO,
+  NUMERO_POLIZA,
+  TIPO_DOCUMENTO_TOMADOR,
+  KEY_ID_TOMADOR,
+  FECHA_EMISION_ENDOSO,
+  FECHA_INICIO_ENDOSO,
+  FECHA_FIN_POLIZA,
+  MCA_ANU_POLIZA
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+WHERE CODIGO_RAMO_EMISION = 4
+  AND FECHA_PROCESO >= TIMESTAMP(max_fecha)

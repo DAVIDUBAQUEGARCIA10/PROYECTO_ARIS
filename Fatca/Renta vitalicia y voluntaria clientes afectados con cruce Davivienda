@@ -1,0 +1,63 @@
+-- ============================================================
+-- 1. BASE DE PENSIONADOS (PRINCIPAL + BENEFICIARIOS)
+-- ============================================================
+
+WITH pensionados AS (
+
+    SELECT 
+        *,
+        "PRINCIPAL" AS CATEGORIA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_pensionados_beneficiarios`
+    WHERE 
+        SENAL_ACTIVO = "S"
+        AND NOMBRE_PARENTESCO = "PRINCIPAL"
+        AND NOMINADO = "S"
+        AND VALOR_MESADA_ACTUAL > 0
+        AND ESTADO_BENEFICIARIO = "Valido"
+
+    UNION ALL
+
+    SELECT 
+        *,
+        "BENEFICIARIO" AS CATEGORIA
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_pensionados_beneficiarios`
+    WHERE 
+        SENAL_ACTIVO = "N"
+        AND ESTADO_BENEFICIARIO != "Invalido"
+        AND VALOR_MESADA_ACTUAL > 0
+)
+
+-- ============================================================
+-- 2. CRUCE CON INFORMACIÓN DEL CLIENTE
+-- ============================================================
+
+SELECT
+    p.*,
+
+    c.COD_PAIS_NACIMIENTO,
+    c.DESCRIPCION_PAIS_NACIMIENTO,
+    c.COD_CIUDAD_NACIMIENTO,
+    c.DESCRIPCION_CIUDAD_NACIMIENTO,
+    c.COD_LUGAR_EXPEDICION,
+    c.DESCRIPCION_CIUDAD_EXPEDICION,
+    c.FECHA_ACTUALIZACION_DATOS_CLIENTE,
+    c.ESTADO_CLIENTE,
+    c.NACIONALIDAD_CLIENTE,
+    c.FLG_SEGUNDA_NACIONALIDAD,
+    c.FLG_RESIDENCIA_LEGAL_OTRO_PAIS,
+    c.FLG_CLIENTE_LISTAS_RESTRICTIVAS,
+    c.COD_AREA_RESTRICCION,
+    c.DESCRIPCION_AREA_RESTRICCION,
+    c.FLG_IMPACTADO_FATCA,
+    c.FLG_PASAPORTE_AMERICANO,
+    c.FLG_GREEN_CARD,
+    c.FLG_CTA_INTERNACIONAL,
+    c.flg_vigente
+
+FROM pensionados p
+
+LEFT JOIN `sb-ecosistemaanalitico-lago.davivienda.t_pn_datos_basicos` c
+    ON p.KEY_ID_BENEFICIARIO = c.KEY_ID
+--where NACIONALIDAD_CLIENTE != "COLOMBIA" AND COD_PAIS_NACIMIENTO != "169"
+
+where FLG_IMPACTADO_FATCA = "1"   or FLG_SEGUNDA_NACIONALIDAD = "1" or FLG_RESIDENCIA_LEGAL_OTRO_PAIS = "1" or FLG_PASAPORTE_AMERICANO = "1" or FLG_GREEN_CARD = "1" or  FLG_CTA_INTERNACIONAL = "1"

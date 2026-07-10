@@ -1,0 +1,69 @@
+-- CTE: Datos únicos de terceros (una fila por documento)
+WITH terceros_unicos AS (
+  SELECT  distinct
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    NUMERO_DOCUMENTO,
+    NOMBRE,
+    ROW_NUMBER() OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID
+    ) AS rn_tercero
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+),
+
+-- CTE: Pólizas activas y ranking
+polizas_filtradas AS (
+  SELECT distinct
+      CODIGO_COMPANIA,
+      CODIGO_RAMO_EMISION,
+      NOMBRE_RAMO_EMISION,
+      CODIGO_PRODUCTO,
+      NOMBRE_PRODUCTO,
+      CODIGO_SUBPRODUCTO,
+      NOMBRE_SUBPRODUCTO,
+      NUMERO_POLIZA,
+      TIPO_DOCUMENTO_TOMADOR,
+      KEY_ID_TOMADOR,
+      VALOR_ASEGURADO,
+      FECHA_INICIO_POLIZA,
+      FECHA_FIN_ENDOSO,
+      FECHA_FIN_POLIZA,
+
+      ROW_NUMBER() OVER (
+          PARTITION BY CODIGO_COMPANIA, CODIGO_RAMO_EMISION, TIPO_DOCUMENTO_TOMADOR
+          ORDER BY VALOR_ASEGURADO DESC
+      ) AS rn_top
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE 
+      DATE(FECHA_FIN_ENDOSO) > CURRENT_DATE()
+      AND VALOR_ASEGURADO > 0
+      AND NUMERO_ENDOSO = 0
+      AND CODIGO_RIESGO = 1
+      AND PRIMA_EMITIDA > 0
+      AND MARCA_ANULACION != 'S'
+)
+
+-- Consulta final con unión sin duplicados
+SELECT distinct
+    pf.CODIGO_COMPANIA,
+    pf.CODIGO_RAMO_EMISION,
+    pf.NOMBRE_RAMO_EMISION,
+    pf.CODIGO_PRODUCTO,
+    pf.NOMBRE_PRODUCTO,
+    pf.NUMERO_POLIZA,
+    pf.TIPO_DOCUMENTO_TOMADOR,
+    pf.KEY_ID_TOMADOR,
+    pf.VALOR_ASEGURADO,
+    pf.FECHA_INICIO_POLIZA,
+    pf.FECHA_FIN_ENDOSO,
+    pf.FECHA_FIN_POLIZA,
+    tu.NUMERO_DOCUMENTO,
+    tu.NOMBRE
+
+FROM polizas_filtradas pf
+LEFT JOIN terceros_unicos tu
+  ON pf.TIPO_DOCUMENTO_TOMADOR = tu.TIPO_DOCUMENTO
+ AND pf.KEY_ID_TOMADOR = tu.KEY_ID
+WHERE pf.rn_top <= 50
+  AND tu.rn_tercero = 1
+ORDER BY pf.CODIGO_COMPANIA, pf.CODIGO_RAMO_EMISION, pf.TIPO_DOCUMENTO_TOMADOR, pf.VALOR_ASEGURADO DESC;

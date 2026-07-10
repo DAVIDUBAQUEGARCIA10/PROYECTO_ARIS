@@ -1,0 +1,3 @@
+select * 
+from naturales  
+where publicamente_expuesta = 'S'

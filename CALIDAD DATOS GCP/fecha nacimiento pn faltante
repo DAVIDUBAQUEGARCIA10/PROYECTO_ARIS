@@ -1,0 +1,34 @@
+-- ============================================================
+-- 1. DECLARAR VARIABLE
+-- ============================================================
+DECLARE periodo_max_primas DATE;
+
+-- ============================================================
+-- 2. ASIGNAR VALOR
+-- ============================================================
+SET periodo_max_primas = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+-- ============================================================
+-- 3. BASE PRINCIPAL (PERSONAS NATURALES)
+-- ============================================================
+WITH base AS (
+  SELECT DISTINCT
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.FEC_NACIMIENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+   AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+  WHERE p.MCA_ANU_POLIZA != "S"
+    AND DATE(p.FECHA_PROCESO) = periodo_max_primas
+    AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.TIPO_DOCUMENTO_TOMADOR NOT IN ("NT","NE")
+)
+select * 
+from base
+where FEC_NACIMIENTO is null

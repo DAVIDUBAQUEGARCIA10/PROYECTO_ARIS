@@ -1,0 +1,81 @@
+WITH TransaccionesPorEmisor AS (
+    SELECT  
+        c.key_id_emisor, 
+        COUNT(*) AS cantidad_transacciones,  -- Contamos las transacciones por emisor
+        SUM(c.valor_base) AS monto_total,   -- Sumamos el valor de las transacciones por emisor
+        AVG(c.valor_base) AS monto_promedio -- Calculamos el monto promedio por emisor
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN (
+        'Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      )
+    GROUP BY c.key_id_emisor
+)
+SELECT 
+    te.key_id_emisor,
+    te.cantidad_transacciones,
+    te.monto_total
+FROM TransaccionesPorEmisor te
+WHERE te.cantidad_transacciones > 45
+
+
+
+
+
+CALCULAR PERCENTIL DE FRECUENCIA DE TRANSACCIONES------
+
+WITH TransaccionesPorEmisor AS (
+    SELECT  
+        c.key_id_emisor, 
+        COUNT(*) AS cantidad_transacciones,  -- Contamos las transacciones por emisor
+        SUM(c.valor_base) AS monto_total,   -- Sumamos el valor de las transacciones por emisor
+        AVG(c.valor_base) AS monto_promedio -- Calculamos el monto promedio por emisor
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN (
+        'Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      )
+    GROUP BY c.key_id_emisor
+),
+Percentiles AS (
+    SELECT
+        PERCENTILE_CONT(cantidad_transacciones, 0.95) OVER () AS percentil_95_cantidad_transacciones,
+        PERCENTILE_CONT(monto_total, 0.95) OVER () AS percentil_95_monto_total
+    FROM TransaccionesPorEmisor
+)
+SELECT 
+    te.key_id_emisor,
+    te.cantidad_transacciones,
+    te.monto_total,
+    p.percentil_95_cantidad_transacciones,
+    p.percentil_95_monto_total
+FROM TransaccionesPorEmisor te, Percentiles p
+WHERE te.cantidad_transacciones >= p.percentil_95_cantidad_transacciones
+   OR te.monto_total >= p.percentil_95_monto_total
+ORDER BY te.cantidad_transacciones DESC, te.monto_total DESC;

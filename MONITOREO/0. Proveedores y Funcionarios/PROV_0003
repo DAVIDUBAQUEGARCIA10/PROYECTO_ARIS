@@ -1,0 +1,207 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PROV_0003`
+(
+  nit_compania,
+  compania_homologada,
+  fuente,
+  nro_factura,
+  fecha_emision,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+
+WITH homologacion_compania AS (
+  SELECT '800020762' AS COMPANIA_ORIGINAL, 'Inv. Anagrama' AS COMPANIA_HOMOLOGADA UNION ALL
+  SELECT '830025448', 'Grupo Bolívar' UNION ALL
+  SELECT '860002180', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '860002503', 'Seguros Bolívar' UNION ALL
+  SELECT '860006359', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '860035977', 'El Libertador' UNION ALL
+  SELECT '860076173', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT '900265108', 'Inv. Bolívar' UNION ALL
+  SELECT '900265156', 'Inv. Multiinversiones' UNION ALL
+  SELECT '900265163', 'Inv. Financiera Bolívar' UNION ALL
+  SELECT '900265170', 'Inv. Riesgo e Inversiones Bolivar' UNION ALL
+  SELECT '900265172', 'Contrucciones y Desarrollo Bolívar' UNION ALL
+  SELECT '900311092', 'Servicios Bolívar' UNION ALL
+  SELECT '900411117', 'Inv. Sentido Empresarial' UNION ALL
+  SELECT '900957271', 'Proyectiva Seguros' UNION ALL
+  SELECT '901159545', 'Facilities' UNION ALL
+  SELECT '901186943', 'Fundación Cultivarte' UNION ALL
+  SELECT '901267811', 'Salud Bolívar IPS' UNION ALL
+  SELECT '901438242', 'Salud Bolívar EPS' UNION ALL
+  SELECT '01', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '1', 'Capitalizadora Bolívar' UNION ALL
+  SELECT '02', 'Seguros Bolívar' UNION ALL
+  SELECT '2', 'Seguros Bolívar' UNION ALL
+  SELECT '03', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '3', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT '4', 'Davivienda' UNION ALL
+  SELECT '7', 'El Libertador' UNION ALL
+  SELECT '9', 'Inv. Multiinversiones' UNION ALL
+  SELECT '25', 'Inv. Soluciones Bolívar SAS' UNION ALL
+  SELECT '26', 'Inversiones Financieras' UNION ALL
+  SELECT '27', 'Construcciones y Desarrollos Bolívar' UNION ALL
+  SELECT '29', 'Inversora Bolívar SAS' UNION ALL
+  SELECT '75', 'El Libertador' UNION ALL
+  SELECT '80', 'Salud Bolívar IPS' UNION ALL
+  SELECT '87', 'Salud Bolívar EPS' UNION ALL
+  SELECT '97', 'Servicios Bolívar' UNION ALL
+  SELECT '99', 'Servicios Bolívar' UNION ALL
+  SELECT 'Bolívar Salud IPS S.A.S.', 'Salud Bolívar IPS' UNION ALL
+  SELECT 'Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'Compañía de Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'FBIEN Bienes - Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'FCULT Bienes / Servicios Fundación Cultivarte', 'Fundación Cultivarte' UNION ALL
+  SELECT 'FSERV Servicios - Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'Fundación Bolívar Davivienda', 'Fundación Bolívar Davivienda' UNION ALL
+  SELECT 'Fundación Cultiva el Arte y la Cultura', 'Fundación Cultivarte' UNION ALL
+  SELECT 'Grupo Bolívar S.A.', 'Grupo Bolívar' UNION ALL
+  SELECT 'Inversiones Financieras Bolívar S.A.S.', 'Inversiones Financieras' UNION ALL
+  SELECT 'Investigaciones Y Cobranzas El Libertador S.A.', 'El Libertador' UNION ALL
+  SELECT 'Investigaciones y Cobranzas El Libertador S.A.', 'El Libertador' UNION ALL
+  SELECT 'POCB2 Bienes - Compañía De Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'POCC1 Bienes - Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'POCC3 Bienes - Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'POOB2 Servicios - Compañía De Seguros Bolívar S.A.', 'Seguros Bolívar' UNION ALL
+  SELECT 'POOC1 Servicios - Capitalizadora Bolívar S.A.', 'Capitalizadora Bolívar' UNION ALL
+  SELECT 'POOC3 Servicios - Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'Proyectiva Agencia De Seguros LTDA', 'Proyectiva Seguros' UNION ALL
+  SELECT 'Proyectiva agencia de seguros Ltda', 'Proyectiva Seguros' UNION ALL
+  SELECT 'Salud Bolívar EPS', 'Salud Bolívar EPS' UNION ALL
+  SELECT 'Salud Bolívar IPS S.A.S', 'Salud Bolívar IPS' UNION ALL
+  SELECT 'Seguros Comerciales Bolívar S.A.', 'Seguros Comerciales Bolívar' UNION ALL
+  SELECT 'Servicios Bolívar Facilities S.A.S', 'Facilities' UNION ALL
+  SELECT 'Servicios Bolívar Facilities S.A.S.', 'Facilities' UNION ALL
+  SELECT 'Servicios Bolívar S.A.', 'Servicios Bolívar' UNION ALL
+  SELECT 'Agencia de Seguros El Libertador Ltda', 'El Libertador'
+),
+
+base_proveedores AS (
+
+  SELECT DISTINCT
+    'COUPA' AS fuente,
+    CAST(FECHA_REQUERIDA_ENTREGA_ITEM AS TIMESTAMP) AS fecha_transaccion,
+    TIPO_DOCUMENTO_PROVEEDOR AS tip_doc_proveedor,
+    CAST(KEY_ID_PROVEEDOR AS STRING) AS key_id_proveedor,
+    NUMERO_ORDEN_COMPRA AS nro_factura,
+    CAST(NOMBRE_UNIDAD_DE_NEGOCIO AS STRING) AS compania,
+    CAST(VALOR_TOTAL_ORDEN_INCLUYENDO_IMPUESTOS_ESTIMADOS AS NUMERIC) AS vlr_total_factura,
+    CAST(NULL AS STRING) AS fecha_estado_proceso
+  FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_transacciones_proveedores`
+
+  UNION ALL
+
+  SELECT DISTINCT
+    'FACTURA_ELECTRONICA',
+    CAST(fec_emision_factura AS TIMESTAMP),
+    tip_doc_proveedor,
+    CAST(key_id_proveedor AS STRING),
+    nro_factura,
+    CAST(nit_compania AS STRING),
+    CAST(vlr_total_factura AS NUMERIC),
+    CAST(fecha_estado_proceso AS STRING)
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.evento_factura_electronica`
+
+  UNION ALL
+
+  SELECT DISTINCT
+    'ORDEN_PAGO',
+    CAST(FECHA_PAGO_REAL AS TIMESTAMP),
+    CAST(TIPO_DOCUMENTO_BENEFICIARIO AS STRING),
+    CAST(NUMERO_DOCUMENTO_BENEFICIARIO AS STRING),
+    CAST(NUMERO_ORDEN_PAGO AS STRING),
+    CAST(COMPANIA_ORIGEN AS STRING),
+    CAST(VALOR_TOTAL_PAGO AS NUMERIC),
+    CAST(NULL AS STRING)
+  FROM `sb-ecosistemaanalitico-lago.financiero_seguros_bolivar.t_ordenes_pago_con_restriccion`
+
+  UNION ALL
+
+  SELECT DISTINCT
+    'CUENTA_COBRO',
+    CAST(fecha_emision AS TIMESTAMP),
+    codigo_tipo_identificacion_emisor,
+    CAST(key_id_emisor AS STRING),
+    numero_documento,
+    CAST(razon_social_cia AS STRING),
+    CAST((valor_base + IFNULL(valor_iva,0)) AS NUMERIC),
+    CAST(NULL AS STRING)
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores`
+),
+
+base_homologada AS (
+  SELECT
+    bp.compania AS nit_compania,
+    COALESCE(hc.COMPANIA_HOMOLOGADA, bp.compania) AS compania_homologada,
+    bp.fuente,
+    bp.nro_factura,
+    DATE(bp.fecha_transaccion) AS fecha_emision,
+    FORMAT_DATE('%Y-%m', DATE(bp.fecha_transaccion)) AS periodo_mes,
+    bp.tip_doc_proveedor,
+    bp.key_id_proveedor,
+    bp.vlr_total_factura,
+    bp.fecha_estado_proceso
+  FROM base_proveedores bp
+  LEFT JOIN homologacion_compania hc
+    ON TRIM(bp.compania) = TRIM(hc.COMPANIA_ORIGINAL)
+  WHERE bp.key_id_proveedor IS NOT NULL
+    AND DATE(bp.fecha_transaccion) >= DATE '2026-03-01'
+),
+
+base_alerta AS (
+  SELECT
+    b.*,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+  FROM base_homologada b
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+    ON b.tip_doc_proveedor = r.TIPO_DOCUMENTO_TERCERO
+   AND b.key_id_proveedor = r.KEY_ID
+),
+
+numeradas AS (
+  SELECT *,
+    ROW_NUMBER() OVER (
+      PARTITION BY tip_doc_proveedor, key_id_proveedor, periodo_mes
+      ORDER BY fecha_emision DESC, vlr_total_factura DESC,
+        CASE
+          WHEN fuente = 'COUPA' THEN 1
+          WHEN fuente = 'FACTURA_ELECTRONICA' THEN 2
+          WHEN fuente = 'ORDEN_PAGO' THEN 3
+          WHEN fuente = 'CUENTA_COBRO' THEN 4
+          ELSE 99
+        END
+    ) AS rn
+  FROM base_alerta
+)
+
+SELECT
+  nit_compania,
+  compania_homologada,
+  fuente,
+  nro_factura,
+  fecha_emision,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM numeradas n
+WHERE rn = 1  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.PROV_0003` t
+    WHERE t.tip_doc_proveedor = n.tip_doc_proveedor
+      AND t.key_id_proveedor = n.key_id_proveedor
+      AND FORMAT_DATE('%Y-%m', t.fecha_emision) = n.periodo_mes
+  )

@@ -1,0 +1,306 @@
+-- ============================================================================
+-- Objetivo:
+--   Identificar clientes (naturales o jurídicos) cuya ACTIVIDAD ECONÓMICA (CIIU)
+--   está clasificada como ALTO RIESGO en el catálogo y que, además,
+--   aparecen en listas de restringidos con CODIGO_RESTRICCION de ALTO RIESGO.
+--
+-- Entradas:
+--   - Naturales:  sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+--   - Jurídicos:  sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+--   - Restring.:  sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos
+--   - Catálogo:   sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo
+-- Notas:
+--   - No se usa NIVEL_ALERTA ni MARCA_ACTIVO.
+--   - Alto riesgo por listas = CODIGO_RESTRICCION en el set indicado.
+--   - Alto riesgo económico = Nivel_de_riesgo del catálogo == 'ALTO' (tolerante a variantes).
+-- ============================================================================
+
+--CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0016_VISOR_TRANS` AS
+
+-- 0) Parámetros
+WITH param AS (
+  SELECT
+    -- variantes textuales aceptadas para "ALTO"
+    ARRAY<STRING>['ALTO','ALTA','HIGH'] AS vals_alto_riesgo,
+    -- códigos de restricción que se consideran "alto riesgo" por listas
+    ARRAY<INT64>[1,2,3,5,9,20, 23,24,25,26,27] AS codigos_restric_alto
+),
+
+-- 1) Universo de clientes (Naturales ∪ Jurídicos)
+clientes AS (
+  SELECT
+    UPPER(TRIM(n.TIPO_DOCUMENTO))        AS TIPO_DOCUMENTO,
+    TRIM(n.KEY_ID)                       AS KEY_ID,
+    TRIM(CAST(n.CODIGO_CIIU AS STRING))  AS CODIGO_CIIU,
+    TRIM(n.ACTIVIDAD_ECONOMICA)          AS ACTIVIDAD_ECONOMICA,
+    n.PUBLICAMENTE_EXPUESTA              AS PUBLICAMENTE_EXPUESTA,
+    'NATURAL'                            AS TIPO_CLIENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` n
+
+  UNION ALL
+
+  SELECT
+    UPPER(TRIM(j.TIPO_DOCUMENTO))        AS TIPO_DOCUMENTO,
+    TRIM(j.KEY_ID)                       AS KEY_ID,
+    TRIM(CAST(j.CODIGO_CIIU AS STRING))  AS CODIGO_CIIU,
+    TRIM(j.ACTIVIDAD_ECONOMICA)          AS ACTIVIDAD_ECONOMICA,
+    j.PUBLICAMENTE_EXPUESTA              AS PUBLICAMENTE_EXPUESTA,
+    'JURIDICO'                           AS TIPO_CLIENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` j
+),
+
+-- 2) Catálogo CIIU → riesgo (usa exactamente `Nivel_de_riesgo`)
+catalogo AS (
+  SELECT
+    TRIM(CAST(t.`C__digo` AS STRING))  AS CODIGO_CIIU,
+    TRIM(t.`Descripci__n`)             AS DESCRIPCION_CIIU,
+    TRIM(t.`Clasificaci__n`)           AS CLASIFICACION_CIIU,
+    UPPER(TRIM(t.`Nivel_de_riesgo`))   AS NIVEL_RIESGO_ECONOMICO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo` t
+),
+
+-- 3) Restringidos (no usamos nivel/alerta: sólo CODIGO_RESTRICCION)
+restricciones AS (
+  SELECT
+    UPPER(TRIM(r.TIPO_DOCUMENTO_TERCERO)) AS TIPO_DOCUMENTO,
+    TRIM(r.KEY_ID)                        AS KEY_ID,
+    CAST(r.CODIGO_RESTRICCION AS INT64)   AS CODIGO_RESTRICCION,
+    TRIM(r.DESCRIPCION)                   AS DESCRIPCION_RESTRICCION,
+    r.VALOR_RIESGO,
+    r.FECHA_CREACION,
+    r.FECHA_MODIFICACION,
+    r.FECHA_BAJA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+),
+
+-- 4) Enriquecido: cliente + riesgo económico (catálogo) + restricción
+enriquecido AS (
+  SELECT
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.TIPO_CLIENTE,
+    c.CODIGO_CIIU,
+    c.ACTIVIDAD_ECONOMICA,
+    c.PUBLICAMENTE_EXPUESTA,
+
+    cat.DESCRIPCION_CIIU,
+    cat.CLASIFICACION_CIIU,
+    cat.NIVEL_RIESGO_ECONOMICO,
+
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION_RESTRICCION,
+    r.VALOR_RIESGO,
+    r.FECHA_CREACION,
+    r.FECHA_MODIFICACION,
+    r.FECHA_BAJA
+  FROM clientes c
+  LEFT JOIN catalogo cat
+    ON c.CODIGO_CIIU = cat.CODIGO_CIIU
+  LEFT JOIN restricciones r
+    ON c.KEY_ID = r.KEY_ID
+   AND c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO
+),
+
+-- 5) Selección objetivo:
+--    ALTO riesgo económico ∧ CODIGO_RESTRICCION ∈ {1,2,3,5,9,20,23,24,25,26,27}
+filtrado AS (
+  SELECT
+    e.*
+  FROM enriquecido e, param p
+  WHERE
+    e.NIVEL_RIESGO_ECONOMICO IN UNNEST(p.vals_alto_riesgo)
+    AND e.CODIGO_RESTRICCION  IN UNNEST(p.codigos_restric_alto)
+)
+
+-- 6) Salida (dedupe por cliente + CIIU + código restricción, más reciente)
+SELECT
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  TIPO_CLIENTE,
+  CODIGO_CIIU,
+  ACTIVIDAD_ECONOMICA,
+  DESCRIPCION_CIIU,
+  CLASIFICACION_CIIU,
+  NIVEL_RIESGO_ECONOMICO,
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION,
+  VALOR_RIESGO,
+  PUBLICAMENTE_EXPUESTA,
+  FECHA_CREACION,
+  FECHA_MODIFICACION,
+  FECHA_BAJA,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE()                        AS FECHA_ALERTA,
+  'ACTIVIDAD_ECONOMICA_ALTO_RIESGO ∧ RESTRINGIDO_CODIGO_ALTO' AS MOTIVO_ALERTA
+FROM (
+  SELECT
+    f.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY f.TIPO_DOCUMENTO, f.KEY_ID, f.CODIGO_CIIU, f.CODIGO_RESTRICCION
+      ORDER BY f.FECHA_MODIFICACION DESC NULLS LAST, f.FECHA_CREACION DESC NULLS LAST
+    ) AS rn
+  FROM filtrado f
+)
+WHERE rn = 1 AND FECHA_CREACION >= '2025-01-01';
+
+
+
+
+-------------------------------------------------------------------------------------
+-------------------------------------------------------------
+
+
+
+-- ============================================================================
+-- INSERT a CAP_0016_VISOR_TRANS con anti-duplicados (NOT EXISTS)
+-- Regla:
+--   Actividad económica ALTO riesgo (catálogo) ∧ restricción con código de ALTO riesgo
+-- Anti-dup key:
+--   (KEY_ID, CODIGO_CIIU, CODIGO_RESTRICCION, FECHA_ALERTA_MES)
+-- ============================================================================
+
+INSERT INTO `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0016_VISOR_TRANS` (
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  TIPO_CLIENTE,
+  CODIGO_CIIU,
+  ACTIVIDAD_ECONOMICA,
+  DESCRIPCION_CIIU,
+  CLASIFICACION_CIIU,
+  NIVEL_RIESGO_ECONOMICO,
+  CODIGO_RESTRICCION,
+  DESCRIPCION_RESTRICCION,
+  VALOR_RIESGO,
+  PUBLICAMENTE_EXPUESTA,
+  FECHA_CREACION,
+  FECHA_MODIFICACION,
+  FECHA_BAJA,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA,
+  MOTIVO_ALERTA
+)
+WITH param AS (
+  SELECT
+    ARRAY<STRING>['ALTO','ALTA','HIGH'] AS vals_alto_riesgo,
+    ARRAY<INT64>[1,2,3,5,9,20,23,24,25,26,27] AS codigos_restric_alto
+),
+
+clientes AS (
+  SELECT
+    UPPER(TRIM(n.TIPO_DOCUMENTO))        AS TIPO_DOCUMENTO,
+    TRIM(n.KEY_ID)                       AS KEY_ID,
+    TRIM(CAST(n.CODIGO_CIIU AS STRING))  AS CODIGO_CIIU,
+    TRIM(n.ACTIVIDAD_ECONOMICA)          AS ACTIVIDAD_ECONOMICA,
+    n.PUBLICAMENTE_EXPUESTA              AS PUBLICAMENTE_EXPUESTA,
+    'NATURAL'                            AS TIPO_CLIENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` n
+
+  UNION ALL
+
+  SELECT
+    UPPER(TRIM(j.TIPO_DOCUMENTO))        AS TIPO_DOCUMENTO,
+    TRIM(j.KEY_ID)                       AS KEY_ID,
+    TRIM(CAST(j.CODIGO_CIIU AS STRING))  AS CODIGO_CIIU,
+    TRIM(j.ACTIVIDAD_ECONOMICA)          AS ACTIVIDAD_ECONOMICA,
+    j.PUBLICAMENTE_EXPUESTA              AS PUBLICAMENTE_EXPUESTA,
+    'JURIDICO'                           AS TIPO_CLIENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` j
+),
+
+catalogo AS (
+  SELECT
+    TRIM(CAST(t.`C__digo` AS STRING))  AS CODIGO_CIIU,
+    TRIM(t.`Descripci__n`)             AS DESCRIPCION_CIIU,
+    TRIM(t.`Clasificaci__n`)           AS CLASIFICACION_CIIU,
+    UPPER(TRIM(t.`Nivel_de_riesgo`))   AS NIVEL_RIESGO_ECONOMICO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo` t
+),
+
+restricciones AS (
+  SELECT
+    UPPER(TRIM(r.TIPO_DOCUMENTO_TERCERO)) AS TIPO_DOCUMENTO,
+    TRIM(r.KEY_ID)                        AS KEY_ID,
+    CAST(r.CODIGO_RESTRICCION AS INT64)   AS CODIGO_RESTRICCION,
+    TRIM(r.DESCRIPCION)                   AS DESCRIPCION_RESTRICCION,
+    r.VALOR_RIESGO,
+    r.FECHA_CREACION,
+    r.FECHA_MODIFICACION,
+    r.FECHA_BAJA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+),
+
+enriquecido AS (
+  SELECT
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.TIPO_CLIENTE,
+    c.CODIGO_CIIU,
+    c.ACTIVIDAD_ECONOMICA,
+    c.PUBLICAMENTE_EXPUESTA,
+    cat.DESCRIPCION_CIIU,
+    cat.CLASIFICACION_CIIU,
+    cat.NIVEL_RIESGO_ECONOMICO,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION_RESTRICCION,
+    r.VALOR_RIESGO,
+    r.FECHA_CREACION,
+    r.FECHA_MODIFICACION,
+    r.FECHA_BAJA
+  FROM clientes c
+  LEFT JOIN catalogo cat
+    ON c.CODIGO_CIIU = cat.CODIGO_CIIU
+  LEFT JOIN restricciones r
+    ON c.KEY_ID = r.KEY_ID
+   AND c.TIPO_DOCUMENTO = r.TIPO_DOCUMENTO
+),
+
+filtrado AS (
+  SELECT
+    e.*
+  FROM enriquecido e, param p
+  WHERE
+    e.NIVEL_RIESGO_ECONOMICO IN UNNEST(p.vals_alto_riesgo)
+    AND e.CODIGO_RESTRICCION  IN UNNEST(p.codigos_restric_alto)
+)
+
+, dedupe AS (
+  SELECT
+    f.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY f.TIPO_DOCUMENTO, f.KEY_ID, f.CODIGO_CIIU, f.CODIGO_RESTRICCION
+      ORDER BY f.FECHA_MODIFICACION DESC NULLS LAST, f.FECHA_CREACION DESC NULLS LAST
+    ) AS rn
+  FROM filtrado f
+)
+
+SELECT
+  d.TIPO_DOCUMENTO,
+  d.KEY_ID,
+  d.TIPO_CLIENTE,
+  d.CODIGO_CIIU,
+  d.ACTIVIDAD_ECONOMICA,
+  d.DESCRIPCION_CIIU,
+  d.CLASIFICACION_CIIU,
+  d.NIVEL_RIESGO_ECONOMICO,
+  d.CODIGO_RESTRICCION,
+  d.DESCRIPCION_RESTRICCION,
+  d.VALOR_RIESGO,
+  d.PUBLICAMENTE_EXPUESTA,
+  d.FECHA_CREACION,
+  d.FECHA_MODIFICACION,
+  d.FECHA_BAJA,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE()                        AS FECHA_ALERTA,
+  'ACTIVIDAD_ECONOMICA_ALTO_RIESGO ∧ RESTRINGIDO_CODIGO_ALTO' AS MOTIVO_ALERTA
+FROM dedupe d
+WHERE d.rn = 1
+  AND d.FECHA_CREACION >= DATE '2025-01-01'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-sandbox-usuarios.sandbox_cumplimiento.CAP_0016_VISOR_TRANS` t
+    WHERE t.KEY_ID               = d.KEY_ID
+      AND t.CODIGO_CIIU          = d.CODIGO_CIIU
+      AND t.CODIGO_RESTRICCION   = d.CODIGO_RESTRICCION
+      AND t.FECHA_ALERTA_MES     = FORMAT_DATE('%Y-%m', CURRENT_DATE())
+  );
+

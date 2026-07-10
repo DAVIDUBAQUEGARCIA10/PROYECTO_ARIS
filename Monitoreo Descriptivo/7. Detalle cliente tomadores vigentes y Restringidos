@@ -1,0 +1,79 @@
+/* ==========================================================
+   1. Base de personas restringidas (vigentes)
+   ========================================================== */
+WITH BASE_RESTRINGIDOS AS (
+  SELECT DISTINCT
+    cr.NUMERO_DOCUMENTO,
+    cr.FUERES_CODIGO,
+    cr.TIPDOC_CODIGO,
+    fr.DESCRIPCION
+  FROM clientes_restringidos cr
+  JOIN fuentes_restriccion fr
+    ON cr.FUERES_CODIGO = fr.CODIGO
+  WHERE FECHA_BAJA IS NULL
+),
+
+/* ==========================================================
+   2. Universo de clientes
+   ========================================================== */
+CLIENTES AS (
+  SELECT DISTINCT
+    exrf_desc_tipo_persona,
+    exrf_cod_tip_doc AS tipdoc,
+    exrf_num_id_cliente AS documento,
+    'CLIENTE' AS tipo_relacion
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_num_id_cliente IS NOT NULL
+),
+
+/* ==========================================================
+   3. Universo de representantes legales (con homologación)
+   ========================================================== */
+REPRESENTANTES_LEGALES AS (
+  SELECT DISTINCT
+    exrf_desc_tipo_persona,
+
+    CASE 
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CEDULA DE CIUDADANIA' THEN 'CC'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'N.I.T.'               THEN 'NT'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CEDULA EXTRANJERIA'   THEN 'CE'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'NO APLICA'            THEN ''
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CARNET DIPLOMATICO'   THEN 'CD'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'PASAPORTE'            THEN 'PP'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'NIT CONVENCIONAL'     THEN 'NE'
+      ELSE NULL
+    END AS tipdoc,
+
+    exrf_num_id_rep_legal AS documento,
+    'REPRESENTANTE_LEGAL' AS tipo_relacion
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_num_id_rep_legal IS NOT NULL
+),
+
+/* ==========================================================
+   4. Unificar universos
+   ========================================================== */
+UNIVERSO AS (
+  SELECT * FROM CLIENTES
+  UNION ALL
+  SELECT * FROM REPRESENTANTES_LEGALES
+)
+
+/* ==========================================================
+   5. Detalle de personas restringidas
+   ========================================================== */
+SELECT
+  u.exrf_desc_tipo_persona,
+  u.tipo_relacion,
+  u.tipdoc AS tipo_documento,
+  u.documento AS numero_documento,
+  r.FUERES_CODIGO,
+  r.DESCRIPCION AS descripcion_restriccion
+FROM UNIVERSO u
+JOIN BASE_RESTRINGIDOS r
+  ON r.NUMERO_DOCUMENTO = u.documento
+ AND r.TIPDOC_CODIGO = u.tipdoc
+ORDER BY 
+  u.exrf_desc_tipo_persona,
+  u.tipo_relacion,
+  u.documento;

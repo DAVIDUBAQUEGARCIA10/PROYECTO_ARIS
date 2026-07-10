@@ -1,0 +1,24 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.union_canal_modelo_segmentacion` AS
+SELECT 
+  COMPANIA,
+  clave_agente,
+  codigo_localidad,
+  SEGMENTO,
+  FECHA,
+  MODELO,
+  DESCRIPCIONA,
+  'COMERCIALES' AS FUENTE
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_canal_seg_union`
+
+UNION ALL
+
+SELECT 
+  COMPANIA,
+  clave_agente,
+  codigo_localidad,
+  SEGMENTO,
+  FECHA,
+  MODELO,
+  DESCRIPCIONA,
+  'SEGUROS_BOLIVAR' AS FUENTE
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_canal_seg_union`;

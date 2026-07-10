@@ -1,0 +1,75 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0003`
+(
+  nit_compania,
+  nro_factura,
+  fecha_emision,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+
+WITH base AS (
+
+  SELECT
+    f.nit_compania,
+    f.nro_factura,
+    DATE(f.fec_emision_factura) AS fecha_emision,
+    FORMAT_DATE('%Y-%m', DATE(f.fec_emision_factura)) AS periodo_mes,
+    f.tip_doc_proveedor,
+    f.key_id_proveedor,
+    f.vlr_total_factura,
+    f.fecha_estado_proceso,
+    r.CODIGO_RESTRICCION,
+    r.DESCRIPCION,
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.evento_factura_electronica` f
+
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` r
+    ON f.tip_doc_proveedor = r.TIPO_DOCUMENTO_TERCERO
+   AND f.key_id_proveedor = r.KEY_ID
+
+  WHERE f.nit_compania = 901267811
+    AND DATE(f.fec_emision_factura) >= DATE '2026-03-01'
+
+),
+
+numeradas AS (
+
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY tip_doc_proveedor, key_id_proveedor, periodo_mes
+           ORDER BY fecha_emision DESC, vlr_total_factura DESC
+         ) AS rn
+  FROM base
+
+)
+
+SELECT
+  nit_compania,
+  nro_factura,
+  fecha_emision,
+  tip_doc_proveedor,
+  key_id_proveedor,
+  vlr_total_factura,
+  fecha_estado_proceso,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM numeradas
+WHERE rn = 1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0003` t
+    WHERE t.tip_doc_proveedor = numeradas.tip_doc_proveedor
+      AND t.key_id_proveedor = numeradas.key_id_proveedor
+      AND t.fecha_emision = numeradas.fecha_emision
+      AND t.nro_factura = numeradas.nro_factura
+  )
+ORDER BY periodo_mes DESC, key_id_proveedor;

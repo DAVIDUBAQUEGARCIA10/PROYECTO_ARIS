@@ -1,0 +1,13 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.union_pj_modelo_segmentacion` AS
+SELECT *, 'COMERCIALES' AS FUENTE 
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_pj_cliente_seg_union`
+
+UNION ALL
+
+SELECT *, 'CAPITALIZADORA' AS FUENTE 
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.capitalizadora_pj_cliente_seg_union`
+
+UNION ALL
+
+SELECT *, 'SEGUROS_BOLIVAR' AS FUENTE 
+FROM `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_pj_cliente_seg_union`;

@@ -1,0 +1,389 @@
+---create
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Incremento_Riesgo_prod AS 
+WITH
+-- 1) Normalización y orden de niveles
+niveles_ordenados AS (
+  SELECT 
+    *,
+    PARSE_DATE('%Y%m%d', Fecha_Calificacion) AS Fecha_Calificacion_DATE,
+    CASE Nivel_de_Riesgo
+      WHEN 'Riesgo bajo'     THEN 1
+      WHEN 'Riesgo medio'    THEN 2
+      WHEN 'Riesgo alto'     THEN 3
+      WHEN 'Riesgo especial' THEN 4
+      ELSE 0
+    END AS nivel_numerico
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.score_acumulado_en_el_tiempo_prod`
+),
+
+-- 2) Comparación contra el registro inmediatamente anterior por tercero
+comparacion AS (
+  SELECT 
+    actual.*,
+    previo.Fecha_Calificacion_DATE AS FECHA_ANTERIOR,
+    previo.Nivel_de_Riesgo        AS NIVEL_ANTERIOR,
+    previo.nivel_numerico         AS NIVEL_ANTERIOR_NUM
+  FROM niveles_ordenados actual
+  LEFT JOIN niveles_ordenados previo
+    ON  actual.CODIGO_COMPANIA        = previo.CODIGO_COMPANIA
+    AND actual.KEY_ID                 = previo.KEY_ID
+    AND actual.TIPO_DOCUMENTO         = previo.TIPO_DOCUMENTO
+    AND actual.Fecha_Calificacion_DATE > previo.Fecha_Calificacion_DATE
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY actual.CODIGO_COMPANIA, actual.KEY_ID, actual.TIPO_DOCUMENTO, actual.Fecha_Calificacion_DATE
+    ORDER BY previo.Fecha_Calificacion_DATE DESC
+  ) = 1
+),
+
+-- 2.1) Universo de pólizas / títulos vigentes
+polizas_vigentes AS (
+  SELECT
+    CODIGO_COMPANIA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_CANAL,
+    CODIGO_LOCALIDAD, 
+    NOMBRE_LOCALIDAD, 
+    NUMERO_POLIZA,
+    CLAVE_AGENTE, 
+    NOMBRE_AGENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND MCA_ANU_POLIZA != 'S'
+
+  UNION ALL
+
+  SELECT
+    1 AS CODIGO_COMPANIA,
+    tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+    key_id AS KEY_ID_TOMADOR,
+    801 AS CODIGO_RAMO_EMISION,
+    51  AS CODIGO_PRODUCTO,
+    'CAPITALIZADORA' AS NOMBRE_CANAL,
+    1 AS CODIGO_LOCALIDAD, 
+    'CAPI' AS NOMBRE_LOCALIDAD, 
+    titulo AS NUMERO_POLIZA,
+    1 AS CLAVE_AGENTE, 
+    'CAPI' AS NOMBRE_AGENTE
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+  WHERE DATE(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH)
+),
+
+-- 3) Selección final con joins adicionales
+seleccion_final AS (
+  SELECT DISTINCT
+    c.*,
+    t.NOMBRE,
+    t.NUMERO_DOCUMENTO,
+    k.FECHA_MODIFICACION,
+
+    -- Campos solicitados
+    p.CODIGO_LOCALIDAD,
+    p.NOMBRE_LOCALIDAD,
+    p.NUMERO_POLIZA,
+    p.CLAVE_AGENTE,
+    p.NOMBRE_AGENTE
+
+  FROM comparacion c
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` t
+    ON  t.KEY_ID         = c.KEY_ID
+    AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+  LEFT JOIN (
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    UNION ALL
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+  ) k
+    ON  k.KEY_ID         = c.KEY_ID
+    AND k.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+  -- 👉 LEFT JOIN solicitado
+  LEFT JOIN polizas_vigentes p
+    ON  p.CODIGO_COMPANIA        = c.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR         = c.KEY_ID
+
+  WHERE
+    c.nivel_numerico > c.NIVEL_ANTERIOR_NUM
+    AND (
+         (c.NIVEL_ANTERIOR = 'Riesgo bajo'  AND c.Nivel_de_Riesgo IN ('Riesgo alto', 'Riesgo especial'))
+      OR (c.NIVEL_ANTERIOR = 'Riesgo medio' AND c.Nivel_de_Riesgo IN ('Riesgo alto', 'Riesgo especial'))
+    )
+    AND c.RAMO != 310
+    AND c.CODIGO_RESTRINGIDO != 23
+    AND DATE(k.FECHA_MODIFICACION) < DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+)
+
+-- 4) Inserta solo registros nuevos
+SELECT
+  TIPO_DOCUMENTO, 
+  KEY_ID, 
+  CODIGO_COMPANIA, 
+  CODIGO_CIIU, 
+  CODIGO_CIIU_NIVEL_RIESGO, 
+  CODIGO_CIIU_NIVEL_RIESGO_SCORE, 
+  CODIGO_LUGAR_NACIMIENTO, 
+  NOMBRE_LUGAR_NACIMIENTO, 
+  MUNICIPIO_DIRECCION_RESIDENCIA_1,
+   DEPARTAMENTO_DIRECCION_RESIDENCIA_1, 
+   MUNICIPIO_DIRECCION_RESIDENCIA_2, 
+   DEPARTAMENTO_DIRECCION_RESIDENCIA_2,
+   DIRECCION_RESIDENCIA_NIVEL_RIESGO,
+    JURISDICCION_NIVEL_RIESGO_SCORE,
+     CODIGO_NACIONALIDAD,
+      NACIONALIDAD, CODIGO_CODAZZI, 
+      NACIONALIDAD_NIVEL_DE_RIESGO_ASIGNADO,
+       NACIONALIDAD_NIVEL_RIESGO_SCORE,
+        CODIGO_RESTRINGIDO, 
+        RESTRINGIDO_NIVEL_RIESGO_SCORE,
+         RAMO, 
+         PRODUCTO, 
+         PRODUCTO_NIVEL_DE_RIESGO_ASIGNADO,
+          PRODUCTO_NIVEL_RIESGO_SCORE, CANAL,
+           CANAL_NIVEL_DE_RIESGO_ASIGNADO,
+            CANAL_NIVEL_RIESGO_SCORE,
+             ALERTA, 
+            ALERTA_NIVEL_RIESGO_SCORE,
+             Es_ROS, 
+             ALERTA_NIVEL_RIESGO_SCORE_ROS, 
+             rn, 
+             SCORE_TOTAL_RIESGO, 
+             Nivel_de_Riesgo, 
+             Fecha_Calificacion,
+             Fecha_Calificacion_DATE, 
+             nivel_numerico,
+               FECHA_ANTERIOR, 
+               NIVEL_ANTERIOR, 
+               NIVEL_ANTERIOR_NUM, 
+               NOMBRE, NUMERO_DOCUMENTO,
+                FECHA_MODIFICACION,
+                 CODIGO_LOCALIDAD,
+                 NOMBRE_LOCALIDAD, NUMERO_POLIZA,
+                  CLAVE_AGENTE, NOMBRE_AGENTE,
+
+  -- ✅ SOLO VISUAL: último día del mes anterior a la fecha de calificación
+  LAST_DAY(DATE_SUB(sf.Fecha_Calificacion_DATE, INTERVAL 1 MONTH), MONTH) AS FECHA_CALIFICACION_POSTERIOS,
+
+  -- ✅ SOLO VISUAL: último día del mes anterior a la fecha anterior
+  LAST_DAY(DATE_SUB(sf.FECHA_ANTERIOR, INTERVAL 1 MONTH), MONTH) AS FECHA_CALIFICACION_ANTERIOR
+
+FROM seleccion_final sf
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY sf.TIPO_DOCUMENTO, sf.KEY_ID, sf.CODIGO_COMPANIA
+  ORDER BY sf.Fecha_Calificacion_DATE DESC
+) = 1;
+
+
+
+
+
+
+insert ---
+
+
+-- Inserta solo nuevos incrementos de riesgo a la tabla destino,
+-- evitando duplicados por (TIPO_DOCUMENTO, KEY_ID, CODIGO_COMPANIA)
+
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Incremento_Riesgo_prod`
+
+WITH
+-- 1) Normalización y orden de niveles
+niveles_ordenados AS (
+  SELECT 
+    *,
+    PARSE_DATE('%Y%m%d', Fecha_Calificacion) AS Fecha_Calificacion_DATE,
+    CASE Nivel_de_Riesgo
+      WHEN 'Riesgo bajo'     THEN 1
+      WHEN 'Riesgo medio'    THEN 2
+      WHEN 'Riesgo alto'     THEN 3
+      WHEN 'Riesgo especial' THEN 4
+      ELSE 0
+    END AS nivel_numerico
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.score_acumulado_en_el_tiempo_prod`
+),
+
+-- 2) Comparación contra el registro inmediatamente anterior por tercero
+comparacion AS (
+  SELECT 
+    actual.*,
+    previo.Fecha_Calificacion_DATE AS FECHA_ANTERIOR,
+    previo.Nivel_de_Riesgo        AS NIVEL_ANTERIOR,
+    previo.nivel_numerico         AS NIVEL_ANTERIOR_NUM
+  FROM niveles_ordenados actual
+  LEFT JOIN niveles_ordenados previo
+    ON  actual.CODIGO_COMPANIA        = previo.CODIGO_COMPANIA
+    AND actual.KEY_ID                 = previo.KEY_ID
+    AND actual.TIPO_DOCUMENTO         = previo.TIPO_DOCUMENTO
+    AND actual.Fecha_Calificacion_DATE > previo.Fecha_Calificacion_DATE
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY actual.CODIGO_COMPANIA, actual.KEY_ID, actual.TIPO_DOCUMENTO, actual.Fecha_Calificacion_DATE
+    ORDER BY previo.Fecha_Calificacion_DATE DESC
+  ) = 1
+),
+
+-- 2.1) Universo de pólizas / títulos vigentes
+polizas_vigentes AS (
+  SELECT
+    CODIGO_COMPANIA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_RAMO_EMISION,
+    CODIGO_PRODUCTO,
+    NOMBRE_CANAL,
+    CODIGO_LOCALIDAD, 
+    NOMBRE_LOCALIDAD, 
+    NUMERO_POLIZA,
+    CLAVE_AGENTE, 
+    NOMBRE_AGENTE
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND MCA_ANU_POLIZA != 'S'
+
+  UNION ALL
+
+  SELECT
+    1 AS CODIGO_COMPANIA,
+    tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+    key_id AS KEY_ID_TOMADOR,
+    801 AS CODIGO_RAMO_EMISION,
+    51  AS CODIGO_PRODUCTO,
+    'CAPITALIZADORA' AS NOMBRE_CANAL,
+    1 AS CODIGO_LOCALIDAD, 
+    'CAPI' AS NOMBRE_LOCALIDAD, 
+    titulo AS NUMERO_POLIZA,
+    1 AS CLAVE_AGENTE, 
+    'CAPI' AS NOMBRE_AGENTE
+  FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+  WHERE DATE(fecha_corte) >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH)
+),
+
+-- 3) Selección final con joins adicionales
+seleccion_final AS (
+  SELECT DISTINCT
+    c.*,
+    t.NOMBRE,
+    t.NUMERO_DOCUMENTO,
+    k.FECHA_MODIFICACION,
+
+    -- Campos solicitados
+    p.CODIGO_LOCALIDAD,
+    p.NOMBRE_LOCALIDAD,
+    p.NUMERO_POLIZA,
+    p.CLAVE_AGENTE,
+    p.NOMBRE_AGENTE
+
+  FROM comparacion c
+  LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` t
+    ON  t.KEY_ID         = c.KEY_ID
+    AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+  LEFT JOIN (
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+    UNION ALL
+    SELECT TIPO_DOCUMENTO, KEY_ID, FECHA_MODIFICACION
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+  ) k
+    ON  k.KEY_ID         = c.KEY_ID
+    AND k.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+
+  -- 👉 LEFT JOIN solicitado
+  LEFT JOIN polizas_vigentes p
+    ON  p.CODIGO_COMPANIA        = c.CODIGO_COMPANIA
+    AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+    AND p.KEY_ID_TOMADOR         = c.KEY_ID
+
+  WHERE
+    c.nivel_numerico > c.NIVEL_ANTERIOR_NUM
+    AND (
+         (c.NIVEL_ANTERIOR = 'Riesgo bajo'  AND c.Nivel_de_Riesgo IN ('Riesgo alto', 'Riesgo especial'))
+      OR (c.NIVEL_ANTERIOR = 'Riesgo medio' AND c.Nivel_de_Riesgo IN ('Riesgo alto', 'Riesgo especial'))
+    )
+    AND c.RAMO != 310
+    AND c.CODIGO_RESTRINGIDO != 23
+    AND DATE(k.FECHA_MODIFICACION) < DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+)
+
+-- 4) Inserta solo registros nuevos
+-- 4) Inserta solo registros nuevos (1 por TIPO_DOCUMENTO, KEY_ID, CODIGO_COMPANIA)
+SELECT
+  TIPO_DOCUMENTO, 
+  KEY_ID, 
+  CODIGO_COMPANIA, 
+  CODIGO_CIIU, 
+  CODIGO_CIIU_NIVEL_RIESGO, 
+  CODIGO_CIIU_NIVEL_RIESGO_SCORE, 
+  CODIGO_LUGAR_NACIMIENTO, 
+  NOMBRE_LUGAR_NACIMIENTO, 
+  MUNICIPIO_DIRECCION_RESIDENCIA_1,
+  DEPARTAMENTO_DIRECCION_RESIDENCIA_1, 
+  MUNICIPIO_DIRECCION_RESIDENCIA_2, 
+  DEPARTAMENTO_DIRECCION_RESIDENCIA_2,
+  DIRECCION_RESIDENCIA_NIVEL_RIESGO,
+  JURISDICCION_NIVEL_RIESGO_SCORE,
+  CODIGO_NACIONALIDAD,
+  NACIONALIDAD, 
+  CODIGO_CODAZZI, 
+  NACIONALIDAD_NIVEL_DE_RIESGO_ASIGNADO,
+  NACIONALIDAD_NIVEL_RIESGO_SCORE,
+  CODIGO_RESTRINGIDO, 
+  RESTRINGIDO_NIVEL_RIESGO_SCORE,
+  RAMO, 
+  PRODUCTO, 
+  PRODUCTO_NIVEL_DE_RIESGO_ASIGNADO,
+  PRODUCTO_NIVEL_RIESGO_SCORE, 
+  CANAL,
+  CANAL_NIVEL_DE_RIESGO_ASIGNADO,
+  CANAL_NIVEL_RIESGO_SCORE,
+  ALERTA, 
+  ALERTA_NIVEL_RIESGO_SCORE,
+  Es_ROS, 
+  ALERTA_NIVEL_RIESGO_SCORE_ROS, 
+  rn, 
+  SCORE_TOTAL_RIESGO, 
+  Nivel_de_Riesgo, 
+  Fecha_Calificacion,
+  Fecha_Calificacion_DATE, 
+  nivel_numerico,
+  FECHA_ANTERIOR, 
+  NIVEL_ANTERIOR, 
+  NIVEL_ANTERIOR_NUM, 
+  NOMBRE, 
+  NUMERO_DOCUMENTO,
+  FECHA_MODIFICACION,
+  CODIGO_LOCALIDAD,
+  NOMBRE_LOCALIDAD, 
+  NUMERO_POLIZA,
+  CLAVE_AGENTE, 
+  NOMBRE_AGENTE,
+
+  -- ✅ SOLO VISUAL
+  LAST_DAY(DATE_SUB(Fecha_Calificacion_DATE, INTERVAL 1 MONTH), MONTH)
+    AS FECHA_CALIFICACION_POSTERIOS,
+
+  LAST_DAY(DATE_SUB(FECHA_ANTERIOR, INTERVAL 1 MONTH), MONTH)
+    AS FECHA_CALIFICACION_ANTERIOR
+
+FROM (
+  SELECT
+    sf.*,
+    ROW_NUMBER() OVER (
+      PARTITION BY sf.TIPO_DOCUMENTO, sf.KEY_ID, sf.CODIGO_COMPANIA
+      ORDER BY sf.Fecha_Calificacion_DATE DESC
+    ) AS rn_unico
+  FROM seleccion_final sf
+) sf
+WHERE rn_unico = 1
+AND NOT EXISTS (
+  SELECT 1
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Score_de_terceros_Incremento_Riesgo_prod` tgt
+  WHERE tgt.TIPO_DOCUMENTO  = sf.TIPO_DOCUMENTO
+    AND tgt.KEY_ID          = sf.KEY_ID
+    AND tgt.CODIGO_COMPANIA = sf.CODIGO_COMPANIA
+);
+

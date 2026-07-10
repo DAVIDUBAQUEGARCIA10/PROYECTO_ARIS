@@ -1,0 +1,299 @@
+SELECT DISTINCT
+    CONS.TDOC_TERCERO,
+    CONS.COD_BENEF,
+    CONS.COD_CIA,
+    CONS.CONCEPTO,
+    CONS.COD_OFIC_CONTAB,
+    CONS.COD_SECC,
+    CONS.COD_RAMO,
+    CONS.NUM_POL1,
+    CONS.NUM_FACTURA,
+    CONS.DOCUMENTO_ORIGEN,  
+    CONS.FEC_ASIENTO,
+    CONS.COD_MON,
+    CONS.COD_PAGO,
+    CONS.VALOR_MOVIMIENTO,
+    CONS.COD_COBRO,
+    CONS.MOVIMIENTO,
+    CONS.DESCRIPCION_TIPO_MOV,
+    A200.FECHA_EMI,
+    A200.FECHA_EMI_END,
+    A200.FECHA_VENC_POL,
+    A200.DESC_POL,
+    A200.FEC_ANU_POL,
+    A200.FEC_ANU_END,
+    A200.TIPO_END,
+    b.txt_red,  -- Se agrega la columna txt_red de la tabla A1001800
+    
+    -- Campos de la tabla NATURALES
+    NAT.PRIMER_NOMBRE,
+    NAT.SEGUNDO_NOMBRE,
+    NAT.PRIMER_APELLIDO,
+    NAT.SEGUNDO_APELLIDO,
+    NAT.DIVPOL_CODIGO_NACIDO_EN,
+    NAT.FECHA_NACIMIENTO,
+    NAT.NACIONALIDAD,
+    NAT.PUBLICAMENTE_EXPUESTA,
+    NAT.VINCULO_PERSONA_RECONOCIDA,
+    NAT.OPERACIONES_INTERNACIONALES,
+
+    -- Campos de la tabla JURIDICOS
+    JUR.RAZON_SOCIAL,
+    JUR.NOMBRE_COMERCIAL,
+    JUR.FECHA_NACIMIENTO AS FECHA_NACIMIENTO_JURIDICO,
+    JUR.NAZ_CODIGO AS TIPO_DE_EMPRESA ,
+    JUR.REPRESENTANTE_LEGAL,
+    JUR.NUMERO_DOCUMENTO_REPRESENTANTE,
+    JUR.TIPDOC_CODIGO_IDENTIFICADO_POR,
+    JUR.PUBLICAMENTE_EXPUESTA AS PUBLICAMENTE_EXPUESTA_JURIDICO,
+    JUR.VINCULO_PERSONA_RECONOCIDA AS VINCULO_PERSONA_RECONOCIDA_JURIDICO
+
+FROM 
+    (
+        -- Consulta consolidada original
+        SELECT 
+            TDOC_TERCERO,
+            COD_BENEF,
+            COD_CIA,
+            NULL AS CONCEPTO,
+            NULL AS COD_OFIC_CONTAB,
+            NULL AS COD_SECC,
+            NULL AS COD_RAMO,
+            NULL AS NUM_POL1,
+            NULL AS NUM_FACTURA,
+            1 AS COD_MON,
+            FEC_ASIENTO,
+            'FOR_PAGO' AS COD_PAGO,
+            IMP_MON_PAIS AS VALOR_MOVIMIENTO,
+            'P' AS COD_COBRO,
+            NULL AS MOVIMIENTO,
+            NULL AS DESCRIPCION_TIPO_MOV,
+            NULL AS DOCUMENTO_ORIGEN  
+        FROM 
+            A5021604
+        WHERE 
+            FEC_ASIENTO >= TO_DATE('01/01/20', 'DD/MM/YY')
+            AND IMP_MON_PAIS IS NOT NULL
+
+        UNION ALL
+
+        SELECT 
+            TDOC_TERCERO,
+            COD_BENEF,
+            COD_CIA,
+            CONCEPTO,
+            COD_OFIC_CONTAB,
+            COD_SECC,
+            COD_RAMO,
+            NUM_POL1,
+            NUM_FACTURA,
+            COD_MON,
+            FEC_ASIENTO,
+            NULL AS COD_PAGO,
+            (IMP_MON_PAIS + IMP_IMPTOS_MON_LOCAL) AS VALOR_MOVIMIENTO,
+            DECODE(TIPO_ACTU, 'DP', 'P', 'C') AS COD_COBRO,
+            tipo_actu AS MOVIMIENTO,
+            CASE TIPO_ACTU
+                WHEN 'AC' THEN 'ANULADOS DE COBRO'
+                WHEN 'AD' THEN 'ANULAC.PAGO DEV.'
+                WHEN 'AE' THEN 'ANULACION PAGOS SARH'
+                -- (Otros casos omitidos para brevedad)
+                ELSE 'DESCRIPCIÓN NO DISPONIBLE'
+            END AS DESCRIPCION_TIPO_MOV,
+            RECIBO AS DOCUMENTO_ORIGEN  
+        FROM  
+            A5021900
+        WHERE 
+            FEC_ASIENTO >= TO_DATE('01/01/20', 'DD/MM/YY')
+            AND (IMP_MON_PAIS + IMP_IMPTOS_MON_LOCAL) IS NOT NULL
+    ) CONS
+
+LEFT JOIN 
+    A2000030 A200
+    ON CONS.NUM_POL1 = A200.NUM_POL1
+
+LEFT JOIN 
+    A1001800 b 
+    ON A200.cod_end = b.cod_texto 
+    AND A200.sub_cod_end = b.sub_cod_texto 
+
+LEFT JOIN 
+    NATURALES NAT 
+    ON CONS.COD_BENEF = NAT.NUMERO_DOCUMENTO  -- Relación con NATURALES por NUMERO_DOCUMENTO y TIPDOC_CODIGO
+    AND CONS.TDOC_TERCERO = NAT.TIPDOC_CODIGO
+
+LEFT JOIN 
+    JURIDICOS JUR 
+    ON CONS.COD_BENEF = JUR.NUMERO_DOCUMENTO  -- Relación con JURIDICOS por NUMERO_DOCUMENTO y TIPDOC_CODIGO
+    AND CONS.TDOC_TERCERO = JUR.TIPDOC_CODIGO
+
+WHERE CONS.TDOC_TERCERO IS NOT NULL 
+  AND CONS.COD_BENEF = 70561093
+ORDER BY A200.FECHA_EMI DESC;  -- Ordenamos por FECHA_EMI de forma descendente
+
+
+
+TRAMA TRANSACCIONAL 
+WITH CTE AS (
+    SELECT DISTINCT
+        CONS.TDOC_TERCERO,
+        CONS.COD_BENEF,
+        CONS.COD_CIA,
+        CONS.CONCEPTO,
+        CONS.COD_OFIC_CONTAB,
+        CONS.COD_SECC,
+        CONS.COD_RAMO,
+        CONS.NUM_POL1,
+        CONS.NUM_FACTURA,
+        CONS.DOCUMENTO_ORIGEN,  
+        CONS.FEC_ASIENTO,
+        CONS.COD_MON,
+        CONS.COD_PAGO,
+        CONS.VALOR_MOVIMIENTO,
+        CONS.COD_COBRO,
+        CONS.MOVIMIENTO,
+        CONS.DESCRIPCION_TIPO_MOV,
+        A200.FECHA_EMI,
+        A200.FECHA_EMI_END,
+        A200.FECHA_VENC_POL,
+        A200.DESC_POL,
+        A200.FEC_ANU_POL,
+        A200.FEC_ANU_END,
+        A200.TIPO_END,
+        b.txt_red,
+        -- Campos de la tabla NATURALES
+        NAT.PRIMER_NOMBRE,
+        NAT.SEGUNDO_NOMBRE,
+        NAT.PRIMER_APELLIDO,
+        NAT.SEGUNDO_APELLIDO,
+        NAT.DIVPOL_CODIGO_NACIDO_EN,
+        NAT.FECHA_NACIMIENTO,
+        NAT.NACIONALIDAD,
+        NAT.PUBLICAMENTE_EXPUESTA,
+        NAT.VINCULO_PERSONA_RECONOCIDA,
+        NAT.OPERACIONES_INTERNACIONALES,
+        -- Campos de la tabla JURIDICOS
+        JUR.RAZON_SOCIAL,
+        JUR.NOMBRE_COMERCIAL,
+        JUR.FECHA_NACIMIENTO AS FECHA_NACIMIENTO_JURIDICO,
+        JUR.NAZ_CODIGO AS TIPO_DE_EMPRESA,
+        JUR.REPRESENTANTE_LEGAL,
+        JUR.NUMERO_DOCUMENTO_REPRESENTANTE,
+        JUR.TIPDOC_CODIGO_IDENTIFICADO_POR,
+        JUR.PUBLICAMENTE_EXPUESTA AS PUBLICAMENTE_EXPUESTA_JURIDICO,
+        JUR.VINCULO_PERSONA_RECONOCIDA AS VINCULO_PERSONA_RECONOCIDA_JURIDICO,
+        ROW_NUMBER() OVER (PARTITION BY CONS.VALOR_MOVIMIENTO, CONS.COD_BENEF, CONS.NUM_POL1, CONS.COD_OFIC_CONTAB, CONS.FEC_ASIENTO ORDER BY A200.FECHA_EMI DESC) AS rn
+    FROM 
+        (
+            -- Consulta consolidada original
+            SELECT 
+                TDOC_TERCERO,
+                COD_BENEF,
+                COD_CIA,
+                NULL AS CONCEPTO,
+                NULL AS COD_OFIC_CONTAB,
+                NULL AS COD_SECC,
+                NULL AS COD_RAMO,
+                NULL AS NUM_POL1,
+                NULL AS NUM_FACTURA,
+                1 AS COD_MON,
+                FEC_ASIENTO,
+                'FOR_PAGO' AS COD_PAGO,
+                IMP_MON_PAIS AS VALOR_MOVIMIENTO,
+                'P' AS COD_COBRO,
+                NULL AS MOVIMIENTO,
+                NULL AS DESCRIPCION_TIPO_MOV,
+                NULL AS DOCUMENTO_ORIGEN  
+            FROM 
+                A5021604
+            WHERE 
+                FEC_ASIENTO >= TO_DATE('01/01/20', 'DD/MM/YY')
+                AND IMP_MON_PAIS IS NOT NULL
+
+            UNION ALL
+
+            SELECT 
+                TDOC_TERCERO,
+                COD_BENEF,
+                COD_CIA,
+                CONCEPTO,
+                COD_OFIC_CONTAB,
+                COD_SECC,
+                COD_RAMO,
+                NUM_POL1,
+                NUM_FACTURA,
+                COD_MON,
+                FEC_ASIENTO,
+                NULL AS COD_PAGO,
+                (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0)) AS VALOR_MOVIMIENTO,
+                DECODE(TIPO_ACTU, 'DP', 'P', 'C') AS COD_COBRO,
+                tipo_actu AS MOVIMIENTO,
+                -- Descripción con el CASE
+                CASE TIPO_ACTU
+                    WHEN 'AC' THEN 'ANULADOS DE COBRO'
+                    WHEN 'AD' THEN 'ANULAC.PAGO DEV.'
+                    WHEN 'AE' THEN 'ANULACION PAGOS SARH'
+                    WHEN 'AL' THEN 'ANULADO SEG.ARRENDAMIENTO'
+                    WHEN 'AN' THEN 'ANULADO DE PENSIONES'
+                    WHEN 'AP' THEN 'ANULADO PAGO SINIESTROS.'
+                    WHEN 'AR' THEN 'ANULADO COBRO RECUPERO.'
+                    WHEN 'AS' THEN 'ANULACION SIFVE'
+                    WHEN 'AT' THEN 'ANULADO GIRO TITULOS'
+                    WHEN 'CA' THEN 'COBROS ANTICIPADOS.'
+                    WHEN 'CB' THEN 'COMPENSACIONES.'
+                    WHEN 'CG' THEN 'CUENTAS DE GESTION.'
+                    WHEN 'CP' THEN 'COBROS PARCIALES.'
+                    WHEN 'CR' THEN 'REINTEGRO SINIESTROS'
+                    WHEN 'CS' THEN 'COBRO SALVAM.Y RECOBROS STROS'
+                    WHEN 'CT' THEN 'COBRO RECIBOS.'
+                    WHEN 'CV' THEN 'COBROS VARIOS.'
+                    WHEN 'DC' THEN 'DESCUENTO DE COMISIONES.'
+                    WHEN 'DP' THEN 'DEVOLUCION DE PRIMAS.'
+                    WHEN 'EA' THEN 'CTA.CTE.REASEGURO EXTERIOR AUTOMATICO'
+                    WHEN 'EF' THEN 'COBRO REASEGURO EXTERIOR FACULTATIVO'
+                    WHEN 'IA' THEN 'CTA.CTE.REASEGURO INTERIOR AUTOMATICO.'
+                    WHEN 'IF' THEN 'COBRO REASEGURO INTERIOR FACUL.'
+                    WHEN 'MA' THEN 'MVTOS.CTA.CORRIENTE COAS.RECIBIDO'
+                    WHEN 'MC' THEN 'MVTOS.CTA.CTE.COASEGURO.'
+                    WHEN 'MP' THEN 'MVTOS.CTA.CORRIENTE AGENTES.'
+                    WHEN 'ND' THEN 'ANTICIPO COMISIONES NOMINA DIARIA'
+                    WHEN 'P' THEN 'PAGOS VARIOS'
+                    WHEN 'PA' THEN 'COBROS CON CHEQUES POST-FECHADOS.'
+                    WHEN 'PC' THEN 'ANTICIPO DE COMISIONES.'
+                    WHEN 'PD' THEN 'PAGO DEVOLUCIONES ARRENDAMIENTOS'
+                    WHEN 'PE' THEN 'TRANSITORIA PAGOS SARH'
+                    WHEN 'PF' THEN 'PAGOS SIFVE'
+                    WHEN 'PG' THEN 'PAGOS CAI'
+                    WHEN 'PL' THEN 'PAGO SEG.ARRENDAMIENTO'
+                    WHEN 'PN' THEN 'PAGO DE PENSIONES'
+                    WHEN 'PS' THEN 'PAGO DE SINIESTROS.'
+                    WHEN 'PT' THEN 'PAGOS TITULOS'
+                    WHEN 'PV' THEN 'PAGOS VARIOS.'
+                    WHEN 'RT' THEN 'RECAUDO TITULOS SE'
+                    WHEN 'TT' THEN 'TRASPASO DE TESORERIA.'
+                    ELSE 'DESCRIPCIÓN NO DISPONIBLE'
+                END AS DESCRIPCION_TIPO_MOV,
+                RECIBO AS DOCUMENTO_ORIGEN  
+            FROM  
+                A5021900
+            WHERE 
+                FEC_ASIENTO >= TO_DATE('01/01/20', 'DD/MM/YY')
+                AND (IMP_MON_PAIS + NVL(IMP_IMPTOS_MON_LOCAL, 0)) IS NOT NULL
+        ) CONS
+    LEFT JOIN 
+        A2000030 A200 ON CONS.NUM_POL1 = A200.NUM_POL1
+    LEFT JOIN 
+        A1001800 b ON A200.cod_end = b.cod_texto AND A200.sub_cod_end = b.sub_cod_texto
+    LEFT JOIN 
+        NATURALES NAT ON CONS.COD_BENEF = NAT.NUMERO_DOCUMENTO AND CONS.TDOC_TERCERO = NAT.TIPDOC_CODIGO
+    LEFT JOIN 
+        JURIDICOS JUR ON CONS.COD_BENEF = JUR.NUMERO_DOCUMENTO AND CONS.TDOC_TERCERO = JUR.TIPDOC_CODIGO
+    WHERE CONS.TDOC_TERCERO IS NOT NULL 
+      AND CONS.NUM_POL1 = 1512113045615
+
+)
+
+SELECT *
+FROM CTE
+WHERE rn = 1
+ORDER BY FECHA_EMI DESC;

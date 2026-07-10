@@ -1,0 +1,90 @@
+CREATE OR REPLACE TABLE `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.segmentacion_capitalizadora_jurisdiccion` AS 
+WITH movimientos_12m AS (
+    SELECT 
+        pol.KEY_ID_BENEFICIARIO,
+
+        -- Recaudos
+        SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN mov.VALOR_TRANSACCION ELSE 0 END) AS SUMA_RECAUDOS,
+        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '+' THEN 1 ELSE NULL END) AS CANTIDAD_RECAUDOS,
+
+        -- Pagos o sorteos
+        ABS(SUM(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN mov.VALOR_TRANSACCION ELSE 0 END)) AS SUMA_PAGOS_SORTEOS,
+        COUNT(CASE WHEN mov.SIGNO_MOVIMIENTO = '-' THEN 1 ELSE NULL END) AS CANTIDAD_PAGOS_SORTEOS
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora` mov
+    INNER JOIN `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora` pol
+        ON mov.NUMERO_TITULO = pol.TITULO
+
+    WHERE mov.FECHA_TRANSACCION BETWEEN 
+        DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH), MONTH)
+        AND DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY)
+
+    GROUP BY pol.KEY_ID_BENEFICIARIO
+),
+
+clientes_union AS (
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_CODAZZI_DIRECCION_1
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales`
+    
+    UNION ALL
+
+    SELECT DISTINCT 
+        TIPO_DOCUMENTO,
+        KEY_ID,
+        CODIGO_CODAZZI_DIRECCION_1
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+),
+
+base_datos AS (
+    SELECT 
+        IFNULL(cli.CODIGO_CODAZZI_DIRECCION_1, 0) AS CODIGO_CODAZZI_DIRECCION_1,
+        j.MUNICIPIO,
+        IFNULL(j.NIVEL_DE_RIESGO_ASIGNADO, 'Sin nivel de riesgo') AS Nivel_riesgo_direccion,
+        CASE 
+            WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Alto' THEN 3
+            WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Medio' THEN 2
+            WHEN j.NIVEL_DE_RIESGO_ASIGNADO = 'Bajo' THEN 1
+            ELSE 0
+        END AS Nivel_riesgo_direccion_numerico,
+
+        IFNULL(mov.SUMA_RECAUDOS, 0) AS SUMA_RECAUDOS,
+        IFNULL(mov.CANTIDAD_RECAUDOS, 0) AS CANTIDAD_RECAUDOS,
+        IFNULL(mov.SUMA_PAGOS_SORTEOS, 0) AS SUMA_PAGOS_SORTEOS,
+        IFNULL(mov.CANTIDAD_PAGOS_SORTEOS, 0) AS CANTIDAD_PAGOS_SORTEOS
+
+    FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora` c
+
+    LEFT JOIN clientes_union cli
+        ON c.TIPO_DOCUMENTO = cli.TIPO_DOCUMENTO
+        AND c.KEY_ID = cli.KEY_ID
+
+    LEFT JOIN movimientos_12m mov
+        ON c.KEY_ID = mov.KEY_ID_BENEFICIARIO
+
+    LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo` j
+        ON cli.CODIGO_CODAZZI_DIRECCION_1 = j.C__DIGO_DANE_DEL_MUNICIPIO
+
+    WHERE c.fecha_corte = (
+        SELECT MAX(fecha_corte)
+        FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+    )
+)
+
+SELECT 
+    CODIGO_CODAZZI_DIRECCION_1,
+    MUNICIPIO,
+    Nivel_riesgo_direccion,
+    Nivel_riesgo_direccion_numerico,
+    SUM(SUMA_RECAUDOS) AS TOTAL_RECAUDOS,
+    SUM(CANTIDAD_RECAUDOS) AS TOTAL_CANTIDAD_RECAUDOS,
+    SUM(SUMA_PAGOS_SORTEOS) AS TOTAL_PAGOS_SORTEOS,
+    SUM(CANTIDAD_PAGOS_SORTEOS) AS TOTAL_CANTIDAD_PAGOS_SORTEOS
+FROM base_datos
+GROUP BY 
+    CODIGO_CODAZZI_DIRECCION_1,
+    MUNICIPIO,
+    Nivel_riesgo_direccion,
+    Nivel_riesgo_direccion_numerico;

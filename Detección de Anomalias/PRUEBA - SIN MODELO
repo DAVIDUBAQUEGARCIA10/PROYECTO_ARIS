@@ -1,0 +1,176 @@
+CREATE OR REPLACE TABLE `sb-sandbox-usuarios.sandbox_cumplimiento.Modelo_isolate_forest` AS
+
+WITH P_ULTIMO_CORTE AS (
+  SELECT
+    -- deja exactamente los campos que usas después
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    NOMBRE_CANAL,
+    CODIGO_COMPANIAa
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  WHERE DATE(FECHA_PROCESO) = (
+    SELECT MAX(DATE(FECHA_PROCESO))
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+  )
+  -- IMPORTANTE: si hay más de 1 fila por póliza en ese corte, esto evita duplicar
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY NUMERO_POLIZA ORDER BY FECHA_PROCESO DESC) = 1
+),
+
+BASE AS (
+  SELECT 
+    B.FECHA_OPERACION,
+    B.VALOR_PESOS_COLOMBIANOS,
+    B.DESCRIPCION_MOVIMIENTO,
+    B.TIPO_PAGO,
+    B.CODIGO_PRODUCTO,
+    B.NUMERO_POLIZA,
+    P.TIPO_DOCUMENTO_TOMADOR,
+    P.KEY_ID_TOMADOR,
+    P.NOMBRE_CANAL,
+    P.CODIGO_COMPANIA,
+    EXTRACT(YEAR FROM B.FECHA_OPERACION)*100 + EXTRACT(MONTH FROM B.FECHA_OPERACION) AS ANO_MES,
+    EXTRACT(DAY FROM B.FECHA_OPERACION) AS DIA,
+    EXTRACT(HOUR FROM B.FECHA_OPERACION) AS HORA,
+    CASE 
+      WHEN MOD(B.VALOR_PESOS_COLOMBIANOS, 1000000) = 0 
+        OR MOD(B.VALOR_PESOS_COLOMBIANOS, 5000000) = 0 
+      THEN 1 ELSE 0 
+    END AS ES_VALOR_REDONDO,
+    CASE 
+      WHEN EXTRACT(HOUR FROM B.FECHA_OPERACION) < 6 
+        OR EXTRACT(HOUR FROM B.FECHA_OPERACION) >= 20 
+      THEN 1 ELSE 0
+    END AS ES_NOCTURNA
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf` B
+  LEFT JOIN P_ULTIMO_CORTE P
+    ON B.NUMERO_POLIZA = P.NUMERO_POLIZA
+  WHERE DATE(B.FECHA_OPERACION) >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+),
+-- ...sigues igual con AGG / CANAL_FRECUENCIA / AGG_FINAL
+
+AGG AS (
+  -- -----------------------------------------------------------------------------------
+  -- AGG: agregación mensual por póliza (1 fila por póliza por mes)
+  -- -----------------------------------------------------------------------------------
+  SELECT 
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_COMPANIA,
+    ANO_MES,
+    NUMERO_POLIZA,                                -- ✅ se vuelve parte del grano
+
+    -- Métricas de actividad transaccional del mes (para esa póliza)
+    COUNT(*) AS N_TRANSACCIONES_MES,
+    SUM(VALOR_PESOS_COLOMBIANOS) AS MONTO_TOTAL_MES,
+    AVG(VALOR_PESOS_COLOMBIANOS) AS MONTO_PROMEDIO_MES,
+    MAX(VALOR_PESOS_COLOMBIANOS) AS MONTO_MAXIMO_MES,
+    MIN(VALOR_PESOS_COLOMBIANOS) AS MONTO_MINIMO_MES,
+    APPROX_QUANTILES(VALOR_PESOS_COLOMBIANOS, 2)[OFFSET(1)] AS MONTO_MEDIANA_MES,
+    STDDEV(VALOR_PESOS_COLOMBIANOS) AS MONTO_DESVIACION_STD_MES,
+
+    -- Días activos en el mes para esa póliza
+    COUNT(DISTINCT DIA) AS DIAS_ACTIVO_MES,
+
+    -- Primera y última operación del mes (para esa póliza)
+    MIN(FECHA_OPERACION) AS PRIMERA_FECHA_OPERACION_MES,
+    MAX(FECHA_OPERACION) AS ULTIMA_FECHA_OPERACION_MES,
+
+    -- Rango promedio (en días) entre fechas con transacciones
+    IF(
+      COUNT(DISTINCT DATE(FECHA_OPERACION)) > 1,
+      SAFE_DIVIDE(
+        DATE_DIFF(MAX(DATE(FECHA_OPERACION)), MIN(DATE(FECHA_OPERACION)), DAY),
+        COUNT(DISTINCT DATE(FECHA_OPERACION)) - 1
+      ),
+      NULL
+    ) AS RANGO_DIAS_ENTRE_TRANSACCIONES,
+
+    -- Diversidad de operación/canal en el mes (para esa póliza)
+    COUNT(DISTINCT DESCRIPCION_MOVIMIENTO) AS CANTIDAD_TIPOS_OPERACION,
+    COUNT(DISTINCT NOMBRE_CANAL) AS CANTIDAD_TIPOS_CANAL,
+
+    -- Conteos y frecuencias de marcadores
+    SUM(CASE WHEN TIPO_PAGO = 'TERCERO' THEN 1 ELSE 0 END) AS TRANSACCIONES_TERCEROS,
+    SUM(ES_NOCTURNA) AS TRANS_NOCTURNAS,
+    SAFE_DIVIDE(SUM(ES_NOCTURNA), COUNT(*)) AS FRECUENCIA_HORARIO_NO_HABITUAL,
+    SAFE_DIVIDE(SUM(ES_VALOR_REDONDO), COUNT(*)) AS FRECUENCIA_VALORES_REDONDOS,
+
+    -- Repetición de valores exactos (proxy simple)
+    COUNT(*) - COUNT(DISTINCT VALOR_PESOS_COLOMBIANOS) AS FRECUENCIA_TRANS_REPETIDAS,
+
+    -- Cantidad de productos usados en el mes por esa póliza (ojo: normalmente será 1, pero queda por si hay mezclas)
+    COUNT(DISTINCT CODIGO_PRODUCTO) AS NUM_PRODUCTOS_USADOS_MES
+
+  FROM BASE
+  GROUP BY 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    CODIGO_COMPANIA, 
+    ANO_MES,
+    NUMERO_POLIZA                                -- ✅ clave para tener 1 fila por póliza
+),
+
+CANAL_FRECUENCIA AS (
+  -- -----------------------------------------------------------------------------------
+  -- Determina canal más frecuente por póliza/mes
+  -- -----------------------------------------------------------------------------------
+  SELECT 
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    CODIGO_COMPANIA,
+    ANO_MES,
+    NUMERO_POLIZA,                                -- ✅ mismo grano
+    NOMBRE_CANAL,
+    COUNT(*) AS FRECUENCIA_CANAL,
+    ROW_NUMBER() OVER (
+      PARTITION BY TIPO_DOCUMENTO_TOMADOR, KEY_ID_TOMADOR, CODIGO_COMPANIA, ANO_MES, NUMERO_POLIZA
+      ORDER BY COUNT(*) DESC
+    ) AS RN
+  FROM BASE
+  GROUP BY 
+    TIPO_DOCUMENTO_TOMADOR, 
+    KEY_ID_TOMADOR, 
+    CODIGO_COMPANIA, 
+    ANO_MES, 
+    NUMERO_POLIZA,
+    NOMBRE_CANAL
+),
+
+AGG_FINAL AS (
+  -- -----------------------------------------------------------------------------------
+  -- Une métricas agregadas + canal dominante
+  -- -----------------------------------------------------------------------------------
+  SELECT 
+    A.*,
+    CF.NOMBRE_CANAL AS CANAL_MAS_FRECUENTE,
+    SAFE_DIVIDE(CF.FRECUENCIA_CANAL, A.N_TRANSACCIONES_MES) AS FRECUENCIA_CANAL_DOMINANTE
+  FROM AGG A
+  LEFT JOIN CANAL_FRECUENCIA CF
+    ON A.TIPO_DOCUMENTO_TOMADOR = CF.TIPO_DOCUMENTO_TOMADOR
+   AND A.KEY_ID_TOMADOR = CF.KEY_ID_TOMADOR
+   AND A.CODIGO_COMPANIA = CF.CODIGO_COMPANIA
+   AND A.ANO_MES = CF.ANO_MES
+   AND A.NUMERO_POLIZA = CF.NUMERO_POLIZA
+   AND CF.RN = 1
+)
+
+-- -------------------------------------------------------------------------------------
+-- Cálculo de indicador de cambio de patrón (comparación mes a mes, por póliza)
+-- -------------------------------------------------------------------------------------
+SELECT
+  *,
+  CASE 
+    WHEN LAG(MONTO_TOTAL_MES) OVER (
+           PARTITION BY KEY_ID_TOMADOR, CODIGO_COMPANIA, NUMERO_POLIZA
+           ORDER BY ANO_MES
+         ) IS NOT NULL
+     AND ABS(
+           MONTO_TOTAL_MES - LAG(MONTO_TOTAL_MES) OVER (
+             PARTITION BY KEY_ID_TOMADOR, CODIGO_COMPANIA, NUMERO_POLIZA
+             ORDER BY ANO_MES
+           )
+         ) > 3 * MONTO_DESVIACION_STD_MES
+    THEN 1 ELSE 0
+  END AS INDICADOR_CAMBIO_PATRON
+FROM AGG_FINAL;

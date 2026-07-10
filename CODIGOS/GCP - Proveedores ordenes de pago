@@ -1,0 +1,53 @@
+WITH RankedData AS (         
+    SELECT  c.numero_radicado, 
+            t.TIPO_DOCUMENTO, 
+            t.NUMERO_DOCUMENTO, 
+            c.numero_documento, 
+            c.codigo_tipo_documento_cobro, 
+            c.codigo_tipo_persona,
+            c.codigo_tipo_identificacion_emisor, 
+            c.key_id_emisor, 
+            c.descripcion_tipo_identificacion_emisor, 
+            c.razon_social_emisor,
+            c.codigo_dane_ciudad, 
+            c.nombre_ciudad, 
+            c.codigo_dane_departamento, 
+            c.nombre_departamento, 
+            c.fecha_emision, 
+            c.codigo_iso_moneda, 
+            c.nombre_comun_moneda, 
+            c.concepto_cobro,
+            c.valor_base,
+            c.valor_iva, 
+            c.descripcion_bien_servicio, 
+            c.tipo_unidad_bien_servicio,  
+            c.marca_requiere_documento_soporte, 
+            c.estado_documento_cobro,
+            c.descripcion_estado, 
+            c.fecha_estado,
+            ROW_NUMBER() OVER (PARTITION BY c.key_id_emisor, c.razon_social_cia ORDER BY c.fecha_emision DESC) AS row_num
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.cuentas_de_cobro_proveedores c
+    JOIN sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes t
+        ON c.key_id_emisor = t.KEY_ID 
+        AND c.codigo_tipo_identificacion_emisor = t.TIPO_DOCUMENTO
+    WHERE c.fecha_emision >= '2024-01-01'
+      AND c.razon_social_cia IN ('Seguros Comerciales Bolívar S.A.',
+        'Bolívar Salud IPS S.A.S.',
+        'Compañía de Seguros Bolívar S.A.',
+        'Fundación Bolívar Davivienda',
+        'Servicios Bolívar S.A.',
+        'Capitalizadora Bolívar S.A.',
+        'Grupo Bolívar S.A.',
+        'Servicios Bolívar Facilities S.A.S.',
+        'Salud Bolivar EPS S.A.S',
+        'Fundación Cultiva el Arte y la Cultura',
+        'Soluciones Bolívar S.A.S.',
+        'Multinversiones Bolívar S.A.',
+        'Sentido Empresarial S.A.',
+        'Inversiones Financieras Bolívar S.A.S.'
+      )
+)
+SELECT *
+FROM RankedData
+WHERE row_num = 1
+ORDER BY fecha_emision DESC;

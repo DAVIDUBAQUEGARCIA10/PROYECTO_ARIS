@@ -1,0 +1,68 @@
+
+select 
+polizas.NUMERO_INTERNO,
+benef.SECUENCIA_BENEFICIARIO,
+polizas.NUMERO_POLIZA ,
+FORMAT_DATE('%d%m%Y', polizas.FECHA_EXPEDICION) AS FECHA_EXPEDICION,
+polizas.TIPO_RENTA,
+polizas.CAUSA_RENTA,
+polizas.ESTADO_POLIZA,
+
+doc.ABREVIATURA,
+benef.IDENTIFICACION_BENEFICIARIO,
+concat(benef.NOMBRE_COMUN," ",benef.APELLIDO1," ",benef.APELLIDO2) as NOMBRE_BENEFICIARIO,
+benef.SEXO,
+FORMAT_DATE('%d%m%Y', benef.FECHA_NACIMIENTO) AS FECHA_NACIMIENTO ,
+benef.PORCENTAJE_BENEFICIARIO,
+benef.PORCENTAJE_NOMINA,
+benef.SENAL_NOMINA as NOMINADO,
+benef.SENAL_ACTIVO ,
+benef.SENAL_EXTERIOR ,
+  CASE
+    WHEN ESTADO_BENEFICIARIO ='VAL' THEN 'Valido'
+    WHEN ESTADO_BENEFICIARIO ='INV'  THEN 'Fallecido'
+    WHEN ESTADO_BENEFICIARIO ='FAL'  THEN 'Invalido'
+    ELSE ''
+  END AS ESTADO_BENEFICIARIO,
+
+paren.NOMBRE_PARENTESCO,polizas.VALOR_MESADA,VALOR_MESADA_ACTUAL,
+
+ciudad.NOMBRE,
+data_cliente.CODIGO_CIUDAD as CODIGO_CIUDAD ,
+
+FORMAT_DATE('%d%m%Y', FECHA_FALLECIMIENTO) AS FECHA_FALLECIMIENTO, 
+polizas.VALOR_PRIMA_UNICA,
+polizas.TASA_GASTOS_EXPEDICION,
+polizas.TASA_GASTOS_ADMON,
+polizas.VALOR_PENSION_REFERENCIA,
+
+
+from `sb-ecosistemaanalitico-lago.securitas_pensiones.beneficiario` as benef
+
+left join `sb-ecosistemaanalitico-lago.securitas_pensiones.poliza` as polizas
+on  benef.NUMERO_INTERNO= polizas.NUMERO_INTERNO
+
+left join `sb-ecosistemaanalitico-lago.securitas_pensiones.parentesco` as paren
+on benef.PARENTESCO = paren.PARENTESCO_HIJO
+
+left join `sb-ecosistemaanalitico-lago.securitas_pensiones.tipo_documento` as doc
+on benef.TIPO_DOCUMENTO = doc.TIPO_DOCUMENTO
+
+left join `sb-ecosistemaanalitico-lago.securitas_pensiones.dir_tel_cue_act_cliente` as data_cliente
+on data_cliente.NIT = benef.NIT
+
+left join `sb-ecosistemaanalitico-lago.securitas_pensiones.ciudad` as ciudad
+on ciudad.CODIGO_CIUDAD = data_cliente.CODIGO_CIUDAD
+
+where NUMERO_POLIZA in ('28656',
+'27528',
+'25517',
+'36824',
+'30697',
+'36808',
+'37482',
+'33622',
+'27135',
+'33949')
+
+ORDER BY NUMERO_INTERNO , SECUENCIA_BENEFICIARIO ASC

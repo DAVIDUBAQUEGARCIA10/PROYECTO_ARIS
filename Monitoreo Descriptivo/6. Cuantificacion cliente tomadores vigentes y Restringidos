@@ -1,0 +1,102 @@
+/* ==========================================================
+   1. Base de personas restringidas (vigentes)
+   ========================================================== */
+WITH BASE_RESTRINGIDOS AS (
+  SELECT DISTINCT
+    cr.NUMERO_DOCUMENTO,
+    cr.FUERES_CODIGO,
+    cr.TIPDOC_CODIGO,
+    cr.NOMBRES,
+    fr.DESCRIPCION
+  FROM clientes_restringidos cr
+  JOIN fuentes_restriccion fr
+    ON cr.FUERES_CODIGO = fr.CODIGO
+  WHERE FECHA_BAJA IS NULL
+),
+
+/* ==========================================================
+   2. Universo de clientes por tipo de persona
+   ========================================================== */
+CLIENTES AS (
+  SELECT DISTINCT
+    exrf_desc_tipo_persona,
+    exrf_cod_tip_doc AS tipdoc,
+    exrf_num_id_cliente AS documento
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_num_id_cliente IS NOT NULL
+),
+
+/* ==========================================================
+   3. Universo de representantes legales con homologación
+   ========================================================== */
+REPRESENTANTES_LEGALES AS (
+  SELECT DISTINCT
+    exrf_desc_tipo_persona,
+
+    /* Homologación del tipo de documento del RL */
+    CASE 
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CEDULA DE CIUDADANIA' THEN 'CC'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'N.I.T.'               THEN 'NT'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CEDULA EXTRANJERIA'   THEN 'CE'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'NO APLICA'            THEN ''
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'CARNET DIPLOMATICO'   THEN 'CD'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'PASAPORTE'            THEN 'PP'
+      WHEN UPPER(TRIM(exrf_desc_tip_doc_rep_legal)) = 'NIT CONVENCIONAL'     THEN 'NE'
+      ELSE NULL
+    END AS tipdoc,
+
+    exrf_num_id_rep_legal AS documento
+  FROM dc_ext_revisoria_fiscal
+  WHERE exrf_num_id_rep_legal IS NOT NULL
+),
+
+/* ==========================================================
+   4. Clientes cruzados con restringidos
+   ========================================================== */
+CLIENTES_CRUCE AS (
+  SELECT
+    c.exrf_desc_tipo_persona,
+    c.tipdoc,
+    c.documento,
+    CASE WHEN r.NUMERO_DOCUMENTO IS NOT NULL THEN 1 ELSE 0 END AS es_restringido
+  FROM CLIENTES c
+  LEFT JOIN BASE_RESTRINGIDOS r
+    ON r.NUMERO_DOCUMENTO = c.documento
+   AND r.TIPDOC_CODIGO = c.tipdoc
+),
+
+/* ==========================================================
+   5. Representantes legales cruzados con restringidos
+   ========================================================== */
+REPRESENTANTES_CRUCE AS (
+  SELECT
+    rl.exrf_desc_tipo_persona,
+    rl.tipdoc,
+    rl.documento,
+    CASE WHEN r.NUMERO_DOCUMENTO IS NOT NULL THEN 1 ELSE 0 END AS es_restringido
+  FROM REPRESENTANTES_LEGALES rl
+  LEFT JOIN BASE_RESTRINGIDOS r
+    ON r.NUMERO_DOCUMENTO = rl.documento
+   AND r.TIPDOC_CODIGO = rl.tipdoc
+)
+
+/* ==========================================================
+   6. Resumen final: por exrf_desc_tipo_persona
+   ========================================================== */
+SELECT
+  exrf_desc_tipo_persona,
+  'CLIENTE' AS tipo_relacion,
+  COUNT(*) AS total_personas,
+  SUM(es_restringido) AS total_restringidos
+FROM CLIENTES_CRUCE
+GROUP BY exrf_desc_tipo_persona
+
+UNION ALL
+
+SELECT
+  exrf_desc_tipo_persona,
+  'REPRESENTANTE_LEGAL' AS tipo_relacion,
+  COUNT(*) AS total_personas,
+  SUM(es_restringido) AS total_restringidos
+FROM REPRESENTANTES_CRUCE
+GROUP BY exrf_desc_tipo_persona;

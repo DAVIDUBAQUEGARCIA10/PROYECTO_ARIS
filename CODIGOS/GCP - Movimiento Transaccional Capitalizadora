@@ -1,0 +1,12 @@
+SELECT
+  FECHA_TRANSACCION,
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  NUMERO_TITULO,
+  FORMA_PAGO,
+  VALOR_TRANSACCION,
+  PLAN_CODIGO,
+  NOMBRE_DESCRIPCION_TITULO,
+  OFICINA
+FROM
+  `sb-ecosistemaanalitico-lago.capitalizadora.t_transacciones_enriquecida`;

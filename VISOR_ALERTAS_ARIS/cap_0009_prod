@@ -1,0 +1,48 @@
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0009_prod
+SELECT DISTINCT
+    m.FECHA_TRANSACCION,                    -- Fecha del movimiento
+    m.NUMERO_TITULO,                        -- Título del movimiento
+    m.VALOR_TRANSACCION,                    -- Valor de la transacción
+    m.DESCRIPCION_TIPO_MOVIMIENTO,          -- Tipo de movimiento (filtrado)
+    m.CODIGO_AGENCIA,                       -- Agencia que realizó el movimiento
+    c.KEY_ID_BENEFICIARIO AS KEY_ID_TOMADOR,           -- ID del cliente
+    c.TIPO_DOCUMENTO,                       -- Tipo de documento del cliente
+    t2.PUBLICAMENTE_EXPUESTA,                -- Indica si el cliente es públicamente expuesto
+        -- Marca del mes de alerta (formato Año-Mes)
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+
+    -- Fecha en la que se genera la alerta
+    CURRENT_DATE() AS FECHA_ALERTA
+FROM 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_movimientos_capitalizadora m
+JOIN 
+    sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_por_titulo_capitalizadora c
+    ON m.NUMERO_TITULO = c.TITULO
+
+-- Unión externa para traer información de exposición pública desde dos tablas
+LEFT JOIN (
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales
+
+    UNION ALL
+
+    SELECT KEY_ID, TIPO_DOCUMENTO, PUBLICAMENTE_EXPUESTA
+    FROM sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos
+) AS t2
+    ON c.KEY_ID_BENEFICIARIO = t2.KEY_ID
+    AND c.TIPO_DOCUMENTO = t2.TIPO_DOCUMENTO
+
+-- Filtro por número de título específico y movimientos relevantes
+WHERE  m.FECHA_TRANSACCION >= '2026-03-01'    
+    AND SIGNO_MOVIMIENTO = '+'
+    AND VALOR_TRANSACCION > VALOR_CUOTA_INICIAL
+    AND FECHA_TRANSACCION <= DATE_ADD(FECHA_CREACION, INTERVAL 90 DAY)
+
+AND NOT EXISTS (
+    SELECT 1
+    FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.cap_0009_prod t
+    WHERE 
+        t.NUMERO_TITULO = m.NUMERO_TITULO
+        AND t.FECHA_TRANSACCION = m.FECHA_TRANSACCION
+        AND t.KEY_ID_TOMADOR = c.KEY_ID_BENEFICIARIO
+);

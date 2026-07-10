@@ -1,0 +1,95 @@
+-- Insertar solo registros nuevos en la tabla SEG_0070_VISOR_REPO
+INSERT INTO sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod  # Inserta nuevos registros con criterios de alerta relacionados con clientes expuestos públicamente
+
+WITH CTE AS (  # Se define una CTE (Common Table Expression) que consolida y filtra los datos base
+    SELECT distinct  # Elimina duplicados exactos
+        a.CODIGO_COMPANIA,  # Código de la compañía aseguradora
+        a.CODIGO_RAMO_EMISION,  # Código del ramo de emisión
+        a.NOMBRE_RAMO_EMISION,  # Nombre del ramo de emisión
+        a.CODIGO_PRODUCTO,  # Código del producto asociado
+        a.NOMBRE_PRODUCTO,  # Nombre del producto asegurado
+        a.CODIGO_LOCALIDAD,  # Código de la localidad donde se emitió la póliza
+        a.CLAVE_AGENTE,  # Identificador del agente asociado a la póliza
+        a.NUMERO_POLIZA,  # Número único de la póliza
+        a.NUMERO_POLIZA_ANTERIOR,  # Número de póliza anterior (si aplica, renovación)
+        a.FECHA_EMISION_POLIZA,  # Fecha en que fue emitida la póliza
+        a.FECHA_VIGENCIA_POLIZA,  # Inicio de la vigencia de la póliza
+        a.FECHA_VENCIMIENTO_POLIZA,  # Fin de la vigencia de la póliza
+        a.FECHA_CANCELACION_POLIZA,  # Fecha de cancelación (si aplica)
+        a.FECHA_VIGENCIA_ENDOSO,  # Inicio de la vigencia del endoso
+        a.FECHA_VENCIMIENTO_ENDOSO,  # Fin de la vigencia del endoso
+        a.ESTADO_NEGOCIO,  # Estado actual del negocio (activo, cancelado, etc.)
+        a.FORMA_COBRO,  # Modalidad de cobro (ej: débito, convenio, etc.)
+        a.CANAL_DESCUENTO,  # Canal de comercialización con descuento, si aplica
+        a.TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento del tomador (CC, NIT, etc.)
+        a.KEY_ID_TOMADOR,  # Número del documento del tomador
+        a.NOMBRE_TOMADOR,  # Nombre completo del tomador
+        a.CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Código de actividad económica del tomador
+        a.FECHA_RECAUDO,
+        c.PUBLICAMENTE_EXPUESTA,  # Indicador de si el cliente es persona expuesta públicamente (PEP)
+        a.VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario realizado
+        ROW_NUMBER() OVER (
+            PARTITION BY a.KEY_ID_TOMADOR, a.TIPO_DOCUMENTO_TOMADOR, a.VALOR_RECAUDO_MES
+            ORDER BY a.FECHA_RECAUDO DESC
+        ) AS rn  # Se asigna un número de fila para seleccionar el recaudo más reciente por cliente
+    FROM 
+        `sb-ecosistemaanalitico-lago.datamart.t_produccion_recaudo_diario` a  # Tabla base con registros de producción y recaudos
+    LEFT JOIN 
+        `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` b  # Tabla con información de terceros (clientes)
+    ON 
+        a.TIPO_DOCUMENTO_TOMADOR = b.TIPO_DOCUMENTO  # Unión por tipo de documento
+        AND a.KEY_ID_TOMADOR = b.KEY_ID  # Unión por número de documento
+    LEFT JOIN
+        `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c  # Tabla con detalles adicionales del cliente natural
+    ON 
+        b.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO  # Unión adicional por tipo de documento
+        AND b.KEY_ID = c.KEY_ID  # Y por KEY_ID (identificador único interno)
+    WHERE 
+        ABS(a.VALOR_AHORRO_EXTRA) > 1280951  # Se filtran aportes extraordinarios que superen $653.223
+        AND a.FECHA_VIGENCIA_POLIZA >= "2026-03-01"  # Solo pólizas vigentes desde el 1 de enero de 2025
+        AND a.FECHA_RECAUDO >= "2026-03-01"  # Recaudos registrados desde esa misma fecha
+        AND a.CODIGO_RAMO_EMISION IN (46,47,48,49)  # Se limita a ciertos ramos (posiblemente vida o ahorro)
+        AND a.TIPO_REGISTRO = 'RECAUDO'  # Solo se consideran registros de tipo RECAUDO
+        AND c.PUBLICAMENTE_EXPUESTA = 'S'  # Se filtran solo clientes marcados como públicamente expuestos (PEP)
+)
+
+SELECT distinct  # Se seleccionan registros únicos
+    CODIGO_COMPANIA,  # Código de la compañía
+    CODIGO_RAMO_EMISION,  # Código del ramo
+    NOMBRE_RAMO_EMISION,  # Nombre del ramo
+    CODIGO_PRODUCTO,  # Código del producto
+    NOMBRE_PRODUCTO,  # Nombre del producto
+    CODIGO_LOCALIDAD,  # Localidad asociada a la póliza
+    CLAVE_AGENTE,  # Clave del agente
+    NUMERO_POLIZA,  # Número de póliza
+    NUMERO_POLIZA_ANTERIOR,  # Número anterior si es renovación
+    FECHA_EMISION_POLIZA,  # Fecha de emisión
+    FECHA_VIGENCIA_POLIZA,  # Inicio de vigencia
+    FECHA_VENCIMIENTO_POLIZA,  # Fin de vigencia
+    FECHA_CANCELACION_POLIZA,  # Fecha de cancelación
+    FECHA_VIGENCIA_ENDOSO,  # Inicio de vigencia del endoso
+    FECHA_VENCIMIENTO_ENDOSO,  # Fin de vigencia del endoso
+    ESTADO_NEGOCIO,  # Estado del negocio
+    FORMA_COBRO,  # Forma de cobro
+    CANAL_DESCUENTO,  # Canal de descuento
+    TIPO_DOCUMENTO_TOMADOR,  # Tipo de documento
+    KEY_ID_TOMADOR,  # Número de documento
+    NOMBRE_TOMADOR,  # Nombre completo del tomador
+    CODIGO_ACTIVIDAD_ECONOMICA_TOMADOR,  # Actividad económica del tomador
+    FECHA_RECAUDO,
+    PUBLICAMENTE_EXPUESTA,  # Indicador de persona expuesta públicamente
+    VALOR_AHORRO_EXTRA,  # Valor del aporte extraordinario
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,  # Mes actual en formato YYYY-MM como marca de alerta
+    CURRENT_DATE() AS FECHA_ALERTA  # Fecha de ejecución del análisis como fecha de alerta
+FROM 
+    CTE  # Se extrae la información procesada desde la CTE
+WHERE 
+    rn = 1  # Solo se selecciona el recaudo más reciente por cliente
+    AND NOT EXISTS (  # Se evita la inserción de duplicados
+        SELECT 1
+        FROM sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.seg_0070_prod existing  # Tabla ya existente con registros previos
+        WHERE existing.KEY_ID_TOMADOR = CTE.KEY_ID_TOMADOR  # Coincidencia por documento
+          AND existing.NUMERO_POLIZA = CTE.NUMERO_POLIZA  # Coincidencia por número de póliza
+          AND existing.VALOR_AHORRO_EXTRA = CTE.VALOR_AHORRO_EXTRA
+          AND existing.FECHA_RECAUDO = CTE.FECHA_RECAUDO
+    );

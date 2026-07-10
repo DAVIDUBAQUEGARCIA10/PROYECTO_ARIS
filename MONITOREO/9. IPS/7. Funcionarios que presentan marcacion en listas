@@ -1,0 +1,114 @@
+INSERT INTO `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0007`
+(
+  TIPO_DOCUMENTO,
+  KEY_ID,
+  FUENTE,
+  EMPRESA_RELACION,
+  EMPRESA_CONTRATANTE_NOMBRE,
+  CLASE_VINCULACION,
+  DESCRIPCION_TIPO_RELACION,
+  NOMBRE_DEPARTAMENTO_EMPRESA,
+  FECHA_CIERRE,
+  TIPO_DOCUMENTO_TERCERO,
+  CODIGO_RESTRICCION,
+  DESCRIPCION,
+  FECHA_BAJA,
+  FECHA_CREACION,
+  FECHA_MODIFICACION,
+  VALOR_RIESGO,
+  NIVEL_ALERTA,
+  MARCA_ACTIVO,
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+)
+
+-- ============================================================
+-- CTEs originales (sin cambios)
+-- ============================================================
+WITH fecha_maxima AS (
+  SELECT
+    MAX(FECHA_CIERRE) AS FECHA_CIERRE_MAX
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+),
+
+colaboradores_filtrados AS (
+  SELECT DISTINCT
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FUENTE,
+    EMPRESA_RELACION,
+    EMPRESA_CONTRATANTE_NOMBRE,
+    CLASE_VINCULACION,
+    DESCRIPCION_TIPO_RELACION,
+    NOMBRE_DEPARTAMENTO_EMPRESA,
+    FECHA_CIERRE
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+  WHERE FECHA_CIERRE = (SELECT FECHA_CIERRE_MAX FROM fecha_maxima)
+    AND (
+      EMPRESA_RELACION IN (
+        "SALUD BOLIVAR IPS S.A.S",
+        "SALUD BOLIVAR EPS S.A.S"
+      )
+      OR NOMBRE_DEPARTAMENTO_EMPRESA IN (
+        "AREA GESTION MEDICA DE SALUD BOL"
+      )
+    )
+),
+
+listas_restrictivas AS (
+  SELECT
+    TIPO_DOCUMENTO_TERCERO,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_BAJA,
+    FECHA_CREACION,
+    FECHA_MODIFICACION,
+    VALOR_RIESGO,
+    NIVEL_ALERTA,
+    MARCA_ACTIVO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE FECHA_BAJA IS NULL
+)
+
+-- ============================================================
+-- SELECT FINAL con control de duplicados
+-- ============================================================
+SELECT DISTINCT
+  c.TIPO_DOCUMENTO,
+  c.KEY_ID,
+  c.FUENTE,
+  c.EMPRESA_RELACION,
+  c.EMPRESA_CONTRATANTE_NOMBRE,
+  c.CLASE_VINCULACION,
+  c.DESCRIPCION_TIPO_RELACION,
+  c.NOMBRE_DEPARTAMENTO_EMPRESA,
+  c.FECHA_CIERRE,
+  l.TIPO_DOCUMENTO_TERCERO,
+  l.CODIGO_RESTRICCION,
+  l.DESCRIPCION,
+  l.FECHA_BAJA,
+  l.FECHA_CREACION,
+  l.FECHA_MODIFICACION,
+  l.VALOR_RIESGO,
+  l.NIVEL_ALERTA,
+  l.MARCA_ACTIVO,
+  FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+  CURRENT_DATE() AS FECHA_ALERTA
+
+FROM colaboradores_filtrados c
+INNER JOIN listas_restrictivas l
+  ON c.TIPO_DOCUMENTO = l.TIPO_DOCUMENTO_TERCERO
+ AND c.KEY_ID = l.KEY_ID
+
+-- ============================================================
+-- NOT EXISTS → evita insertar registros ya existentes
+-- (puedes ajustar la llave según tu lógica de negocio)
+-- ============================================================
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.IPS_0007` t
+  WHERE t.KEY_ID = c.KEY_ID
+    AND t.TIPO_DOCUMENTO = c.TIPO_DOCUMENTO
+    AND t.CODIGO_RESTRICCION = l.CODIGO_RESTRICCION
+);

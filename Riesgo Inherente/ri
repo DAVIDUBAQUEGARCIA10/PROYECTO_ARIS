@@ -1,0 +1,291 @@
+-- =====================================================================
+-- MODELO: Riesgo Inherente por RAMO y COMPAÑÍA (pR * sR * DR)
+-- ---------------------------------------------------------------------
+-- OBJETIVO:
+--   1) Tomar el periodo más reciente de PRIMAS (t_polizas_riesgos_endosos)
+--   2) Tomar el periodo más reciente de SINIESTROS PAGADOS (t_siniestros)
+--   3) Consolidar PRIMAS + SINIESTROS por RAMO y COMPAÑÍA
+--   4) Calcular:
+--        - pR: Participación de siniestros del ramo dentro de la compañía
+--        - sR: Severidad (siniestros / primas)
+--        - DR: Índice dicotómico por tipologías (1 si aplica tipología, 0 si no)
+--        - RI: Riesgo Inherente = pR * sR * DR
+--        - RI_COMP: Suma RI por compañía (resultado final por compañía)
+--
+-- RESTRICCIONES / SUPUESTOS:
+--   - Solo pólizas vigentes: FECHA_FIN_ENDOSO y FECHA_FIN_POLIZA >= CURRENT_DATE()
+--   - Solo primas positivas: PRIMA_ANUAL > 0
+--   - Solo siniestros pagados: ESTADO_SINIESTRO_CALCULADO='PAGADO' y LIQUIDADO_BOLIVAR>0
+--   - SAFE_DIVIDE evita errores por división entre cero.
+--
+-- NOTA SOBRE TIPOLOGÍAS:
+--   Aquí "TIPOLOGIAS_APLICADAS" es un NIVEL DE EXPOSICIÓN (1=baja, 2=media, 3=alta)
+--   asignado por CODIGO_RAMO_EMISION, con comentarios de tipologías asociadas.
+-- =====================================================================
+
+DECLARE periodo_max_primas DATE;
+DECLARE periodo_max_siniestros TIMESTAMP;
+
+-- =====================================================================
+-- 1) Último periodo disponible por FECHA_PROCESO en PRIMAS
+-- =====================================================================
+SET periodo_max_primas = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+-- =====================================================================
+-- 2) Último periodo disponible para SINIESTROS PAGADOS
+-- =====================================================================
+SET periodo_max_siniestros = (
+  SELECT MAX(FECHA_PROCESO)
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+  WHERE ESTADO_SINIESTRO_CALCULADO = 'PAGADO'
+    AND LIQUIDADO_BOLIVAR > 0
+);
+
+-- =====================================================================
+-- 3) Base por RAMO y COMPAÑÍA: PRIMAS + SINIESTROS + NIVEL DE EXPOSICIÓN
+-- =====================================================================
+WITH datos_base AS (
+  SELECT
+    -- -------------------------
+    -- Llaves de agregación
+    -- -------------------------
+    p.CODIGO_COMPANIA,
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+
+    -- -------------------------
+    -- Métricas de PRIMAS
+    -- -------------------------
+    SUM(p.PRIMA_ANUAL_TOTAL) AS PRIMA_ANUAL_TOTAL,
+    SUM(p.CANTIDAD_POLIZAS)  AS CANTIDAD_POLIZAS,
+    p.PERIODO_CONSULTADO     AS PERIODO_PRIMAS,
+
+    -- -------------------------
+    -- Métricas de SINIESTROS
+    -- -------------------------
+    SUM(IFNULL(s.SINIESTRO_LIQUIDADO_TOTAL, 0)) AS SINIESTRO_LIQUIDADO_TOTAL,
+    SUM(IFNULL(s.CANTIDAD_SINIESTROS, 0))       AS CANTIDAD_SINIESTROS,
+    periodo_max_siniestros                      AS PERIODO_SINIESTROS,
+
+    -- =================================================================
+    -- NIVEL DE EXPOSICIÓN SEGÚN TIPOLOGÍAS (1=BAJA, 2=MEDIA, 3=ALTA)
+    -- =================================================================
+    CASE p.CODIGO_RAMO_EMISION
+
+        -- =============================================================
+        -- EXPOSICIÓN BAJA (1)
+        -- =============================================================
+        WHEN 1   THEN 1  -- AUTOMOVILES - Fraude en siniestros, Uso de testaferros, Cambio por activos de lujo, Empresas fachada, Sobrefacturación
+        WHEN 3   THEN 1  -- CORRIENTE DEBIL - Fraude
+        WHEN 4   THEN 1  -- CUMPLIMIENTO - Empresas fachada, Uso de testaferros
+        WHEN 5   THEN 1  -- INCENDIO - Fraude en siniestros, Inversión en bienes raíces, Uso de testaferros
+        WHEN 8   THEN 1  -- ROTURA DE MAQUINARIA - Fraude en siniestros, Empresas fachada
+        WHEN 9   THEN 1  -- NAVEGACION - Fraude en siniestros, Exportaciones ficticias, Uso de testaferros
+        WHEN 10  THEN 1  -- RESPONSABILIDAD CIVIL - Empresas fachada, Fraude en siniestros
+        WHEN 12  THEN 1  -- SUSTRACCION - Fraude en siniestros, Uso de testaferros
+        WHEN 14  THEN 1  -- TODO RIESGO - Fraude en siniestros, Cambio por activos de lujo
+        WHEN 18  THEN 1  -- ACCIDENTES PERSONALES - Fraude en siniestros, Loterías ficticias
+        WHEN 26  THEN 1  -- ACCIDENTES ESCOLARES - Fraude en siniestros
+        WHEN 30  THEN 1  -- ACCIDENTES PERSONALES - Fraude en siniestros, Loterías ficticias
+        WHEN 34  THEN 1  -- SALUD - Fraude
+        WHEN 37  THEN 1  -- ARRENDAMIENTO - Inversión en bienes raíces, Uso de testaferros
+        WHEN 39  THEN 1  -- SEGURO AGRICOLA - Empresas fachada, Fraude en siniestros
+        WHEN 56  THEN 1  -- HOTELERO - Inversión en bienes raíces, Empresas fachada, Fraude en siniestros
+        WHEN 66  THEN 1  -- MULTIRRIESGO INDUSTRIAL - Empresas fachada, Fraude en siniestros
+        WHEN 70  THEN 1  -- ADMINISTRADORA DE RIESGOS PROF - Empresas fachada, Uso de intermediarios
+        WHEN 118 THEN 1  -- ACCIDENTES PERSONALES INDIVID. - Fraude en siniestros, Loterías ficticias
+        WHEN 310 THEN 1  -- SOAT - Fraude en siniestros, Pitufeo
+        WHEN 923 THEN 1  -- OFERTAS DE PROTECCION GENERAL - Fraude en siniestros, Uso de intermediarios
+
+        -- =============================================================
+        -- EXPOSICIÓN MEDIA (2)
+        -- =============================================================
+        WHEN 7   THEN 2  -- MANEJO - Fraude en siniestros, Uso de testaferros, Empresas fachada
+        WHEN 15  THEN 2  -- TRANSPORTES - Fraude en siniestros, Exportaciones ficticias, Sobrefacturación, Empresas fachada
+        WHEN 20  THEN 2  -- GRUPO - Seguros colectivos/masivos, Uso de intermediarios, Pitufeo
+        WHEN 21  THEN 2  -- GRUPO PLAN CRECIENTE - Seguros colectivos/masivos, Rescate anticipado, Uso de intermediarios
+        WHEN 22  THEN 2  -- DEUDORES - Seguros colectivos/masivos, Empresas fachada, Uso de intermediarios
+        WHEN 23  THEN 2  -- HOGAR - Fraude en siniestros, Inversión en bienes raíces, Cambio por activos de lujo
+        WHEN 24  THEN 2  -- GRUPO EDUCATIVO - Seguros colectivos/masivos, Uso de intermediarios
+        WHEN 25  THEN 2  -- ULTIMOS GASTOS - Fraude en siniestros, Loterías ficticias
+        WHEN 29  THEN 2  -- GRUPO - PLAN NIVELADO - Seguros colectivos/masivos, Rescate anticipado, Uso de intermediarios
+        WHEN 32  THEN 2  -- GRUPO TRADICIONAL - Seguros colectivos/masivos, Uso de intermediarios
+        WHEN 33  THEN 2  -- DESEMPLEO - Fraude en siniestros, Loterías ficticias
+        WHEN 48  THEN 2  -- VIDA CONJUNTO - Rescate anticipado, Fraude en siniestros, Uso de testaferros
+        WHEN 922 THEN 2  -- OFERTAS DE PROTECCION PERSONAS - Fraude en siniestros, Uso de intermediarios
+
+        -- =============================================================
+        -- EXPOSICIÓN ALTA (3)
+        -- =============================================================
+        WHEN 40  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 42  THEN 3  -- VIDA INDIVIDUAL BANCASEGUROS - Compra con recursos ilícitos, Rescate anticipado, Pitufeo, Uso de testaferros, Paraísos fiscales
+        WHEN 46  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 47  THEN 3  -- VIDA INDIVIDUAL - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Cambio por activos de lujo, Uso de testaferros
+        WHEN 50  THEN 3  -- VIDA INDIVIDUAL MIGRACION - Compra con recursos ilícitos, Rescate anticipado, Paraísos fiscales, Uso de testaferros
+        WHEN 68  THEN 3  -- RAMOS PREVISIONALES - Compra con recursos ilícitos, Rescate anticipado, Empresas fachada, Uso de testaferros, Fideicomisos
+        WHEN 69  THEN 3  -- PENSIONES LEY 100 - Compra con recursos ilícitos, Rescate anticipado, Empresas fachada, Fideicomisos
+        WHEN 72  THEN 3  -- RENTAS VOLUNTARIAS - Compra con recursos ilícitos, Rescate anticipado, Paraísos fiscales, Empresas fachada
+        WHEN 801 THEN 3  -- TITULOS DE CAPITALIZACION - Compra con recursos ilícitos, Rescate anticipado, Cambio por activos de lujo, Loterías ficticias, Paraísos fiscales
+        WHEN 140 THEN 3  -- SEGUROS DE VIDA (ANTIGUOS) - Compra con recursos ilícitos, Rescate anticipado, Fraude en siniestros, Uso de testaferros
+
+        -- =============================================================
+        -- NO DOCUMENTADO / CONSERVADOR
+        -- =============================================================
+        WHEN 81  THEN 1  -- NO DOCUMENTADO EN LISTADO - Fraude en siniestros
+        ELSE 1           -- Default conservador: exposición baja
+    END AS TIPOLOGIAS_APLICADAS
+
+  FROM (
+    -- ===============================================================
+    -- Subquery PRIMAS: pólizas vigentes al último FECHA_PROCESO
+    -- ===============================================================
+    SELECT
+      CODIGO_COMPANIA,
+      CODIGO_RAMO_EMISION,
+      NOMBRE_RAMO_EMISION,
+      NUMERO_SECUENCIA_POLIZA,
+      NUMERO_POLIZA,
+      TIPO_DOCUMENTO_TOMADOR,
+      KEY_ID_TOMADOR,
+      SUM(PRIMA_ANUAL)              AS PRIMA_ANUAL_TOTAL,
+      COUNT(DISTINCT NUMERO_POLIZA) AS CANTIDAD_POLIZAS,
+      periodo_max_primas            AS PERIODO_CONSULTADO
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+    WHERE
+      DATE(FECHA_PROCESO) = periodo_max_primas
+      AND DATE(FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+      AND DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+      AND PRIMA_ANUAL > 0
+    GROUP BY
+      CODIGO_COMPANIA,
+      CODIGO_RAMO_EMISION,
+      NOMBRE_RAMO_EMISION,
+      NUMERO_SECUENCIA_POLIZA,
+      NUMERO_POLIZA,
+      TIPO_DOCUMENTO_TOMADOR,
+      KEY_ID_TOMADOR
+  ) p
+
+  LEFT JOIN (
+    -- ===============================================================
+    -- Subquery SINIESTROS: pagados al último FECHA_PROCESO
+    -- ===============================================================
+    SELECT
+      CODIGO_COMPANIA,
+      NUMERO_SECUENCIA_POLIZA,
+      NUMERO_POLIZA,
+      TIPO_DOCUMENTO_TOMADOR,
+      KEY_ID_TOMADOR,
+      SUM(LIQUIDADO_BOLIVAR)                  AS SINIESTRO_LIQUIDADO_TOTAL,
+      COUNT(DISTINCT NUMERO_SECUENCIA_POLIZA) AS CANTIDAD_SINIESTROS,
+      periodo_max_siniestros                  AS PERIODO_CONSULTADO
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE
+      FECHA_PROCESO = periodo_max_siniestros
+      AND ESTADO_SINIESTRO_CALCULADO = 'PAGADO'
+      AND LIQUIDADO_BOLIVAR > 0
+    GROUP BY
+      CODIGO_COMPANIA,
+      KEY_ID_TOMADOR,
+      NUMERO_POLIZA,
+      NUMERO_SECUENCIA_POLIZA,
+      TIPO_DOCUMENTO_TOMADOR
+  ) s
+    ON p.KEY_ID_TOMADOR = s.KEY_ID_TOMADOR
+    AND p.TIPO_DOCUMENTO_TOMADOR = s.TIPO_DOCUMENTO_TOMADOR
+    AND p.NUMERO_POLIZA = s.NUMERO_POLIZA
+    AND p.NUMERO_SECUENCIA_POLIZA = s.NUMERO_SECUENCIA_POLIZA
+
+  -- Agregación final por compañía/ramo
+  GROUP BY
+    p.CODIGO_COMPANIA,
+    p.CODIGO_RAMO_EMISION,
+    p.NOMBRE_RAMO_EMISION,
+    p.PERIODO_CONSULTADO,
+    periodo_max_siniestros
+),
+
+-- =====================================================================
+-- 4) Cálculos intermedios (pR, sR, DR)
+-- =====================================================================
+calculos_intermedios AS (
+  SELECT
+    *,
+
+    -- Total siniestros por compañía (para auditar pR)
+    SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA) AS TOTAL_SINIESTROS_POR_COMPANIA,
+
+    -- pR = siniestros del ramo / total siniestros de la compañía
+    SAFE_DIVIDE(
+      SINIESTRO_LIQUIDADO_TOTAL,
+      SUM(SINIESTRO_LIQUIDADO_TOTAL) OVER(PARTITION BY CODIGO_COMPANIA)
+    ) AS pR,
+
+    -- sR = siniestros / primas
+    SAFE_DIVIDE(SINIESTRO_LIQUIDADO_TOTAL, PRIMA_ANUAL_TOTAL) AS sR,
+
+    -- DR = 1 si el ramo tiene tipología (en tu diccionario siempre >0), sino 0
+    CASE WHEN TIPOLOGIAS_APLICADAS > 0 THEN 1 ELSE 0 END AS DR
+
+  FROM datos_base
+),
+
+-- =====================================================================
+-- 5) Cálculos finales (RI y total RI por compañía)
+-- =====================================================================
+calculos_finales AS (
+  SELECT
+    *,
+
+    -- RI = pR × sR × DR
+    (pR * sR * DR) AS RIESGO_INHERENTE,
+
+    -- Total RI por compañía
+    SUM(pR * sR * DR) OVER(PARTITION BY CODIGO_COMPANIA) AS SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA
+
+  FROM calculos_intermedios
+)
+
+-- =====================================================================
+-- 6) Salida final
+-- =====================================================================
+SELECT
+  CODIGO_COMPANIA,
+  CODIGO_RAMO_EMISION,
+  NOMBRE_RAMO_EMISION,
+  PRIMA_ANUAL_TOTAL,
+  CANTIDAD_POLIZAS,
+  PERIODO_PRIMAS,
+  SINIESTRO_LIQUIDADO_TOTAL,
+  CANTIDAD_SINIESTROS,
+  PERIODO_SINIESTROS,
+  TIPOLOGIAS_APLICADAS,
+
+  -- Validación: total siniestros compañía
+  TOTAL_SINIESTROS_POR_COMPANIA,
+
+  -- Lectura de negocio
+  ROUND(pR * 100, 2) AS pR_PORCENTAJE,
+  ROUND(sR * 100, 2) AS sR_PORCENTAJE,
+  DR AS INDICE_TIPOLOGIAS,
+
+  -- Quintil (impacto) basado en sR
+  CASE
+    WHEN sR <= 0.20 THEN '🟢 Bajo'
+    WHEN sR <= 0.40 THEN '🟢 Medio Bajo'
+    WHEN sR <= 0.60 THEN '🟡 Medio'
+    WHEN sR <= 0.80 THEN '🟡 Medio Alto'
+    ELSE '🔴 Alto'
+  END AS QUINTIL_IMPACTO,
+
+  -- Resultado por ramo y agregado compañía
+  ROUND(RIESGO_INHERENTE, 6) AS RIESGO_INHERENTE,
+  ROUND(SUMA_TOTAL_RIESGO_INHERENTE_COMPANIA * 100, 2) AS RESULTADO_FINAL_PORCENTAJE
+
+FROM calculos_finales
+ORDER BY
+  CODIGO_COMPANIA,
+  PRIMA_ANUAL_TOTAL DESC;

@@ -1,0 +1,207 @@
+
+
+SELECT DISTINCT
+    "CC" AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    2 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    'El cliente presenta un nivel de riesgo ', COALESCE(NIVEL_DE_RIESGO, '0'),
+    ', con una razón Activos/Pasivos de ', COALESCE(CAST(ACTIVO_PASIVO AS STRING), '0'),
+    ', código CIIU ', COALESCE(CAST(CODIGO_CIIU_NUM AS STRING), '0'),
+    ' y un nivel de riesgo por profesión de ', COALESCE(CAST(NIVEL_RIESGO_PROFESION_NUM AS STRING), '0'),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo),',
+    ' en los últimos 12 meses teniendo en cuenta todos sus productos activos para cada compañía,',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', COALESCE(CAST(cluster_labels AS STRING), '0')
+    ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_pn_cliente_segmentacion_modelo_transaccional_6` AS c
+
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    "CC" AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    'El cliente presenta un nivel de riesgo ', COALESCE(NIVEL_DE_RIESGO, '0'),
+    ', con una razón Activos/Pasivos de ', COALESCE(CAST(ACTIVO_PASIVO AS STRING), '0'),
+    ', código CIIU ', COALESCE(CAST(CODIGO_CIIU_NUM AS STRING), '0'),
+    ' y un nivel de riesgo por profesión de ', COALESCE(CAST(NIVEL_RIESGO_PROFESION_NUM AS STRING), '0'),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo),',
+    ' en los últimos 12 meses teniendo en cuenta todos sus productos activos para cada compañía,',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', COALESCE(CAST(cluster_labels AS STRING), '0')
+    ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_pn_cliente_segmentacion_modelo_6` AS c    
+
+
+UNION ALL
+
+
+SELECT DISTINCT
+    tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.key_id AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    1 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+  CONCAT(
+    'El cliente presenta un nivel de riesgo ', NIVEL_DE_RIESGO,
+    ', con una razón Activos/Pasivos de ', CAST(ACTIVO_PASIVO AS STRING),
+    ', código CIIU ', CAST(CODIGO_CIIU AS STRING),
+    ' y un nivel de riesgo por profesión de ', CAST(NIVEL_RIESGO_PROFESION AS STRING),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo), en los ultimos 12 mese teniendo en cuanta todos sus productos activos para cada compañia',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', CAST(cluster_labels AS STRING)
+  ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.capitalizadora_pn_cliente_segmentacion_modelo_6` AS c        
+
+
+UNION ALL
+
+
+
+
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    3 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    'El cliente presenta un nivel de riesgo ', COALESCE(NIVEL_DE_RIESGO, '0'),
+    ', con una razón Activos/Pasivos de ', COALESCE(CAST(PASIVO_ACTIVO AS STRING), '0'),
+    ', sector económico: ', COALESCE(SECTOR_ECONOMICO, '0'),
+    ', siendo una empresa tipo: ', COALESCE(TIPO_EMPRESA_CATEGORIZADA, '0'),
+    ', la cual maneja indicador de moneda extranjera: ', COALESCE(CAST(MANEJA_MONEDA_EXTRANJERA AS STRING), '0'),
+    ', e indicador de públicamente expuesta: ', COALESCE(CAST(PUBLICAMENTE_EXPUESTA AS STRING), '0'),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo),',
+    ' en los últimos 12 meses teniendo en cuenta todos sus productos activos para cada compañía,',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', COALESCE(CAST(cluster_labels AS STRING), '0')
+    ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.comerciales_pj_cliente_segmentacion_modelo_6` AS c        
+
+
+
+
+
+UNION ALL
+
+
+
+
+
+
+SELECT DISTINCT
+    TIPO_DOCUMENTO_TOMADOR AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.KEY_ID_TOMADOR AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    2 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    'El cliente presenta un nivel de riesgo ', COALESCE(NIVEL_DE_RIESGO, '0'),
+    ', con una razón Activos/Pasivos de ', COALESCE(CAST(PASIVO_ACTIVO AS STRING), '0'),
+    ', sector económico: ', COALESCE(SECTOR_ECONOMICO, '0'),
+    ', siendo una empresa tipo: ', COALESCE(TIPO_EMPRESA_CATEGORIZADA, '0'),
+    ', la cual maneja indicador de moneda extranjera: ', COALESCE(CAST(MANEJA_MONEDA_EXTRANJERA AS STRING), '0'),
+    ', e indicador de públicamente expuesta: ', COALESCE(CAST(PUBLICAMENTE_EXPUESTA AS STRING), '0'),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo),',
+    ' en los últimos 12 meses teniendo en cuenta todos sus productos activos para cada compañía,',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', COALESCE(CAST(cluster_labels AS STRING), '0')
+    ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.seguros_bolivar_pj_cliente_segmentacion_modelo_26` AS c     
+
+
+
+
+UNION ALL
+
+
+
+
+
+
+SELECT DISTINCT
+    tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+    CAST(c.key_id AS STRING) AS KEY_ID_TOMADOR,
+    0 AS NUMERO_POLIZA,
+    'Factor_Cliente' AS ALERTA,
+    'Cambio del factor de riesgo en el modelo de segmentación de un cluster de bajo riesgo a un cluster de alto riesgo, mensualmente.' AS DESCRIPCION_ALERTA,     
+    1 AS COMPANIA,
+    FORMAT_DATE('%Y-%m', FECHA_CORTE_MES) AS FECHA_ALERTA_MES,
+    FECHA_CORTE_MES AS FECHA_ALERTA,
+    CAST(FECHA_CORTE_MES AS DATE) AS FECHA_TRANSACCION,
+    CAST(0 AS STRING) AS VALOR_TRANSACCION,     
+    CONCAT(
+    'El cliente presenta un nivel de riesgo ', COALESCE(NIVEL_DE_RIESGO, '0'),
+    ', con una razón Activos/Pasivos de ', COALESCE(CAST(ACTIVO_PASIVO AS STRING), '0'),
+    '. Presenta una alta variabilidad en su transaccionalidad (siniestros o recaudo),',
+    ' en los últimos 12 meses teniendo en cuenta todos sus productos activos para cada compañía,',
+    ' lo que lo ubica en un cluster de mayor riesgo: ', COALESCE(CAST(cluster_labels AS STRING), '0')
+    ) AS FORMA_PAGO_CANAL,
+    0 AS CODIGO_RAMO,
+    0 AS CODIGO_PRODUCTO,
+     'Segmentacion ' AS SUBCATEGORIA,
+     'Operacion Alertada' AS ESTADO_IDENTIFICACION                
+FROM
+    `sb-sandbox-usuarios.sandbox_cumplimiento.capitalizadora_pj_cliente_segmentacion_modelo_2` AS c              
+
+
+
+
+UNION ALL

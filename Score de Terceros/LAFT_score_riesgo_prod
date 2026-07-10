@@ -1,0 +1,270 @@
+
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.score_riesgo_prod AS
+WITH
+
+Score_de_terceros_Tabla_A AS (
+  SELECT DISTINCT
+    -- Datos de cliente
+    clientes.TIPO_DOCUMENTO,
+    clientes.KEY_ID,
+    polizas.CODIGO_COMPANIA,
+
+    -- Actividad económica, nivel de riesgo y valor
+    clientes.CODIGO_CIIU AS CODIGO_CIIU,
+    INITCAP(LOWER(nivel_riesgo_actividad_economica.Nivel_de_riesgo)) AS CODIGO_CIIU_NIVEL_RIESGO,
+    CASE
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'ALTO' THEN 144.375
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'MEDIO' THEN 96.25
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'BAJO' THEN 48.125
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Alto' THEN 144.375
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Medio' THEN 96.25
+      WHEN nivel_riesgo_actividad_economica.Nivel_de_riesgo = 'Bajo' THEN 48.125    
+      ELSE 48.125
+    END AS CODIGO_CIIU_NIVEL_RIESGO_SCORE,
+
+    -- Jurisdicción, nivel de riesgo y valor municipios
+    -- divpol.CODIGO_CODAZZI as Codigo_jurisdiccon_municipio, 
+    clientes.CODIGO_LUGAR_NACIMIENTO, 
+    clientes.NOMBRE_LUGAR_NACIMIENTO,
+    clientes.municipio_direccion_1 AS MUNICIPIO_DIRECCION_RESIDENCIA_1, 
+    clientes.departamento_direccion_1 AS DEPARTAMENTO_DIRECCION_RESIDENCIA_1, 
+    clientes.municipio_direccion_2 AS MUNICIPIO_DIRECCION_RESIDENCIA_2, 
+    clientes.departamento_direccion_2 AS DEPARTAMENTO_DIRECCION_RESIDENCIA_2,
+    INITCAP(LOWER(nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO)) AS DIRECCION_RESIDENCIA_NIVEL_RIESGO,
+    CASE
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Alto' THEN 112.5
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Medio' THEN 75
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'Bajo' THEN 37.5
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'ALTO' THEN 112.5
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'MEDIO' THEN 75
+      WHEN nivel_riesgo_jurisdicciones_municipio.NIVEL_DE_RIESGO_ASIGNADO = 'BAJO' THEN 37.5    
+      ELSE 37.5
+    END AS JURISDICCION_NIVEL_RIESGO_SCORE,
+
+    -- Nacionalidad, nivel de riesgo y valor 
+    divpol.DIVPOL_CODIGO AS CODIGO_NACIONALIDAD,
+    divpol.NACIONALIDAD AS NACIONALIDAD,
+    nivel_riesgo_nacionalidad_pais.id AS CODIGO_CODAZZI,
+    INITCAP(LOWER(nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado)) AS NACIONALIDAD_NIVEL_DE_RIESGO_ASIGNADO,
+    CASE
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Alto' THEN 115.5
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Medio' THEN 77
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'Bajo' THEN 38.5
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'ALTO' THEN 115.5
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'MEDIO' THEN 77
+      WHEN nivel_riesgo_nacionalidad_pais.Nivel_de_riesgo_asignado = 'BAJO' THEN 38.5    
+      ELSE 38.5
+    END AS NACIONALIDAD_NIVEL_RIESGO_SCORE,
+
+    -- Producto restringido, nivel de riesgo y valor
+    restringidos.CODIGO_RESTRICCION AS CODIGO_RESTRINGIDO,
+    CASE
+      WHEN restringidos.CODIGO_RESTRICCION IN (1, 2, 3, 5, 9, 24, 25, 26, 27) THEN 1000
+      WHEN restringidos.CODIGO_RESTRICCION = 23 THEN 750
+      ELSE 0
+    END AS RESTRINGIDO_NIVEL_RIESGO_SCORE,
+
+    -- Producto, nivel de riesgo y valor
+    polizas.CODIGO_RAMO_EMISION AS RAMO,
+    polizas.CODIGO_PRODUCTO AS PRODUCTO,
+    INITCAP(LOWER(nivel_riesgo_producto.NIVEL_DE_RIESGO)) AS PRODUCTO_NIVEL_DE_RIESGO_ASIGNADO,
+    CASE
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'ALTO' THEN 112.5
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'MEDIO' THEN 75
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'BAJO' THEN 37.5
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Alto' THEN 112.5
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Medio' THEN 75
+      WHEN nivel_riesgo_producto.NIVEL_DE_RIESGO = 'Bajo' THEN 37.5
+      ELSE 37.5
+    END AS PRODUCTO_NIVEL_RIESGO_SCORE,
+
+    -- Canal, nivel de riesgo y valor
+    polizas.NOMBRE_CANAL AS CANAL,
+    INITCAP(LOWER(nivel_riesgo_canal.Nivel_de_riesgo)) AS CANAL_NIVEL_DE_RIESGO_ASIGNADO,
+    CASE
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Alto' THEN 75
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Medio' THEN 50
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'Bajo' THEN 25
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'ALTO' THEN 75
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'MEDIO' THEN 50
+      WHEN nivel_riesgo_canal.Nivel_de_riesgo = 'BAJO' THEN 25    
+      ELSE 25
+    END AS CANAL_NIVEL_RIESGO_SCORE,
+
+    --- Alertas Transaccionales
+    Alertas_Monitoreo.ALERTA,
+    CASE WHEN Alertas_Monitoreo.ALERTA != "" THEN 250 ELSE 0 END AS ALERTA_NIVEL_RIESGO_SCORE,
+    Alertas_Monitoreo.Es_ROS,
+    CASE WHEN Alertas_Monitoreo.Es_ROS = "Si" THEN 1000 ELSE 0 END AS ALERTA_NIVEL_RIESGO_SCORE_ROS
+
+  FROM (
+          SELECT DISTINCT
+              tcn.TIPO_DOCUMENTO,
+              tcn.KEY_ID,
+              COALESCE(tcn.ACTIVIDAD_ECONOMICA, tcn_other.ACTIVIDAD_ECONOMICA) AS ACTIVIDAD_ECONOMICA,
+              COALESCE(tcn.CODIGO_CIIU, tcn_other.CODIGO_CIIU) AS CODIGO_CIIU,
+              tcn.CODIGO_LUGAR_NACIMIENTO,
+              tcn.NOMBRE_LUGAR_NACIMIENTO,
+              CAST(tcn.CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS cod_municipio_direccion_1,
+              INITCAP(tcn_other.municipio_direccion_1) AS municipio_direccion_1,
+              INITCAP(tcn_other.departamento_direccion_1) AS departamento_direccion_1,
+              INITCAP(tcn_other.municipio_direccion_2) AS municipio_direccion_2,
+              INITCAP(tcn_other.departamento_direccion_2) AS departamento_direccion_2
+          FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` tcn
+          LEFT JOIN (
+              SELECT 
+                  TIPO_DOCUMENTO,
+                  KEY_ID,
+                  ACTIVIDAD_ECONOMICA,
+                  CODIGO_CIIU,
+                  municipio_direccion_1, 
+                  departamento_direccion_1, 
+                  municipio_direccion_2, 
+                  departamento_direccion_2,
+                  ROW_NUMBER() OVER (PARTITION BY TIPO_DOCUMENTO, KEY_ID ORDER BY FECHA_PROCESO DESC) AS rn
+              FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales_vigentes`
+              WHERE (TIPO_DOCUMENTO IS NOT NULL
+                  OR KEY_ID IS NOT NULL
+                  OR ACTIVIDAD_ECONOMICA IS NOT NULL
+                  OR CODIGO_CIIU IS NOT NULL
+                  OR municipio_direccion_1 IS NOT NULL
+                  OR departamento_direccion_1 IS NOT NULL
+                  OR municipio_direccion_2 IS NOT NULL
+                  OR departamento_direccion_2 IS NOT NULL)
+                AND FECHA_PROCESO >= "2024-01-02"
+          ) tcn_other
+            ON tcn.TIPO_DOCUMENTO = tcn_other.TIPO_DOCUMENTO
+           AND tcn.KEY_ID = tcn_other.KEY_ID
+           AND tcn_other.rn = 1
+
+          UNION ALL
+
+          SELECT DISTINCT
+            TIPO_DOCUMENTO,
+            KEY_ID,
+            ACTIVIDAD_ECONOMICA, 
+            CODIGO_CIIU,
+            CODIGO_LUGAR_NACIMIENTO,
+            NOMBRE_LUGAR_NACIMIENTO,
+            CAST(CODIGO_CODAZZI_DIRECCION_1 AS STRING) AS cod_municipio_direccion_1,
+            "" AS municipio_direccion_1,
+            "" AS departamento_direccion_1, 
+            "" AS municipio_direccion_2, 
+            "" AS departamento_direccion_2
+          FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos`
+        ) AS clientes
+
+  -- Utilice la data de clientes y divipol para traer datos de nacimiento
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_divpol` AS divpol
+    ON clientes.CODIGO_LUGAR_NACIMIENTO = divpol.CODIGO
+
+  -- Utilice la data de clientes y restringidos para traer datos base de terceros restringidos
+  LEFT JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos` AS restringidos
+    ON clientes.TIPO_DOCUMENTO = restringidos.TIPO_DOCUMENTO_TERCERO  
+   AND clientes.KEY_ID = restringidos.KEY_ID
+   AND restringidos.KEY_ID IS NOT NULL
+   AND restringidos.FECHA_BAJA IS NULL
+   
+  -- Utilice la data de clientes y restringidos para traer pólizas vigentes, no anulados y títulos de capitalización recientes
+  LEFT JOIN ( 
+      SELECT 
+          1 AS CODIGO_COMPANIA,
+          tipo_documento AS TIPO_DOCUMENTO_TOMADOR,
+          key_id AS KEY_ID_TOMADOR,
+          801 AS CODIGO_RAMO_EMISION,
+          51 AS CODIGO_PRODUCTO, ## 241, 951
+          "CAPITALIZADORA" AS NOMBRE_CANAL
+      FROM 
+          `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+      WHERE 
+          DATE(fecha_corte) = (
+              SELECT MAX(DATE(fecha_corte))
+              FROM `sb-ecosistemaanalitico-lago.capitalizadora.t_clientes_capitalizadora`
+          )
+
+      UNION ALL
+
+      SELECT CODIGO_COMPANIA,
+             TIPO_DOCUMENTO_TOMADOR,
+             KEY_ID_TOMADOR,
+             CODIGO_RAMO_EMISION,
+             CODIGO_PRODUCTO,
+             NOMBRE_CANAL
+      FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` 
+      WHERE DATE(FECHA_FIN_POLIZA) >= CURRENT_DATE()
+        AND MCA_ANU_POLIZA != 'S'
+  ) polizas 
+    ON clientes.TIPO_DOCUMENTO = polizas.TIPO_DOCUMENTO_TOMADOR  
+   AND clientes.KEY_ID = polizas.KEY_ID_TOMADOR
+
+  -- Utilice la data de pólizas y nivel de riesgo de los productos
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_productos_nivel_riesgo` AS nivel_riesgo_producto
+    ON polizas.CODIGO_RAMO_EMISION = nivel_riesgo_producto.C__digo_del_Ramo  
+   AND polizas.CODIGO_PRODUCTO     = nivel_riesgo_producto.C__digo_de_Producto
+   AND nivel_riesgo_producto.C__digo_de_Producto IS NOT NULL
+
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo` AS nivel_riesgo_actividad_economica
+    ON clientes.CODIGO_CIIU = nivel_riesgo_actividad_economica.C__digo
+   AND nivel_riesgo_actividad_economica.C__digo IS NOT NULL
+
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_jurisdicciones_nivel_riesgo` AS nivel_riesgo_jurisdicciones_municipio
+    ON CAST(clientes.cod_municipio_direccion_1 AS INT64) = CAST(nivel_riesgo_jurisdicciones_municipio.C__DIGO_DANE_DEL_MUNICIPIO AS INT64)
+   AND nivel_riesgo_jurisdicciones_municipio.MUNICIPIO IS NOT NULL
+
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` AS nivel_riesgo_nacionalidad_pais
+    ON clientes.CODIGO_LUGAR_NACIMIENTO = nivel_riesgo_nacionalidad_pais.ID
+
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_canal_nivel_riesgo_prod` AS nivel_riesgo_canal
+    ON polizas.NOMBRE_CANAL = nivel_riesgo_canal.Canal_de_vinculaci__n
+   AND nivel_riesgo_canal.Canal_de_vinculaci__n IS NOT NULL  
+
+  LEFT JOIN `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Resultado_Alertamiento_ARIS_con_analisis` AS Alertas_Monitoreo
+    ON clientes.TIPO_DOCUMENTO = Alertas_Monitoreo.TIPO_DOCUMENTO  
+   AND clientes.KEY_ID       = Alertas_Monitoreo.KEY_ID_BENEFICIARIO
+   AND Alertas_Monitoreo.KEY_ID_BENEFICIARIO IS NOT NULL
+),
+
+
+RankedScores AS (
+  SELECT 
+    *,
+    ROW_NUMBER() OVER (
+      PARTITION BY TIPO_DOCUMENTO, KEY_ID, CODIGO_COMPANIA
+      ORDER BY PRODUCTO_NIVEL_RIESGO_SCORE DESC
+    ) AS rn
+  FROM Score_de_terceros_Tabla_A
+),
+
+ScoreWithTotal AS (
+  SELECT 
+    *,
+    CASE 
+      WHEN RESTRINGIDO_NIVEL_RIESGO_SCORE > 0 THEN RESTRINGIDO_NIVEL_RIESGO_SCORE
+      WHEN ALERTA_NIVEL_RIESGO_SCORE_ROS = 1000 THEN ALERTA_NIVEL_RIESGO_SCORE_ROS
+      ELSE CODIGO_CIIU_NIVEL_RIESGO_SCORE
+         + JURISDICCION_NIVEL_RIESGO_SCORE
+         + NACIONALIDAD_NIVEL_RIESGO_SCORE
+         + PRODUCTO_NIVEL_RIESGO_SCORE
+         + CANAL_NIVEL_RIESGO_SCORE
+         + ALERTA_NIVEL_RIESGO_SCORE
+    END AS SCORE_TOTAL_RIESGO
+  FROM RankedScores
+  WHERE rn = 1
+)
+
+-- ============================================================================
+-- SELECT FINAL: materializa la tabla final con la clasificación de riesgo
+-- ============================================================================
+SELECT 
+  *,
+  CASE 
+    WHEN SCORE_TOTAL_RIESGO BETWEEN 750.0001 AND 1000 THEN 'Riesgo especial'
+    WHEN SCORE_TOTAL_RIESGO BETWEEN 500.0001 AND 750  THEN 'Riesgo alto'
+    WHEN SCORE_TOTAL_RIESGO BETWEEN 250.0001 AND 500  THEN 'Riesgo medio'
+    WHEN SCORE_TOTAL_RIESGO BETWEEN 0        AND 250  THEN 'Riesgo bajo'
+    ELSE 'Riesgo bajo'
+  END AS Nivel_de_Riesgo,
+  FORMAT_DATE('%Y%m%d', CURRENT_DATE()) AS Fecha_Calificacion
+FROM ScoreWithTotal
+ORDER BY SCORE_TOTAL_RIESGO DESC;

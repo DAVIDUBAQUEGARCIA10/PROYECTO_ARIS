@@ -1,0 +1,10 @@
+SELECT 
+    ID,
+    CODIGO_DANE_DEL_DEPARTAMENTO,
+    DEPARTAMENTO,
+    CODIGO_DANE_DEL_MUNICIPIO,
+    MUNICIPIO,
+    NIVEL_DE_RIESGO_ASIGNADO,
+    ESTADO
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_jurisdicciones_nivel_riesgo`;

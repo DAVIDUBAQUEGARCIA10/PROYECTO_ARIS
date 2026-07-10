@@ -1,0 +1,48 @@
+
+
+DECLARE periodo_max TIMESTAMP;
+
+-- 1) Último periodo disponible para siniestros pagados
+SET periodo_max = (
+    SELECT MAX(FECHA_PROCESO)
+    FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+    WHERE ESTADO_SINIESTRO_CALCULADO = 'PAGADO'
+      AND LIQUIDADO_BOLIVAR > 0
+);
+
+-- 2) Agregación por tomador y póliza
+SELECT
+    -- Llaves de agregación
+        NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    
+    -- Métrica principal
+    SUM(LIQUIDADO_BOLIVAR) AS SINIESTRO_LIQUIDADO_TOTAL,
+    
+    -- Información adicional
+    COUNT(DISTINCT NUMERO_SECUENCIA_POLIZA) AS CANTIDAD_SINIESTROS,
+    ANY_VALUE(TIPO_DOCUMENTO_TOMADOR) AS TIPO_DOCUMENTO_TOMADOR_REF,
+    
+    -- Periodo consultado
+    periodo_max AS PERIODO_CONSULTADO
+
+FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_siniestros`
+WHERE
+    FECHA_PROCESO = periodo_max
+    AND ESTADO_SINIESTRO_CALCULADO = 'PAGADO'
+    AND LIQUIDADO_BOLIVAR > 0 and KEY_ID_TOMADOR = 'vetBuut3LllceTeWAUNWC6y00J5Iwq3y1jDqetNp1LlfYHB6WmWpewrPfLvLRngvOFEhqsrXnusRvlk+HUL+5Q=='
+    
+GROUP BY
+    KEY_ID_TOMADOR,
+    NUMERO_POLIZA,
+        NUMERO_SECUENCIA_POLIZA,
+    NUMERO_POLIZA,
+    TIPO_DOCUMENTO_TOMADOR,
+    KEY_ID_TOMADOR,
+    periodo_max
+
+    
+ORDER BY
+    SINIESTRO_LIQUIDADO_TOTAL DESC;

@@ -1,0 +1,78 @@
+-- ============================================================
+-- 1. DECLARAR VARIABLE
+-- ============================================================
+DECLARE periodo_max_primas DATE;
+
+-- ============================================================
+-- 2. ASIGNAR VALOR
+-- ============================================================
+SET periodo_max_primas = (
+  SELECT MAX(DATE(FECHA_PROCESO))
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos`
+);
+
+-- ============================================================
+-- 3. DAVIVIENDA PN DEPURADO
+--    Se toma un solo registro por KEY_ID:
+--    el más reciente según FECHA_INGRESO_2
+-- ============================================================
+WITH davivienda_pn AS (
+  SELECT
+    KEY_ID,
+    INGRESO_2,
+    FECHA_INGRESO_2
+  FROM (
+    SELECT
+      KEY_ID,
+      INGRESO_2,
+      FECHA_INGRESO_2,
+      ROW_NUMBER() OVER (
+        PARTITION BY KEY_ID
+        ORDER BY DATE(FECHA_INGRESO_2) DESC
+      ) AS rn
+    FROM `sb-ecosistemaanalitico-lago.davivienda.t_clientes_pn`
+  )
+  WHERE rn = 1
+),
+
+-- ============================================================
+-- 4. BASE PRINCIPAL
+-- ============================================================
+base AS (
+  SELECT DISTINCT
+    c.TIPO_DOCUMENTO,
+    c.KEY_ID,
+    c.VALOR_ACTIVO,
+    c.VALOR_PASIVO,
+    c.VALOR_INGRESOS,
+    c.VALOR_EGRESOS,
+
+    -- Datos Davivienda más recientes
+    d.INGRESO_2,
+    d.FECHA_INGRESO_2
+
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` p
+
+  INNER JOIN `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` c
+    ON p.KEY_ID_TOMADOR = c.KEY_ID
+   AND p.TIPO_DOCUMENTO_TOMADOR = c.TIPO_DOCUMENTO
+
+  LEFT JOIN davivienda_pn d
+    ON c.KEY_ID = d.KEY_ID
+
+  WHERE p.MCA_ANU_POLIZA != "S"
+    AND DATE(p.FECHA_PROCESO) = periodo_max_primas
+    AND DATE(p.FECHA_FIN_ENDOSO) >= CURRENT_DATE()
+    AND DATE(p.FECHA_FIN_POLIZA) >= CURRENT_DATE()
+    AND p.TIPO_DOCUMENTO_TOMADOR NOT IN ("NT", "NE")
+)
+
+-- ============================================================
+-- 5. RESULTADO FINAL
+-- ============================================================
+SELECT *
+FROM base b
+WHERE 
+ (VALOR_INGRESOS <= 1000 OR VALOR_INGRESOS IS NULL)
+  AND (VALOR_EGRESOS <= 1000 OR VALOR_EGRESOS IS NULL)
+  AND (INGRESO_2 >= 1000 AND INGRESO_2 IS NOT NULL);

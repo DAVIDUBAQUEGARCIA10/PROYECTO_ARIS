@@ -1,0 +1,46 @@
+
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.funcionarios_restringidos AS 
+
+WITH COLABORADORES AS (
+  SELECT distinct
+
+    TIPO_DOCUMENTO,
+    KEY_ID,
+    FUENTE,
+    EMPRESA_RELACION,
+    EMPRESA_CONTRATANTE_NOMBRE,
+    CLASE_VINCULACION,
+    DESCRIPCION_TIPO_RELACION,
+    NOMBRE_DEPARTAMENTO_EMPRESA
+  FROM `sb-ecosistemaanalitico-lago.talento_humano.t_colaboradores_activos`
+),
+
+RESTRINGIDOS_ACTIVOS AS (
+  SELECT distinct 
+    TIPO_DOCUMENTO_TERCERO,
+    KEY_ID,
+    CODIGO_RESTRICCION,
+    DESCRIPCION,
+    FECHA_BAJA,
+    FECHA_CREACION,
+    FECHA_MODIFICACION,
+    VALOR_RIESGO,
+    NIVEL_ALERTA,
+    MARCA_ACTIVO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_terceros_restringidos`
+  WHERE FECHA_BAJA IS NULL
+)
+
+SELECT distinct 
+
+  c.*,
+  r.CODIGO_RESTRICCION,
+  r.DESCRIPCION AS DESCRIPCION_RESTRICCION,
+  r.FECHA_CREACION AS FECHA_CREACION_RESTRICCION
+
+FROM COLABORADORES c
+LEFT JOIN RESTRINGIDOS_ACTIVOS r
+  ON r.KEY_ID = c.KEY_ID
+ AND r.TIPO_DOCUMENTO_TERCERO = c.TIPO_DOCUMENTO
+ where CODIGO_RESTRICCION is not null
+;

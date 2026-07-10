@@ -1,0 +1,7 @@
+SELECT 
+    ID,
+    NOMBRE,
+    Riesgo_LAFT_Basilea,
+    Nivel_de_riesgo_asignado
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_nacionalidad_nivel_riesgo`;

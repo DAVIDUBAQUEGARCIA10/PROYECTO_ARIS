@@ -1,0 +1,2 @@
+Select * 
+from sb-ecosistemaanalitico-lago.seguros_bolivar.t_roles_terceros_naturales_juridicos 

@@ -1,0 +1,57 @@
+-- ============================================================
+-- Proveedores por encima del percentil 98 de VALOR (global)
+-- Fuente principal:
+--   sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_proveedores_serv_inver_cupa
+-- Encriptación (KEY_ID) a partir de:
+--   sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes
+-- Notas:
+-- - Se normaliza ID (NUMERO_DOCUMENTO) quitando separadores.
+-- - Se usa APPROX_QUANTILES para p98 (estable y eficiente).
+-- - Si quieres p98 exacto, cambiar a PERCENTILE_CONT() OVER().
+-- ============================================================
+
+WITH base AS (
+  SELECT
+    SAFE_CAST(p.COMPA__IA AS INT64)                          AS CODIGO_COMPANIA,
+    DATE(p.FECHA)                                            AS FECHA,
+    UPPER(TRIM(CAST(p.TIPO_ID AS STRING)))                   AS TIPO_DOCUMENTO,
+    -- Normaliza ID (remueve no alfanumérico)
+    REGEXP_REPLACE(TRIM(CAST(p.ID AS STRING)), r'[^0-9A-Za-z]', '') AS NUMERO_DOCUMENTO,
+    TRIM(CAST(p.NOMBRE AS STRING))                           AS NOMBRE_PROVEEDOR,
+    SAFE_CAST(p.VALOR AS NUMERIC)                            AS VALOR,
+    TRIM(CAST(p.DESCRIPCION AS STRING))                      AS DESCRIPCION,
+    TRIM(CAST(p.FUENTE AS STRING))                           AS FUENTE
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_proveedores_serv_inver_cupa` p
+),
+p98 AS (
+  SELECT
+    -- Percentil 98 aproximado del campo VALOR (sobre TODO el universo de base)
+    APPROX_QUANTILES(VALOR, 100)[OFFSET(98)] AS VALOR_P98
+  FROM base
+),
+mapa_keyid AS (
+  SELECT DISTINCT
+    UPPER(TRIM(CAST(TIPO_DOCUMENTO AS STRING)))              AS TIPO_DOCUMENTO,
+    REGEXP_REPLACE(TRIM(CAST(NUMERO_DOCUMENTO AS STRING)), r'[^0-9A-Za-z]', '') AS NUMERO_DOCUMENTO,
+    TRIM(CAST(KEY_ID AS STRING))                             AS KEY_ID
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+  WHERE KEY_ID IS NOT NULL
+)
+SELECT
+  b.CODIGO_COMPANIA,
+  b.FECHA,
+  b.TIPO_DOCUMENTO,
+  b.NUMERO_DOCUMENTO,
+  mk.KEY_ID,                       -- ID encriptado
+  b.NOMBRE_PROVEEDOR,
+  b.VALOR,
+  p98.VALOR_P98,                   -- umbral utilizado (para trazabilidad)
+  b.DESCRIPCION,
+  b.FUENTE
+FROM base b
+CROSS JOIN p98
+LEFT JOIN mapa_keyid mk
+  ON b.TIPO_DOCUMENTO   = mk.TIPO_DOCUMENTO
+ AND b.NUMERO_DOCUMENTO = mk.NUMERO_DOCUMENTO
+WHERE b.VALOR > p98.VALOR_P98
+ORDER BY b.VALOR DESC;

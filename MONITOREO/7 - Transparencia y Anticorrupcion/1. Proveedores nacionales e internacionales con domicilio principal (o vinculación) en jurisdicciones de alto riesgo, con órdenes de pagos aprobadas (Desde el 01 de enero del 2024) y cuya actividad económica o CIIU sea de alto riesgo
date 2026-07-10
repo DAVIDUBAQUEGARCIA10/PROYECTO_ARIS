@@ -1,0 +1,171 @@
+----Proveedores nacionales e internacionales con domicilio principal (o vinculación) en jurisdicciones de alto riesgo, 
+----con órdenes de pagos aprobadas (Desde el 01 de enero del 2024) y cuya actividad económica o CIIU sea de alto riesgo.
+-- =====================================================================
+-- Condición (versión con nacionalidad):
+-- Proveedores (nacionales/internacionales) con:
+--   - Domicilio/vinculación en jurisdicciones de ALTO riesgo
+--   - (Plus) Nivel de riesgo de nacionalidad (vía catálogo de nacionalidades)
+-- Notas:
+--   - Se mapea KEY_ID (encriptado) desde t_terceros_clientes
+--   - Se incluye NIVEL_RIESGO_CIIU y NIVEL_RIESGO_JURISDICCION
+--   - Se agrega NIVEL_RIESGO_NACIONALIDAD + CIUDAD_NACIONALIDAD + NACIONALIDAD_CATALOGO
+-- =====================================================================
+
+WITH
+-- 1) Proveedores (normalizados)
+proveedores AS (
+  SELECT
+    SAFE_CAST(p.COMPA__IA AS INT64)                 AS CODIGO_COMPANIA,
+    DATE(p.FECHA)                                   AS FECHA,
+    UPPER(TRIM(CAST(p.TIPO_ID AS STRING)))          AS TIPO_DOCUMENTO,
+    REGEXP_REPLACE(TRIM(CAST(p.ID AS STRING)), r'[^0-9A-Za-z]', '') AS NUMERO_DOCUMENTO,
+    TRIM(CAST(p.NOMBRE AS STRING))                  AS NOMBRE_PROVEEDOR,
+    SAFE_CAST(p.VALOR AS NUMERIC)                   AS VALOR_ORDEN,
+    TRIM(CAST(p.DESCRIPCION AS STRING))             AS DESCRIPCION,
+    TRIM(CAST(p.FUENTE AS STRING))                  AS FUENTE
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_proveedores_serv_inver_cupa` p
+),
+
+-- 2) Mapa a KEY_ID (encriptado)
+mapa_keyid AS (
+  SELECT DISTINCT
+    UPPER(TRIM(CAST(TIPO_DOCUMENTO AS STRING)))     AS TIPO_DOCUMENTO,
+    REGEXP_REPLACE(TRIM(CAST(NUMERO_DOCUMENTO AS STRING)), r'[^0-9A-Za-z]', '') AS NUMERO_DOCUMENTO,
+    TRIM(CAST(KEY_ID AS STRING))                    AS KEY_ID,
+    TRIM(CAST(NOMBRE AS STRING))                    AS NOMBRE_REF
+  FROM `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`
+  WHERE KEY_ID IS NOT NULL
+),
+
+-- 3) Atributos del tercero (PN/PJ): CIIU, jurisdicción (Codazzi) y lugar de nacimiento
+terceros_enriquecidos AS (
+  SELECT DISTINCT
+    UPPER(TRIM(CAST(cj.TIPO_DOCUMENTO AS STRING)))  AS TIPO_DOCUMENTO,
+    TRIM(CAST(cj.KEY_ID AS STRING))                 AS KEY_ID,
+    TRIM(CAST(cj.CODIGO_CIIU AS STRING))            AS CODIGO_CIIU,
+    TRIM(CAST(cj.CODIGO_CODAZZI_DIRECCION_1 AS STRING)) AS CODAZZI_DIR_1,
+    TRIM(CAST(cj.CODIGO_LUGAR_REGISTRO AS STRING))  AS CODIGO_LUGAR_REGISTRO,
+    TRIM(CAST(cj.NACIONALIDAD AS STRING))           AS NACIONALIDAD_ORIGEN,
+    TRIM(CAST(cj.CODIGO_LUGAR_NACIMIENTO AS STRING)) AS CODIGO_LUGAR_NACIMIENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_juridicos` cj
+
+  UNION DISTINCT
+
+  SELECT DISTINCT
+    UPPER(TRIM(CAST(cn.TIPO_DOCUMENTO AS STRING)))  AS TIPO_DOCUMENTO,
+    TRIM(CAST(cn.KEY_ID AS STRING))                 AS KEY_ID,
+    TRIM(CAST(cn.CODIGO_CIIU AS STRING))            AS CODIGO_CIIU,
+    TRIM(CAST(cn.CODIGO_CODAZZI_DIRECCION_1 AS STRING)) AS CODAZZI_DIR_1,
+    TRIM(CAST(cn.CODIGO_LUGAR_REGISTRO AS STRING))  AS CODIGO_LUGAR_REGISTRO,
+    TRIM(CAST(cn.NACIONALIDAD AS STRING))           AS NACIONALIDAD_ORIGEN,
+    TRIM(CAST(cn.CODIGO_LUGAR_NACIMIENTO AS STRING)) AS CODIGO_LUGAR_NACIMIENTO
+  FROM `sb-ecosistemaanalitico-lago.seguros_bolivar.t_clientes_naturales` cn
+),
+
+-- 4) Riesgo por actividad económica (CIIU)
+riesgo_ciiu AS (
+  SELECT
+    TRIM(CAST(r.C__digo AS STRING))                 AS CODIGO_CIIU,
+    UPPER(TRIM(CAST(r.Nivel_de_riesgo AS STRING)))  AS NIVEL_RIESGO_CIIU
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_actividad_economica_nivel_riesgo` r
+),
+
+-- 5) Riesgo por jurisdicción (Codazzi/DANE)
+riesgo_jurisdiccion AS (
+  SELECT
+    TRIM(CAST(j.C__DIGO_DANE_DEL_MUNICIPIO AS STRING))      AS CODAZZI_DIR_1,
+    UPPER(TRIM(CAST(j.NIVEL_DE_RIESGO_ASIGNADO AS STRING))) AS NIVEL_RIESGO_JURISDICCION,
+    TRIM(CAST(j.MUNICIPIO AS STRING))                       AS MUNICIPIO
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_jurisdicciones_nivel_riesgo` j
+),
+
+-- 6) Catálogo de nacionalidades (riesgo por lugar de nacimiento)
+catalogo_nacionalidad AS (
+  SELECT
+    TRIM(CAST(n.ID AS STRING))                         AS CODIGO_LUGAR_NACIMIENTO,
+    TRIM(CAST(n.CIUDAD AS STRING))                     AS CIUDAD_NACIONALIDAD,
+    TRIM(CAST(n.NACIONALIDAD AS STRING))               AS NACIONALIDAD_CATALOGO,
+    UPPER(TRIM(CAST(n.Nivel_de_riesgo_asignado AS STRING))) AS NIVEL_RIESGO_NACIONALIDAD
+  FROM `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.t_nacionalidad_real` n
+),
+
+-- 7) Unión total
+proveedores_con_riesgo AS (
+  SELECT
+    pr.CODIGO_COMPANIA,
+    pr.FECHA,
+    pr.TIPO_DOCUMENTO,
+    pr.NUMERO_DOCUMENTO,
+    mk.KEY_ID,
+    pr.NOMBRE_PROVEEDOR,
+    pr.VALOR_ORDEN,
+    pr.DESCRIPCION,
+    pr.FUENTE,
+
+    te.CODIGO_CIIU,
+    te.CODAZZI_DIR_1,
+    te.CODIGO_LUGAR_REGISTRO,
+    te.NACIONALIDAD_ORIGEN,
+    te.CODIGO_LUGAR_NACIMIENTO,
+
+    rc.NIVEL_RIESGO_CIIU,
+    rj.NIVEL_RIESGO_JURISDICCION,
+    rj.MUNICIPIO,
+
+    cn.CIUDAD_NACIONALIDAD,
+    cn.NACIONALIDAD_CATALOGO,
+    cn.NIVEL_RIESGO_NACIONALIDAD,
+
+    FORMAT_DATE('%Y-%m', CURRENT_DATE()) AS FECHA_ALERTA_MES,
+    CURRENT_DATE() AS FECHA_ALERTA
+  FROM proveedores pr
+  LEFT JOIN mapa_keyid mk
+    ON pr.TIPO_DOCUMENTO   = mk.TIPO_DOCUMENTO
+   AND pr.NUMERO_DOCUMENTO = mk.NUMERO_DOCUMENTO
+
+  LEFT JOIN terceros_enriquecidos te
+    ON mk.TIPO_DOCUMENTO = te.TIPO_DOCUMENTO
+   AND mk.KEY_ID        = te.KEY_ID
+
+  LEFT JOIN riesgo_ciiu rc
+    ON te.CODIGO_CIIU   = rc.CODIGO_CIIU
+
+  LEFT JOIN riesgo_jurisdiccion rj
+    ON te.CODAZZI_DIR_1 = rj.CODAZZI_DIR_1
+
+  LEFT JOIN catalogo_nacionalidad cn
+    ON te.CODIGO_LUGAR_NACIMIENTO = cn.CODIGO_LUGAR_NACIMIENTO
+)
+
+-- 8) Filtro final (jurisdicción = ALTO). Si quieres, puedes sumar CIIU/Nacionalidad = ALTO.
+SELECT
+  CODIGO_COMPANIA,
+  FECHA,
+  TIPO_DOCUMENTO,
+  NUMERO_DOCUMENTO,
+  KEY_ID,
+  NOMBRE_PROVEEDOR,
+  VALOR_ORDEN,
+  DESCRIPCION,
+  FUENTE,
+
+  CODIGO_CIIU,
+  NIVEL_RIESGO_CIIU,
+
+  CODAZZI_DIR_1,
+  MUNICIPIO,
+  NIVEL_RIESGO_JURISDICCION,
+
+  -- Campos de nacionalidad añadidos
+  CODIGO_LUGAR_NACIMIENTO,
+  CIUDAD_NACIONALIDAD,
+  NACIONALIDAD_CATALOGO,
+  NIVEL_RIESGO_NACIONALIDAD,
+
+  FECHA_ALERTA_MES,
+  FECHA_ALERTA
+FROM proveedores_con_riesgo
+WHERE UPPER(NIVEL_RIESGO_JURISDICCION) = 'ALTO' or NIVEL_RIESGO_NACIONALIDAD = 'ALTO'
+
+
+

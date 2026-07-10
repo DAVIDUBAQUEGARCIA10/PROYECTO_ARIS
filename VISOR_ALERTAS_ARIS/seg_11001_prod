@@ -1,0 +1,130 @@
+CREATE OR REPLACE TABLE sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.SEG_11001 AS
+
+
+WITH BASE AS (
+
+-----------------ASOBANCARIAS
+
+-- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
+SELECT DISTINCT * 
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf
+WHERE 
+    FECHA_OPERACION >= '2025-06-01'
+    AND TIPO_MOVIMIENTO_CONTABLE = 'CB'
+    AND VALOR_PESOS_COLOMBIANOS >= 10000000
+    AND MARCA_NATURALEZA = 'D'
+    AND CODIGO_PRODUCTO IS NOT NULL
+    AND NUMERO_RECIBO != 9999095 -- Esto es ingresos barras 4000000207411440 Libranzas 
+   AND NUMERO_RECIBO != 9999996 -- Esto es finanaseguros
+    AND NUMERO_CUENTA  IN ( '6069999594', '006069999594',
+    '05300250331', '5300250331', 
+    '221816614', '006069999644','1081268701')
+ and NUMERO_RECIBO IN (9999985, 9999096, 9999980 )
+   -- AND COD_BENEF != 860034313
+    and TIPO_PAGO = 'EFECTIVO'
+   and CODIGO_COMPANIA = 2
+   and NOMBRE_ENTIDAD_TALON = 'BANCA DAVIVIENDA'
+    AND SAFE_CAST(NUMERO_TALON AS INT64) BETWEEN 100 AND 9999
+
+UNION ALL 
+
+-----------------BANCO OCCIDENTE
+
+-- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
+SELECT DISTINCT * 
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf
+WHERE 
+    FECHA_OPERACION >= '2025-06-01'
+    AND TIPO_MOVIMIENTO_CONTABLE = 'CB'
+    AND VALOR_PESOS_COLOMBIANOS >= 10000000
+    AND MARCA_NATURALEZA = 'D'
+    AND CODIGO_PRODUCTO IS NOT NULL
+    AND NUMERO_RECIBO != 9999095 -- Esto es ingresos barras 4000000207411440 Libranzas 
+   AND NUMERO_RECIBO != 9999996 -- Esto es finanaseguros
+    AND NUMERO_CUENTA  IN ( '6069999594', '006069999594',
+    '05300250331', '5300250331', 
+    '221816614', '006069999644','1081268701')
+ and NUMERO_RECIBO IN (9999985, 9999096, 9999980 )
+   -- AND COD_BENEF != 860034313
+    and TIPO_PAGO = 'EFECTIVO'
+   and CODIGO_COMPANIA = 2
+   and NOMBRE_ENTIDAD_TALON = 'BANCO DE OCCIDENTE'
+
+
+
+
+UNION ALL 
+
+-----------------BANCOLOMBIA
+
+-- Consulta de movimientos contables mayores a 10 millones en efectivo y otros medios en cuentas específicas
+SELECT DISTINCT * 
+FROM 
+    sb-ecosistemaanalitico-lago.seguros_bolivar.t_compensaciones_uiaf
+WHERE 
+    FECHA_OPERACION >= '2025-06-01'
+    AND TIPO_MOVIMIENTO_CONTABLE = 'CB'
+    AND VALOR_PESOS_COLOMBIANOS >= 10000000
+    AND MARCA_NATURALEZA = 'D'
+    AND CODIGO_PRODUCTO IS NOT NULL
+    AND NUMERO_RECIBO != 9999095 -- Esto es ingresos barras 4000000207411440 Libranzas 
+    AND NUMERO_CUENTA  IN ( '6069999594', '006069999594',
+    '05300250331', '5300250331', 
+    '221816614', '006069999644','1081268701')
+ and NUMERO_RECIBO IN (9999985, 9999096, 9999980 )
+   -- AND COD_BENEF != 860034313
+    and TIPO_PAGO = 'EFECTIVO'
+   and CODIGO_COMPANIA = 2
+   and NOMBRE_ENTIDAD_TALON = 'BANCOLOMBIA'
+
+
+
+)
+
+
+
+SELECT DISTINCT
+  B.FECHA_OPERACION AS Fecha_TRX, 
+  ter.TIPO_DOCUMENTO AS Tipo_Doc,
+  ter.NUMERO_DOCUMENTO AS Num_Doc, 
+  ter.NOMBRE AS Nombre, 
+  B.CODIGO_COMPANIA AS COMPANIA,
+
+  P.CODIGO_RAMO_EMISION AS Cod_Ramo,
+  P.NOMBRE_RAMO_EMISION AS Ramo,
+  
+  B.CODIGO_PRODUCTO AS Cod_Producto,
+  P.NOMBRE_PRODUCTO AS Producto, 
+  
+  B.NUMERO_POLIZA AS Poliza,
+  
+  'PRIMA' AS PRIMA_APORTE,
+  'TRX EFECTIVO' AS Forma_Pago,
+  
+  B.VALOR_PESOS_COLOMBIANOS AS Monto_Operacion,
+  B.CODIGO_MONEDA AS Moneda,
+  B.CODIGO_OFICINA_COMERCIAL AS Localidad,
+  B.NUMERO_ENTIDAD AS FUENTE,
+  B.DESCRIPCION_MOVIMIENTO AS Referencia_pago, 
+  B.CODIGO_ANULACION,
+  B.VALOR_MONEDA_EXTRANJERA,
+  B.TASA_CAMBIO,
+  B.NUMERO_RECIBO,
+  B.TIPO_PAGO,
+  B.NOMBRE_ENTIDAD_TALON
+
+FROM 
+  BASE B
+LEFT JOIN 
+  `sb-ecosistemaanalitico-lago.seguros_bolivar.t_polizas_riesgos_endosos` P
+ON 
+  B.NUMERO_POLIZA = P.NUMERO_POLIZA
+
+LEFT JOIN 
+  `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes`  ter
+ON 
+  ter.KEY_ID = P.KEY_ID_TOMADOR
+  and ter.TIPO_DOCUMENTO = P.TIPO_DOCUMENTO_TOMADOR
+where  P.NOMBRE_RAMO_EMISION is not null

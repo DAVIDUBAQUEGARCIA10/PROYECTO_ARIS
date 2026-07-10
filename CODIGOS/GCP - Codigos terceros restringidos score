@@ -1,0 +1,8 @@
+SELECT 
+    ID,
+    CODIGO,
+    DESCRIPCION,
+    NIVEL_DE_RIESGO,
+    ESTADO
+FROM 
+    `sb-sandbox-usuarios.sandbox_cumplimiento.t_categoria_restringido_nivel_riesgo`;
