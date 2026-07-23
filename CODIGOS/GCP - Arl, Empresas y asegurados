@@ -24,3 +24,22 @@ AND MES_CORTE = (
         FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
     )
 );
+
+
+
+------OK
+SELECT
+    FECHA_INI_COBERTURA,
+    TDOC_EMPRESA,
+    NIT_EMPRESA,
+    COD_CIA,
+    IDE_NIT,
+    NIT,
+    SALARIO,
+    COD_CARGO
+FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+WHERE NIT_EMPRESA = '860002503'
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY NIT
+    ORDER BY SALARIO DESC, FECHA_INI_COBERTURA DESC
+) = 1;
