@@ -88,3 +88,10 @@ FROM trabajadores t
 LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
     ON TRIM(CAST(t.NIT AS STRING)) = TRIM(CAST(c.NUMERO_DOCUMENTO AS STRING))
     AND TRIM(CAST(t.IDE_NIT AS STRING)) = TRIM(CAST(c.TIPO_DOCUMENTO AS STRING));
+
+
+
+select distinct NIT_EMPRESA,IDE_NIT, NIT, NUMERO_DOCUMENTO, SALARIO
+from sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Laft_monitoreo_arl
+--where NUMERO_DOCUMENTO = 1014282242
+where NIT_EMPRESA in ("860034313","860006359", "860002180","860002503")
