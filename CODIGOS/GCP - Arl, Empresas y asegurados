@@ -43,3 +43,48 @@ QUALIFY ROW_NUMBER() OVER (
     PARTITION BY NIT
     ORDER BY SALARIO DESC, FECHA_INI_COBERTURA DESC
 ) = 1;
+
+
+
+
+
+
+
+-----------
+
+
+create or replace table `sb-ecosistemaanalitico-lago.cumplimiento_normativo_prod.Laft_monitoreo_arl` as
+WITH trabajadores AS (
+    SELECT
+        FECHA_INI_COBERTURA,
+        TDOC_EMPRESA,
+        NIT_EMPRESA,
+        COD_CIA,
+        IDE_NIT,
+        NIT,
+        SALARIO,
+        COD_CARGO
+    FROM `sb-ecosistemaanalitico-lago.bienestar_seguros_bolivar.t_trabajadores_arl`
+    --WHERE CAST(NIT_EMPRESA AS STRING) = '860002503'
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY NIT
+        ORDER BY SALARIO DESC, FECHA_INI_COBERTURA DESC
+    ) = 1
+)
+
+SELECT
+    t.FECHA_INI_COBERTURA,
+    t.TDOC_EMPRESA,
+    t.NIT_EMPRESA,
+    t.COD_CIA,
+    t.IDE_NIT,
+    t.NIT,
+    c.NUMERO_DOCUMENTO,
+    c.NOMBRE,
+    t.SALARIO,
+    t.COD_CARGO
+FROM trabajadores t
+
+LEFT JOIN `sb-sandbox-usuarios.sandbox_cumplimiento.t_terceros_clientes` c
+    ON TRIM(CAST(t.NIT AS STRING)) = TRIM(CAST(c.NUMERO_DOCUMENTO AS STRING))
+    AND TRIM(CAST(t.IDE_NIT AS STRING)) = TRIM(CAST(c.TIPO_DOCUMENTO AS STRING));
